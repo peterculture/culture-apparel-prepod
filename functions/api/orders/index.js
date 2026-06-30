@@ -15,6 +15,7 @@ import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 
 const FIELDS = [
   "Id",
+  "GOA_Order_Number__c",
   "OrderNumber",
   "Name", // <-- verify this exists on Order in your org; see note above
   "Print_Date__c",
