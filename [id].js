@@ -1,0 +1,73 @@
+/**
+ * PATCH /api/orders/:id
+ *
+ * Updates a single Order's pre-production fields. Only fields on the allow-list
+ * below can be written -- this prevents the public proxy from being used to
+ * modify arbitrary Salesforce fields. Salesforce returns 204 No Content on a
+ * successful update.
+ *
+ * Request body: JSON object of { fieldApiName: value }, e.g.
+ *   { "Films_Printed__c": true }
+ *   { "Receiving_Status__c": "Counted In" }
+ */
+import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+
+const ALLOWED_FIELDS = new Set([
+  "Receiving_Status__c",
+  // Screen Print
+  "Films_Printed__c",
+  "Screens_Completed__c",
+  "Mix_Inks__c",
+  // Embroidery
+  "Digitize_File__c",
+  "Thread_Color_Materials__c",
+  // Heat Press
+  "Transfers_Received__c",
+  "Transfers_Ready__c",
+]);
+
+// Salesforce IDs are 15 or 18 chars, alphanumeric. Validate before using in a URL.
+const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
+
+export async function onRequestPatch({ params, request, env }) {
+  try {
+    const id = params.id;
+    if (!SF_ID.test(id)) {
+      return jsonError("invalid_id", 400);
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonError("invalid_json", 400);
+    }
+
+    // Keep only allow-listed fields.
+    const payload = {};
+    for (const [k, v] of Object.entries(body || {})) {
+      if (ALLOWED_FIELDS.has(k)) payload[k] = v;
+    }
+    if (Object.keys(payload).length === 0) {
+      return jsonError("no_allowed_fields", 400);
+    }
+
+    const path = `/services/data/${apiVersion(env)}/sobjects/Order/${id}`;
+    const resp = await sfFetch(env, path, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (resp.status === 204) {
+      return new Response(null, { status: 204 });
+    }
+
+    const detail = await resp.text();
+    console.error("Salesforce update failed", resp.status, detail);
+    return jsonError("update_failed", resp.status);
+  } catch (err) {
+    console.error(err);
+    return jsonError("internal_error", 500);
+  }
+}

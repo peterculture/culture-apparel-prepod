@@ -1,0 +1,9 @@
+# Optional. The Cloudflare Pages dashboard (git integration) can deploy without
+# this file. It's useful for local testing with:  npx wrangler pages dev .
+#
+# Do NOT put SF_CLIENT_SECRET here. Real secrets go in the Pages dashboard
+# (Settings -> Variables and Secrets) or a local, git-ignored .dev.vars file.
+
+name = "culture-apparel-preprod"
+compatibility_date = "2026-06-30"
+pages_build_output_dir = "."
