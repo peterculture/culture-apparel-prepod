@@ -1697,7 +1697,14 @@ function renderMgrCardBody(o){
     html+='<div style="text-align:center;padding:16px 0;color:#3D8B3D;font-size:13px;font-weight:500"><i class="ti ti-circle-check" style="font-size:20px;display:block;margin-bottom:4px" aria-hidden="true"></i>Pre-production elements sent to shop floor</div>';
     return html;
   }
-
+if(!o.method){
+  html+='<div class="form-sec"><div class="form-sec-title"><i class="ti ti-category" aria-hidden="true"></i> Print type</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    +[['sp','Screen Print','#C6372B'],['em','Embroidery','#2C6B6A'],['hp','Heat Press','#C68A30']]
+      .map(m=>'<button class="add-item-btn" style="border-style:solid;border-color:'+m[2]+';color:'+m[2]+'" data-mgr="pick-method" data-id="'+o.id+'" data-method="'+m[0]+'">'+m[1]+'</button>').join('')
+    +'</div></div>';
+  return html;
+}
   // Create elements button
   if(!o.formOpen){
     html+='<button class="add-item-btn" style="width:100%;justify-content:center;padding:12px;border-style:solid;border-color:#C6372B;color:#C6372B;font-size:13px;font-weight:600" data-mgr="open-form" data-id="'+o.id+'">'
