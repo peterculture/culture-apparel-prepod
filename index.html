@@ -1558,7 +1558,7 @@ window.pinSubmit=function(){
     document.getElementById('app-shell').style.display='flex';
     document.getElementById('tab-mgr').style.display='inline-flex';
     initApp();
-    renderMgrInbox();
+    loadMgrInbox();
   } else {
     document.getElementById('login-err').textContent='Incorrect PIN — try again';
     pinBuffer='';
