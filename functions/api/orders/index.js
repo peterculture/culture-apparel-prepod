@@ -20,6 +20,7 @@ const FIELDS = [
   "Name", // <-- verify this exists on Order in your org; see note above
   "Print_Date__c",
   "Account.Name",
+  "Printer__r.Name", // <-- printer account drives the print method
   "Receiving_Status__c",
   // Screen Print
   "Films_Printed__c",
