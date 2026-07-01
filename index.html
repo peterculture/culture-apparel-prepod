@@ -1671,28 +1671,149 @@ function renderMgrCard(o){
 
 function renderMgrCardBody(o){
   let html='';
-  // Order details section
+  // Safe detail accessor — live inbox orders have no detail fields yet (details:null)
+  const d = o.details || {
+    pantones:[], design:'—', transfers:'—',
+    garments:'Garment breakdown not loaded yet', notes:'—'
+  };
+  // Order details section (only when real detail data exists)
   if(o.details){
-  html+='<div style="background:#0A0A0C;border:1px solid #1A1A1C;border-radius:8px;padding:14px;margin-bottom:16px">'
-    +'<div class="form-sec-title"><i class="ti ti-file-description" aria-hidden="true"></i> Order details from account manager</div>';
-  if(o.method==='sp'){
-    html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Pantone colors</div>'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
-      +o.details.pantones.map(p=>'<span style="background:#1A1A1C;border:1px solid #262628;border-radius:4px;padding:3px 10px;font-size:12px;color:#ECEAE4">'+p+'</span>').join('')
+    html+='<div style="background:#0A0A0C;border:1px solid #1A1A1C;border-radius:8px;padding:14px;margin-bottom:16px">'
+      +'<div class="form-sec-title"><i class="ti ti-file-description" aria-hidden="true"></i> Order details from account manager</div>';
+    if(o.method==='sp'){
+      html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Pantone colors</div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+        +d.pantones.map(p=>'<span style="background:#1A1A1C;border:1px solid #262628;border-radius:4px;padding:3px 10px;font-size:12px;color:#ECEAE4">'+p+'</span>').join('')
+        +'</div>';
+    } else if(o.method==='em'){
+      html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Design</div>'
+        +'<div style="font-size:13px;color:#ECEAE4;margin-bottom:10px">'+d.design+'</div>';
+    } else if(o.method==='hp'){
+      html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Transfers</div>'
+        +'<div style="font-size:13px;color:#ECEAE4;margin-bottom:10px">'+d.transfers+'</div>';
+    }
+    html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Garments</div>'
+      +'<div style="font-size:13px;color:#ECEAE4;margin-bottom:10px">'+d.garments+'</div>'
+      +'<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Notes</div>'
+      +'<div style="font-size:13px;color:#9C988F;font-style:italic">'+d.notes+'</div>'
       +'</div>';
+  }
+
+  if(o.sent){
+    html+='<div style="text-align:center;padding:16px 0;color:#3D8B3D;font-size:13px;font-weight:500"><i class="ti ti-circle-check" style="font-size:20px;display:block;margin-bottom:4px" aria-hidden="true"></i>Pre-production elements sent to shop floor</div>';
+    return html;
+  }
+
+  if(!o.method){
+    html+='<div class="form-sec"><div class="form-sec-title"><i class="ti ti-category" aria-hidden="true"></i> Print type</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +[['sp','Screen Print','#C6372B'],['em','Embroidery','#2C6B6A'],['hp','Heat Press','#C68A30']]
+        .map(m=>'<button class="add-item-btn" style="border-style:solid;border-color:'+m[2]+';color:'+m[2]+'" data-mgr="pick-method" data-id="'+o.id+'" data-method="'+m[0]+'">'+m[1]+'</button>').join('')
+      +'</div></div>';
+    return html;
+  }
+
+  // Create elements button
+  if(!o.formOpen){
+    html+='<button class="add-item-btn" style="width:100%;justify-content:center;padding:12px;border-style:solid;border-color:#C6372B;color:#C6372B;font-size:13px;font-weight:600" data-mgr="open-form" data-id="'+o.id+'">'
+      +'<i class="ti ti-plus" aria-hidden="true"></i> Create pre-production elements</button>';
+    return html;
+  }
+
+  // ── FORM ──
+  html+='<div style="border:1px solid #262628;border-radius:8px;padding:16px;margin-bottom:12px">';
+  html+='<div style="font-size:13px;font-weight:600;color:#ECEAE4;margin-bottom:14px;display:flex;align-items:center;gap:7px"><i class="ti ti-tool" style="color:#C6372B" aria-hidden="true"></i> Create pre-production elements</div>';
+
+  if(o.method==='sp'){
+    html+='<div class="form-sec">'
+      +'<div class="form-sec-title" style="color:#E8A800"><i class="ti ti-photo" aria-hidden="true"></i> Films printed</div>'
+      +'<div class="confirm-row" data-mgr="toggle-films" data-id="'+o.id+'" style="cursor:pointer">'
+      +'<div class="confirm-ck'+(o.elements.filmsCreated?' checked':'')+'" id="ck-films-'+o.id+'">'+(o.elements.filmsCreated?'<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>':'')+'</div>'
+      +'<label style="cursor:pointer">Films have been output and are ready</label>'
+      +'</div></div>';
+    html+='<div class="form-sec">'
+      +'<div class="form-sec-title" style="color:#D44C8A"><i class="ti ti-grid-dots" aria-hidden="true"></i> Screens <span style="font-size:10px;color:#6E6A62;font-weight:400;text-transform:none;letter-spacing:0">('+o.elements.screens.length+' added)</span></div>'
+      +o.elements.screens.map((sc,i)=>'<div class="field-row">'
+        +'<select data-mchg="screen-mesh" data-id="'+o.id+'" data-idx="'+i+'" style="max-width:120px">'
+        +MESH_OPTIONS.map(m=>'<option value="'+m+'"'+(sc.mesh===m?' selected':'')+'>'+m+' mesh</option>').join('')
+        +'</select>'
+        +'<input type="text" placeholder="Label (optional)" value="'+(sc.label||'')+'" data-minput="screen-label" data-id="'+o.id+'" data-idx="'+i+'">'
+        +'<button class="remove-btn" data-mgr="rm-screen" data-id="'+o.id+'" data-idx="'+i+'"><i class="ti ti-x" aria-hidden="true"></i></button>'
+        +'</div>').join('')
+      +'<button class="add-item-btn" data-mgr="add-screen" data-id="'+o.id+'"><i class="ti ti-plus" aria-hidden="true"></i> Add screen</button>'
+      +'</div>';
+    html+='<div class="form-sec">'
+      +'<div class="form-sec-title" style="color:#2E9CCA"><i class="ti ti-droplet" aria-hidden="true"></i> Inks</div>'
+      +o.elements.inks.map((k,i)=>'<div class="field-row">'
+        +'<div style="width:18px;height:18px;border-radius:50%;background:'+k.hex+';border:1px solid #444;flex-shrink:0"></div>'
+        +'<input type="text" value="'+k.pantone+'" data-minput="ink-name" data-id="'+o.id+'" data-idx="'+i+'">'
+        +'<input type="color" value="'+k.hex+'" data-mchg="ink-hex" data-id="'+o.id+'" data-idx="'+i+'" style="width:36px;height:36px;padding:2px;border-radius:4px;flex-shrink:0;cursor:pointer">'
+        +'<button class="remove-btn" data-mgr="rm-ink" data-id="'+o.id+'" data-idx="'+i+'"><i class="ti ti-x" aria-hidden="true"></i></button>'
+        +'</div>').join('')
+      +'<button class="add-item-btn" data-mgr="add-ink" data-id="'+o.id+'"><i class="ti ti-plus" aria-hidden="true"></i> Add ink color</button>'
+      +'</div>';
+    html+='<div class="form-sec">'
+      +'<div class="form-sec-title" style="color:#3D8B3D"><i class="ti ti-shirt" aria-hidden="true"></i> Garments</div>'
+      +'<div class="confirm-row" data-mgr="toggle-garments" data-id="'+o.id+'" style="cursor:pointer">'
+      +'<div class="confirm-ck'+(o.elements.garmentsConfirmed?' checked':'')+'" id="ck-garm-'+o.id+'">'+(o.elements.garmentsConfirmed?'<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>':'')+'</div>'
+      +'<label style="cursor:pointer">'+d.garments+' — confirmed</label>'
+      +'</div></div>';
+
   } else if(o.method==='em'){
-    html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Design</div>'
-      +'<div style="font-size:13px;color:#ECEAE4;margin-bottom:10px">'+o.details.design+'</div>';
-  } else {
-    html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Transfers</div>'
-      +'<div style="font-size:13px;color:#ECEAE4;margin-bottom:10px">'+o.details.transfers+'</div>';
+    html+='<div class="form-sec">'
+      +'<div class="form-sec-title" style="color:#D4611A"><i class="ti ti-file" aria-hidden="true"></i> Design file</div>'
+      +'<div class="confirm-row" data-mgr="toggle-df" data-id="'+o.id+'" style="cursor:pointer">'
+      +'<div class="confirm-ck'+(o.elements.dfConfirmed?' checked':'')+'" id="ck-df-'+o.id+'">'+(o.elements.dfConfirmed?'<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>':'')+'</div>'
+      +'<label style="cursor:pointer">'+d.design+' — file ready</label>'
+      +'</div></div>';
+    html+='<div class="form-sec">'
+      +'<div class="form-sec-title" style="color:#B0A090"><i class="ti ti-needle-thread" aria-hidden="true"></i> Thread colors</div>'
+      +o.elements.threads.map((t,i)=>'<div class="field-row">'
+        +'<div style="width:18px;height:18px;border-radius:50%;background:'+t.hex+';border:1px solid #444;flex-shrink:0"></div>'
+        +'<input type="text" value="'+t.color+'" data-minput="thread-name" data-id="'+o.id+'" data-idx="'+i+'">'
+        +'<input type="color" value="'+t.hex+'" data-mchg="thread-hex" data-id="'+o.id+'" data-idx="'+i+'" style="width:36px;height:36px;padding:2px;border-radius:4px;flex-shrink:0;cursor:pointer">'
+        +'<button class="remove-btn" data-mgr="rm-thread" data-id="'+o.id+'" data-idx="'+i+'"><i class="ti ti-x" aria-hidden="true"></i></button>'
+        +'</div>').join('')
+      +'<button class="add-item-btn" data-mgr="add-thread" data-id="'+o.id+'"><i class="ti ti-plus" aria-hidden="true"></i> Add thread color</button>'
+      +'</div>';
+    html+='<div class="form-sec">'
+      +'<div class="form-sec-title" style="color:#3D8B3D"><i class="ti ti-shirt" aria-hidden="true"></i> Garments</div>'
+      +'<div class="confirm-row" data-mgr="toggle-garments" data-id="'+o.id+'" style="cursor:pointer">'
+      +'<div class="confirm-ck'+(o.elements.garmentsConfirmed?' checked':'')+'" id="ck-garm-'+o.id+'">'+(o.elements.garmentsConfirmed?'<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>':'')+'</div>'
+      +'<label style="cursor:pointer">'+d.garments+' — confirmed</label>'
+      +'</div></div>';
+
+  } else if(o.method==='hp'){
+    html+='<div class="form-sec">'
+      +'<div class="form-sec-title" style="color:#7B4FBF"><i class="ti ti-transfer-in" aria-hidden="true"></i> Transfers</div>'
+      +'<div class="confirm-row" data-mgr="toggle-trrecv" data-id="'+o.id+'" style="cursor:pointer">'
+      +'<div class="confirm-ck'+(o.elements.trRecvConfirmed?' checked':'')+'" id="ck-tr1-'+o.id+'">'+(o.elements.trRecvConfirmed?'<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>':'')+'</div>'
+      +'<label style="cursor:pointer">Transfers ordered and expected</label>'
+      +'</div>'
+      +'<div class="confirm-row" data-mgr="toggle-trready" data-id="'+o.id+'" style="cursor:pointer;margin-top:6px">'
+      +'<div class="confirm-ck'+(o.elements.trReadyConfirmed?' checked':'')+'" id="ck-tr2-'+o.id+'">'+(o.elements.trReadyConfirmed?'<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>':'')+'</div>'
+      +'<label style="cursor:pointer">Cut &amp; prep requirements noted</label>'
+      +'</div>'
+      +'<div style="font-size:12px;color:#6E6A62;margin-top:8px;padding:8px 10px;background:#0A0A0C;border-radius:5px">'+d.transfers+'</div>'
+      +'</div>';
+    html+='<div class="form-sec">'
+      +'<div class="form-sec-title" style="color:#3D8B3D"><i class="ti ti-shirt" aria-hidden="true"></i> Garments</div>'
+      +'<div class="confirm-row" data-mgr="toggle-garments" data-id="'+o.id+'" style="cursor:pointer">'
+      +'<div class="confirm-ck'+(o.elements.garmentsConfirmed?' checked':'')+'" id="ck-garm-'+o.id+'">'+(o.elements.garmentsConfirmed?'<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>':'')+'</div>'
+      +'<label style="cursor:pointer">'+d.garments+' — confirmed</label>'
+      +'</div></div>';
   }
-  html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Garments</div>'
-    +'<div style="font-size:13px;color:#ECEAE4;margin-bottom:10px">'+o.details.garments+'</div>'
-    +'<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Notes</div>'
-    +'<div style="font-size:13px;color:#9C988F;font-style:italic">'+o.details.notes+'</div>'
-    +'</div>';
-  }
+
+  html+='</div>'; // close form panel
+
+  const ready=mgrOrderReady(o);
+  html+='<button class="send-btn" '+(ready?'':'disabled')+' data-mgr="send" data-id="'+o.id+'">'
+    +'<i class="ti ti-arrow-right" aria-hidden="true"></i> Send to shop floor'
+    +'</button>';
+  if(!ready) html+='<p style="font-size:11px;color:#6E6A62;text-align:center;margin-top:8px">Complete all elements above to unlock</p>';
+
+  return html;
+}
   
   if(o.sent){
     html+='<div style="text-align:center;padding:16px 0;color:#3D8B3D;font-size:13px;font-weight:500"><i class="ti ti-circle-check" style="font-size:20px;display:block;margin-bottom:4px" aria-hidden="true"></i>Pre-production elements sent to shop floor</div>';
