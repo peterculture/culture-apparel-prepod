@@ -1864,34 +1864,44 @@ function handleMgrChange(e){
 
 function handleMgrInput(e){
   const t=e.target;const{minput:action,id,idx}=t.dataset;
- async function sendToShop(o){
-  const btn=document.querySelector('[data-mgr="send"][data-id="'+o.id+'"]');
-  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader" aria-hidden="true"></i> Creating in Salesforce…';}
-  const items=[];
-  if(o.method==='sp'){
-    o.elements.screens.forEach(()=>items.push({type:'Screen',status:'Not Started'}));
-    o.elements.inks.forEach(()=>items.push({type:'Ink',status:'Not Started'}));
-  } else if(o.method==='em'){
-    if(o.elements.dfConfirmed) items.push({type:'Digitization',status:'Not Started'});
-    o.elements.threads.forEach(()=>items.push({type:'Thread',status:'Not Started'}));
-  } else if(o.method==='hp'){
-    items.push({type:'Transfer',status:'Not Started'});
-  }
-  const typeMap={sp:'Screen Print',em:'Embroidery',hp:'Heat Press'};
-  try{
-    const r=await fetch('/api/production-methods',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({orderId:o.orderId,type:typeMap[o.method],items}),
-    });
-    const d=await r.json();
-    if(!r.ok||!d.ok) throw new Error(d.detail?JSON.stringify(d.detail):(d.error||('Failed '+r.status)));
-    loadMgrInbox();
-    doLoad();
-  }catch(e){
-    alert('Could not create in Salesforce: '+e.message);
-    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-arrow-right" aria-hidden="true"></i> Send to shop floor';}
-  }
+  const o=getMgrOrder(id);if(!o)return;
+  if(action==='screen-label'){o.elements.screens[+idx].label=t.value;}
+  if(action==='ink-name'){o.elements.inks[+idx].pantone=t.value;}
+  if(action==='thread-name'){o.elements.threads[+idx].color=t.value;}
+  // don't re-render on input (would reset cursor) — just update data
 }
+
+function sendToShop(o){
+  o.sent=true;o.open=false;
+  // Build a new worker-visible order and push to the correct DB array
+  const now=new Date();now.setHours(0,0,0,0);
+  const day=now.getDay();
+  const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));
+  // Default to today
+  const todayISO=iso(now);
+
+  if(o.method==='sp'){
+    DB.sp.unshift({
+      id:'shop-'+o.id,num:o.num,name:o.customer,acct:'Culture Apparel',due:todayISO,
+      recv:'Not Received',
+      filmsPrinted:false,scDone:false,inkDone:false,
+      dfDone:false,thDone:false,trRecv:false,trRdy:false,sav:{},
+    });
+  } else if(o.method==='em'){
+    DB.em.unshift({
+      id:'shop-'+o.id,num:o.num,name:o.customer,acct:'Culture Apparel Embroidery',due:todayISO,
+      recv:'Not Received',
+      filmsPrinted:false,scDone:false,inkDone:false,
+      dfDone:false,thDone:false,trRecv:false,trRdy:false,sav:{},
+    });
+  } else {
+    DB.hp.unshift({
+      id:'shop-'+o.id,num:o.num,name:o.customer,acct:'Culture Apparel Heat Press',due:todayISO,
+      recv:'Not Received',
+      filmsPrinted:false,scDone:false,inkDone:false,
+      dfDone:false,thDone:false,trRecv:false,trRdy:false,sav:{},
+    });
+  }
   renderMgrInbox();
   renderAll();
   // Flash the relevant tab to show the order appeared
