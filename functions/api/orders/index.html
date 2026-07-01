@@ -891,11 +891,12 @@ async function doLoad(){
     if(!r.ok) throw new Error((d&&d.error)||(d&&d[0]&&d[0].message)||('Request failed ('+r.status+')'));
     DB={sp:[],em:[],hp:[]};
     (d.records||[]).forEach(rec=>{
-      const a=((rec.Account&&rec.Account.Name)||'').toLowerCase();
-      const o=mapRec(rec);
-      if(a.includes('embroidery')) DB.em.push(o);
-      else if(a.includes('heat press')) DB.hp.push(o);
-      else DB.sp.push(o);
+     const printer=((rec.Printer__r&&rec.Printer__r.Name)||'').toLowerCase();
+const o=mapRec(rec);
+if(printer.includes('embroidery')) DB.em.push(o);
+else if(printer.includes('heat press')) DB.hp.push(o);
+else if(printer.includes('culture apparel')) DB.sp.push(o);
+else { DB.sp.push(o); console.warn('Unmapped printer:', (rec.Printer__r&&rec.Printer__r.Name), 'order', rec.GOA_Order_Number__c); }
     });
     SF.loaded=true;
     sfSt('on','Live · '+(d.records||[]).length+' pre-production orders');
