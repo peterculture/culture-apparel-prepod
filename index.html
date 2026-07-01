@@ -1594,20 +1594,29 @@ window.doLogout=function(){
 ══════════════════════════════════════ */
 // These are orders waiting for the manager to create pre-production elements
 // Once sent to shop they move to DB.sp/em/hp and become visible to workers
-let mgrOrders=[
-  {id:'mgr-1',num:'20134',customer:'Crossroads Church — Youth Camp 2026',method:'sp',
-   details:{pantones:['PMS 286 C — Navy','PMS 1235 C — Gold','PMS White'],garments:'Gildan 5000 Black — 144 pcs (S/M/L/XL/2XL)',notes:'2-color front, 1-color back. Client wants name drops on sleeve.'},
-   elements:{filmsCreated:false,screens:[],inks:[{pantone:'PMS 286 C — Navy',hex:'#003DA5'},{pantone:'PMS 1235 C — Gold',hex:'#F2A900'},{pantone:'PMS White',hex:'#F4F4F4'}],garmentsConfirmed:false,recvStatus:'Not Received'},
-   sent:false,open:false,formOpen:false},
-  {id:'mgr-2',num:'20201',customer:'Nashville FC — Supporter Kits',method:'em',
-   details:{design:'Left chest crest embroidery + right sleeve wordmark',garments:'Port Authority K500 White — 60 pcs (M/L/XL)',notes:'Flat embroidery, no 3D puff. Match PMS 1655 C orange exactly.'},
-   elements:{dfConfirmed:false,threads:[{color:'Madeira 1154 — Red',hex:'#C8102E'},{color:'Madeira 1071 — Gold',hex:'#F2A900'}],garmentsConfirmed:false,recvStatus:'Not Received'},
-   sent:false,open:false,formOpen:false},
-  {id:'mgr-3',num:'20267',customer:'Belmont University — Orientation Tee',method:'hp',
-   details:{transfers:'Full front DTF transfer — 200 pcs. Full back DTF — 200 pcs.',garments:'Bella+Canvas 3001 White — 200 pcs (S/M/L/XL/2XL)',notes:'Rush order — print date is Friday. Confirm transfers arrive by Wednesday.'},
-   elements:{trRecvConfirmed:false,trReadyConfirmed:false,garmentsConfirmed:false,recvStatus:'Not Received'},
-   sent:false,open:false,formOpen:false},
-];
+let mgrOrders=[]; // loaded live from /api/inbox
+
+async function loadMgrInbox(){
+  const el=document.getElementById('mgr-inbox');
+  el.innerHTML='<p class="empty">Loading orders…</p>';
+  try{
+    const r=await fetch('/api/inbox',{headers:{Accept:'application/json'}});
+    const d=await r.json();
+    if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+    mgrOrders=(d.records||[]).map(rec=>({
+      id:'mgr-'+rec.Id,
+      orderId:rec.Id,                 // real SF Order Id the master-detail attaches to
+      num:rec.OrderNumber||'—',
+      customer:(rec.Account&&rec.Account.Name)||rec.Name||'—',
+      method:null,                    // manager picks the type as a step
+      details:null,                   // account-manager detail fields aren't in SF yet
+      elements:{filmsCreated:false,screens:[],inks:[],dfConfirmed:false,threads:[],
+                trRecvConfirmed:false,trReadyConfirmed:false,garmentsConfirmed:false,recvStatus:'Not Received'},
+      sent:false,open:false,formOpen:false,
+    }));
+    renderMgrInbox();
+  }catch(e){ el.innerHTML='<p class="empty" style="color:#E8A89F">Inbox load failed: '+e.message+'</p>'; }
+}
 
 const MESH_OPTIONS=['60','85','110','125','156','175','200','230','305'];
 
