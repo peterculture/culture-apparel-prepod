@@ -1672,6 +1672,7 @@ function renderMgrCard(o){
 function renderMgrCardBody(o){
   let html='';
   // Order details section
+  if(o.details){
   html+='<div style="background:#0A0A0C;border:1px solid #1A1A1C;border-radius:8px;padding:14px;margin-bottom:16px">'
     +'<div class="form-sec-title"><i class="ti ti-file-description" aria-hidden="true"></i> Order details from account manager</div>';
   if(o.method==='sp'){
