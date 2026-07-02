@@ -1253,6 +1253,12 @@ async function loadMgrInbox(){
       customer:(rec.Account&&rec.Account.Name)||rec.Name||'—',
       method:null,                    // manager picks the type as a step
       details:null,                   // account-manager detail fields aren't in SF yet
+      // Method-level fields the manager must set before Send unlocks:
+      vendorId:null, vendorName:'',    // Account (Vendor__c)
+      status:'',                       // Production_Method__c.Status__c (manager-picked)
+      planMode:'new',                  // 'new' = create Requirement+Plan from order; 'existing' = attach
+      planId:null, planName:'',        // chosen existing ProductionPlan__c (when planMode==='existing')
+      sending:false, sendErr:'',       // in-flight + error state for the Salesforce write
       elements:{filmsCreated:false,screens:[],inks:[],dfConfirmed:false,threads:[],
                 trRecvConfirmed:false,trReadyConfirmed:false,garmentsConfirmed:false,recvStatus:'Not Received'},
       sent:false,open:false,formOpen:false,
@@ -1262,6 +1268,10 @@ async function loadMgrInbox(){
 }
 
 const MESH_OPTIONS=['60','85','110','125','156','175','200','230','305'];
+// Production_Method__c.Status__c picklist (exact values, confirmed from Setup)
+const STATUS_OPTIONS=['Pre-Production','Ready for Print','In Production','Post-Production','Completed','Cancelled','On Hold'];
+// Method Type__c label the picker 'sp'/'em'/'hp' maps to (exact picklist values)
+const METHOD_TYPE_LABEL={sp:'Screen Print',em:'Embroidery',hp:'Heat Press'};
 
 function mgrMethodTag(method){
   const map={sp:{label:'Screen Print',bg:'#C6372B'},em:{label:'Embroidery',bg:'#2C6B6A'},hp:{label:'Heat Press',bg:'#C68A30'}};
@@ -1449,16 +1459,101 @@ function renderMgrCardBody(o){
 
   html+='</div>'; // close form panel
 
+  // ── METHOD FIELDS (required before Send): Vendor · Status · Plan ──
+  html+=renderMethodFields(o);
+
   const ready=mgrOrderReady(o);
-  html+='<button class="send-btn" '+(ready?'':'disabled')+' data-mgr="send" data-id="'+o.id+'">'
-    +'<i class="ti ti-arrow-right" aria-hidden="true"></i> Send to shop floor'
+  const sending=!!o.sending;
+  html+='<button class="send-btn" '+((ready&&!sending)?'':'disabled')+' data-mgr="send" data-id="'+o.id+'">'
+    +(sending
+      ?'<i class="ti ti-loader" aria-hidden="true"></i> Saving to Salesforce…'
+      :'<i class="ti ti-arrow-right" aria-hidden="true"></i> Send to shop floor')
     +'</button>';
-  if(!ready) html+='<p style="font-size:11px;color:#6E6A62;text-align:center;margin-top:8px">Complete all elements above to unlock</p>';
+  if(o.sendErr) html+='<p style="font-size:12px;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:6px;padding:8px 12px;margin-top:8px">'+o.sendErr+'</p>';
+  if(!ready&&!sending) html+='<p style="font-size:11px;color:#6E6A62;text-align:center;margin-top:8px">Set vendor, status, plan, and complete the elements above to unlock</p>';
 
   return html;
 }
 
-function mgrOrderReady(o){
+/* ── METHOD FIELDS: Vendor (Account search), Status, Production Plan (new/existing) ── */
+function renderMethodFields(o){
+  const meth=METHOD_TYPE_LABEL[o.method]||o.method;
+  let h='<div style="border:1px solid #262628;border-radius:8px;padding:16px;margin-bottom:12px">';
+  h+='<div style="font-size:13px;font-weight:600;color:#ECEAE4;margin-bottom:14px;display:flex;align-items:center;gap:7px"><i class="ti ti-settings" style="color:#C6372B" aria-hidden="true"></i> Production method details</div>';
+
+  // Order (pre-filled, read-only)
+  h+='<div class="form-sec"><div class="form-sec-title"><i class="ti ti-hash" aria-hidden="true"></i> Order</div>'
+    +'<div style="font-size:13px;color:#ECEAE4;background:#141416;border:1px solid #262628;border-radius:6px;padding:8px 12px">#'+o.num+' · '+o.customer+'</div></div>';
+
+  // Type (from picker, read-only here)
+  h+='<div class="form-sec"><div class="form-sec-title"><i class="ti ti-category" aria-hidden="true"></i> Type</div>'
+    +'<div style="font-size:13px;color:#ECEAE4;background:#141416;border:1px solid #262628;border-radius:6px;padding:8px 12px">'+meth+'</div></div>';
+
+  // Vendor (Account) search
+  h+='<div class="form-sec"><div class="form-sec-title"><i class="ti ti-building-store" aria-hidden="true"></i> Vendor *</div>';
+  if(o.vendorId){
+    h+='<div class="field-row"><div style="flex:1;font-size:13px;color:#ECEAE4;background:#141416;border:1px solid #3D8B3D;border-radius:6px;padding:8px 12px"><i class="ti ti-check" style="color:#3D8B3D;font-size:12px;margin-right:5px"></i>'+o.vendorName+'</div>'
+      +'<button class="remove-btn" data-mgr="clear-vendor" data-id="'+o.id+'"><i class="ti ti-x" aria-hidden="true"></i></button></div>';
+  } else {
+    h+='<input type="text" placeholder="Search accounts…" value="'+(o.vendorQuery||'')+'" data-minput="vendor-q" data-id="'+o.id+'">';
+    const res=o.vendorResults||[];
+    if(res.length){
+      h+='<div style="border:1px solid #262628;border-radius:6px;margin-top:4px;max-height:160px;overflow:auto">'
+        +res.map(a=>'<div style="padding:8px 12px;font-size:13px;color:#ECEAE4;cursor:pointer;border-bottom:1px solid #1A1A1C" data-mgr="pick-vendor" data-id="'+o.id+'" data-vid="'+a.Id+'" data-vname="'+escAttr(a.Name)+'">'+a.Name+'</div>').join('')
+        +'</div>';
+    } else if((o.vendorQuery||'').length>=2 && o.vendorSearched){
+      h+='<div style="font-size:12px;color:#6E6A62;margin-top:4px">No accounts match.</div>';
+    }
+  }
+  h+='</div>';
+
+  // Status
+  h+='<div class="form-sec"><div class="form-sec-title"><i class="ti ti-flag" aria-hidden="true"></i> Status *</div>'
+    +'<select data-mchg="status" data-id="'+o.id+'" style="width:100%;background:#141416;border:1px solid #262628;color:#ECEAE4;border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none">'
+    +'<option value="">— Select status —</option>'
+    +STATUS_OPTIONS.map(s=>'<option value="'+s+'"'+(o.status===s?' selected':'')+'>'+s+'</option>').join('')
+    +'</select></div>';
+
+  // Production Plan: new vs existing
+  h+='<div class="form-sec"><div class="form-sec-title"><i class="ti ti-clipboard-list" aria-hidden="true"></i> Production Plan *</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:8px">'
+    +'<button class="add-item-btn" style="border-style:solid;'+(o.planMode==='new'?'border-color:#C6372B;color:#C6372B':'')+'" data-mgr="plan-mode" data-id="'+o.id+'" data-mode="new">Create new</button>'
+    +'<button class="add-item-btn" style="border-style:solid;'+(o.planMode==='existing'?'border-color:#C6372B;color:#C6372B':'')+'" data-mgr="plan-mode" data-id="'+o.id+'" data-mode="existing">Use existing</button>'
+    +'</div>';
+  if(o.planMode==='new'){
+    h+='<div style="font-size:12px;color:#6E6A62;padding:8px 10px;background:#0A0A0C;border-radius:5px">A new Production Requirement and Plan will be created from this order.</div>';
+  } else {
+    if(o.planId){
+      h+='<div class="field-row"><div style="flex:1;font-size:13px;color:#ECEAE4;background:#141416;border:1px solid #3D8B3D;border-radius:6px;padding:8px 12px"><i class="ti ti-check" style="color:#3D8B3D;font-size:12px;margin-right:5px"></i>'+o.planName+'</div>'
+        +'<button class="remove-btn" data-mgr="clear-plan" data-id="'+o.id+'"><i class="ti ti-x" aria-hidden="true"></i></button></div>';
+    } else {
+      h+='<input type="text" placeholder="Search plans (e.g. PP-0018)…" value="'+(o.planQuery||'')+'" data-minput="plan-q" data-id="'+o.id+'">';
+      const pres=o.planResults||[];
+      if(pres.length){
+        h+='<div style="border:1px solid #262628;border-radius:6px;margin-top:4px;max-height:160px;overflow:auto">'
+          +pres.map(p=>'<div style="padding:8px 12px;font-size:13px;color:#ECEAE4;cursor:pointer;border-bottom:1px solid #1A1A1C" data-mgr="pick-plan" data-id="'+o.id+'" data-pid="'+p.Id+'" data-pname="'+escAttr(p.Name)+'">'+p.Name+'</div>').join('')
+          +'</div>';
+      } else if((o.planQuery||'').length>=2 && o.planSearched){
+        h+='<div style="font-size:12px;color:#6E6A62;margin-top:4px">No plans match.</div>';
+      }
+    }
+  }
+  h+='</div>';
+
+  h+='</div>';
+  return h;
+}
+
+// Escape a value for safe use inside an HTML attribute (data-* names).
+function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function mgrMethodFieldsReady(o){
+  // Method-level requirements: Vendor, Status, and a resolved Plan choice.
+  // (Order is pre-filled; Type comes from the picker.)
+  const planOk = o.planMode==='new' || (o.planMode==='existing' && !!o.planId);
+  return !!o.vendorId && !!o.status && planOk;
+}
+function mgrElementsReady(o){
   if(o.method==='sp'){
     return o.elements.filmsCreated && o.elements.screens.length>0 && o.elements.inks.length>0 && o.elements.garmentsConfirmed;
   } else if(o.method==='em'){
@@ -1466,6 +1561,9 @@ function mgrOrderReady(o){
   } else {
     return o.elements.trRecvConfirmed && o.elements.trReadyConfirmed && o.elements.garmentsConfirmed;
   }
+}
+function mgrOrderReady(o){
+  return mgrMethodFieldsReady(o) && mgrElementsReady(o);
 }
 
 function getMgrOrder(id){return mgrOrders.find(o=>o.id===id);}
@@ -1490,6 +1588,13 @@ function handleMgrClick(e){
   if(action==='rm-ink'){o.elements.inks.splice(+idx,1);renderMgrInbox();return;}
   if(action==='add-thread'){o.elements.threads.push({color:'New thread',hex:'#888888'});renderMgrInbox();return;}
   if(action==='rm-thread'){o.elements.threads.splice(+idx,1);renderMgrInbox();return;}
+  // ── vendor ──
+  if(action==='pick-vendor'){o.vendorId=t.dataset.vid;o.vendorName=t.dataset.vname;o.vendorResults=[];o.vendorQuery='';renderMgrInbox();return;}
+  if(action==='clear-vendor'){o.vendorId=null;o.vendorName='';o.vendorQuery='';o.vendorResults=[];o.vendorSearched=false;renderMgrInbox();return;}
+  // ── plan ──
+  if(action==='plan-mode'){o.planMode=t.dataset.mode;if(o.planMode==='new'){o.planId=null;o.planName='';}renderMgrInbox();return;}
+  if(action==='pick-plan'){o.planId=t.dataset.pid;o.planName=t.dataset.pname;o.planResults=[];o.planQuery='';renderMgrInbox();return;}
+  if(action==='clear-plan'){o.planId=null;o.planName='';o.planQuery='';o.planResults=[];o.planSearched=false;renderMgrInbox();return;}
   if(action==='send'){
     sendToShop(o);return;
   }
@@ -1501,6 +1606,7 @@ function handleMgrChange(e){
   if(action==='screen-mesh'){o.elements.screens[+idx].mesh=t.value;}
   if(action==='ink-hex'){o.elements.inks[+idx].hex=t.value;}
   if(action==='thread-hex'){o.elements.threads[+idx].hex=t.value;}
+  if(action==='status'){o.status=t.value;}
   renderMgrInbox();
 }
 
@@ -1510,46 +1616,95 @@ function handleMgrInput(e){
   if(action==='screen-label'){o.elements.screens[+idx].label=t.value;}
   if(action==='ink-name'){o.elements.inks[+idx].pantone=t.value;}
   if(action==='thread-name'){o.elements.threads[+idx].color=t.value;}
+  if(action==='vendor-q'){o.vendorQuery=t.value;debouncedSearch(o,'vendor');}
+  if(action==='plan-q'){o.planQuery=t.value;debouncedSearch(o,'plan');}
   // don't re-render on input (would reset cursor) — just update data
 }
 
-function sendToShop(o){
-  o.sent=true;o.open=false;
-  // Build a new worker-visible order and push to the correct DB array
-  const now=new Date();now.setHours(0,0,0,0);
-  const day=now.getDay();
-  const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));
-  // Default to today
-  const todayISO=iso(now);
-
-  if(o.method==='sp'){
-    DB.sp.unshift({
-      id:'shop-'+o.id,num:o.num,name:o.customer,acct:'Culture Apparel',due:todayISO,
-      recv:'Not Received',
-      filmsPrinted:false,scDone:false,inkDone:false,
-      dfDone:false,thDone:false,trRecv:false,trRdy:false,sav:{},
-    });
-  } else if(o.method==='em'){
-    DB.em.unshift({
-      id:'shop-'+o.id,num:o.num,name:o.customer,acct:'Culture Apparel Embroidery',due:todayISO,
-      recv:'Not Received',
-      filmsPrinted:false,scDone:false,inkDone:false,
-      dfDone:false,thDone:false,trRecv:false,trRdy:false,sav:{},
-    });
-  } else {
-    DB.hp.unshift({
-      id:'shop-'+o.id,num:o.num,name:o.customer,acct:'Culture Apparel Heat Press',due:todayISO,
-      recv:'Not Received',
-      filmsPrinted:false,scDone:false,inkDone:false,
-      dfDone:false,thDone:false,trRecv:false,trRdy:false,sav:{},
-    });
+// ── Debounced lookup search for Vendor (/api/vendors) and Plan (/api/plans) ──
+let _searchTimers={};
+function debouncedSearch(o,kind){
+  const key=kind+':'+o.id;
+  clearTimeout(_searchTimers[key]);
+  _searchTimers[key]=setTimeout(()=>runSearch(o,kind),250);
+}
+async function runSearch(o,kind){
+  const q=(kind==='vendor'?o.vendorQuery:o.planQuery)||'';
+  const endpoint=kind==='vendor'?'/api/vendors':'/api/plans';
+  try{
+    const r=await fetch(endpoint+'?q='+encodeURIComponent(q),{headers:{Accept:'application/json'}});
+    const d=await r.json();
+    const recs=(d&&d.records)||[];
+    if(kind==='vendor'){o.vendorResults=recs;o.vendorSearched=true;}
+    else{o.planResults=recs;o.planSearched=true;}
+  }catch(_){
+    if(kind==='vendor'){o.vendorResults=[];o.vendorSearched=true;}
+    else{o.planResults=[];o.planSearched=true;}
   }
   renderMgrInbox();
-  renderAll();
-  // Flash the relevant tab to show the order appeared
-  const tabMap={sp:'tab-sp',em:'tab-em',hp:'tab-hp'};
-  const tab=document.getElementById(tabMap[o.method]);
-  if(tab){tab.style.background='#3D8B3D';tab.style.color='#000';setTimeout(()=>{tab.style.background='';tab.style.color='';},1200);}
+  // Re-focus the search input after re-render so typing isn't interrupted.
+  const sel=kind==='vendor'?'[data-minput="vendor-q"][data-id="'+o.id+'"]':'[data-minput="plan-q"][data-id="'+o.id+'"]';
+  const inp=document.querySelector(sel);
+  if(inp){inp.focus();const val=inp.value;inp.value='';inp.value=val;}
+}
+
+// Map the manager's UI elements to Pre-Production Item Type__c values (capitalized, exact).
+function buildItemsPayload(o){
+  const items=[];
+  if(o.method==='sp'){
+    o.elements.screens.forEach(()=>items.push({type:'Screen'}));
+    o.elements.inks.forEach(()=>items.push({type:'Ink'}));
+  } else if(o.method==='em'){
+    if(o.elements.dfConfirmed) items.push({type:'Digitization'});
+    o.elements.threads.forEach(()=>items.push({type:'Thread'}));
+  } else if(o.method==='hp'){
+    items.push({type:'Transfer'});
+  }
+  return items;
+}
+
+async function sendToShop(o){
+  if(o.sending) return;
+  if(!mgrOrderReady(o)){o.sendErr='Complete all required fields first.';renderMgrInbox();return;}
+  o.sending=true;o.sendErr='';renderMgrInbox();
+
+  const body={
+    orderId:o.orderId,
+    vendorId:o.vendorId,
+    status:o.status,
+    type:METHOD_TYPE_LABEL[o.method],      // 'Screen Print' | 'Embroidery' | 'Heat Press'
+    items:buildItemsPayload(o),
+  };
+  if(o.planMode==='existing'&&o.planId) body.planId=o.planId;
+
+  try{
+    const r=await fetch('/api/production-methods',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body),
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.ok){
+      // Surface Salesforce's own message when present.
+      let msg='Save failed';
+      if(d&&d.detail){
+        if(Array.isArray(d.detail)&&d.detail[0]&&d.detail[0].message) msg=d.detail[0].message;
+        else if(typeof d.detail==='string') msg=d.detail;
+        else if(d.detail.message) msg=d.detail.message;
+        else msg=JSON.stringify(d.detail);
+      } else if(d&&d.error){ msg=d.error; }
+      throw new Error(msg);
+    }
+    // Success — the order now has a method in Salesforce, so it drops out of the
+    // inbox on next load. Mark sent locally and refresh from the server.
+    o.sending=false;o.sent=true;o.open=false;
+    renderMgrInbox();
+    loadMgrInbox();   // re-pull; this order will no longer be in Pre-Production w/o a method
+  }catch(e){
+    o.sending=false;
+    o.sendErr='Salesforce error: '+e.message;
+    renderMgrInbox();
+  }
 }
 
 // Wire manager inbox delegation after DOM is ready
