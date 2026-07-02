@@ -162,14 +162,34 @@ export async function onRequestPost({ env, request }) {
 
     // /composite returns HTTP 200 even when a sub-request failed; inspect each.
     const subResults = Array.isArray(data.compositeResponse) ? data.compositeResponse : [];
-    const failed = subResults.find(
-      (r) => r.httpStatusCode < 200 || r.httpStatusCode >= 300
-    );
 
-    if (!resp.ok || failed) {
+    // Pull the code out of a sub-result's body (body can be an array of errors).
+    const codeOf = (r) => {
+      const b = r && r.body;
+      if (Array.isArray(b) && b[0]) return b[0].errorCode || "";
+      if (b && b.errorCode) return b.errorCode;
+      return "";
+    };
+    const isErr = (r) => r.httpStatusCode < 200 || r.httpStatusCode >= 300;
+
+    // The REAL failure is the errored sub-result that ISN'T just a rolled-back
+    // sibling. PROCESSING_HALTED means "some OTHER record failed", so skip those
+    // and report the record that actually caused the rollback.
+    const errored = subResults.filter(isErr);
+    const realFailure =
+      errored.find((r) => codeOf(r) !== "PROCESSING_HALTED") || errored[0] || null;
+
+    if (!resp.ok || realFailure) {
       console.error("Method create failed", resp.status, JSON.stringify(data));
       return Response.json(
-        { error: "create_failed", detail: failed ? failed.body : data },
+        {
+          error: "create_failed",
+          // Which record failed (referenceId: req | plan | pm | itemN) + SF's message.
+          failedRef: realFailure ? realFailure.referenceId : null,
+          detail: realFailure ? realFailure.body : data,
+          // Full array so every sub-result is visible in the Network response.
+          all: subResults.map((r) => ({ referenceId: r.referenceId, httpStatusCode: r.httpStatusCode, body: r.body })),
+        },
         { status: 502 }
       );
     }
