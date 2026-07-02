@@ -1472,7 +1472,8 @@ function renderMgrCard(o){
     +(o.sent?'<span class="sent-badge"><i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i> In shop</span>':'')
     +(isReady&&!o.sent?'<span style="background:#E8A800;color:#000;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em">Ready to send</span>':'')
     +'</div>'
-    +'<div style="font-size:13px;color:#9C988F">'+o.customer+'</div>'
+   +'<div style="font-size:13px;color:#ECEAE4">'+escAttr(o.acct)+'</div>'
+    +(o.orderName?'<div style="font-size:12px;color:#9C988F;margin-top:1px">'+escAttr(o.orderName)+'</div>':'')
     +'</div>'
     +'<i class="ti ti-chevron-down chev'+(o.open?' on':'')+'" style="color:#6E6A62" aria-hidden="true"></i>'
     +'</div>'
