@@ -556,7 +556,7 @@ window.doLoad=doLoad;
 
 function mapRec(r){
   return{
-    id:r.Id,num:r.GOA_Order_Number__c||'—',name:r.Name||'',acct:(r.Account&&r.Account.Name)||'—',
+    id:r.Id,num:goaText(r.GOA_Order_Number__c)||'—',name:r.Name||'',acct:(r.Account&&r.Account.Name)||'—',
     due:r.Print_Date__c?r.Print_Date__c.slice(0,10):null,
     recv:r.Receiving_Status__c||'Not Received',
     filmsPrinted:!!r.Films_Printed__c,
