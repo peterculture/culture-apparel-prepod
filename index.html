@@ -1405,7 +1405,9 @@ async function loadMgrInbox(){
     mgrOrders=(d.records||[]).map(rec=>({
       id:'mgr-'+rec.Id,
       orderId:rec.Id,                 // real SF Order Id the master-detail attaches to
-      num:rec.OrderNumber||'—',
+      num:rec.GOA_Order_Number__c||rec.OrderNumber||'—',
+      acct:(rec.Account&&rec.Account.Name)||'—',
+      orderName:rec.Name||'',
       customer:(rec.Account&&rec.Account.Name)||rec.Name||'—',
       method:null,                    // manager picks the type as a step
       details:null,                   // account-manager detail fields aren't in SF yet
