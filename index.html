@@ -1433,6 +1433,7 @@ const STATUS_OPTIONS=['Pre-Production','Ready for Print','In Production','Post-P
 const METHOD_TYPE_LABEL={sp:'Screen Print',em:'Embroidery',hp:'Heat Press'};
 
 function mgrMethodTag(method){
+  if(!method) return '';
   const map={sp:{label:'Screen Print',bg:'#C6372B'},em:{label:'Embroidery',bg:'#2C6B6A'},hp:{label:'Heat Press',bg:'#C68A30'}};
   const m=map[method]||{label:method,bg:'#444'};
   return '<span class="method-tag" style="background:'+m.bg+';color:#000">'+m.label+'</span>';
