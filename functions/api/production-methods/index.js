@@ -61,6 +61,20 @@ const ITEM_TYPE_FIELD   = "Type__c";                   // picklist: Screen|Ink|T
 const ITEM_STATUS_FIELD = "Status__c";                 // picklist
 const ITEM_STATUS_DEFAULT = "Not Started";
 
+// Type-specific item fields (only set on the matching item type).
+// Sub-status fields (Screen/Ink/Transfers) default to blank in SF and are
+// optional+restricted, so we OMIT them entirely rather than risk a bad value.
+const ITEM_MESH_FIELD     = "Mesh_Count__c";       // Screen  (restricted picklist)
+const ITEM_PANTONE_FIELD  = "Pantone_Color__c";    // Ink     (text)
+const ITEM_THREADCOLOR_FIELD  = "Thread_Color__c"; // Thread  (text)
+const ITEM_THREADNUM_FIELD    = "Thread_Number__c";// Thread  (text)
+const ITEM_STITCH_FIELD   = "Stitch_Count__c";     // Digitization (number)
+const ITEM_TRANSFERTYPE_FIELD = "Transfer_Type__c";// Transfer (restricted picklist)
+
+// Restricted picklists — validate server-side so a bad value can't reach SF.
+const ALLOWED_MESH          = new Set(["110","125","156","180","196","230","305"]);
+const ALLOWED_TRANSFER_TYPE = new Set(["Screen Transfer","Digital Transfer","Sublimation","Vinyl"]);
+
 // Allow-lists, enforced server-side so the browser can't write arbitrary values.
 const ALLOWED_METHOD_TYPES = new Set(["Screen Print", "Embroidery", "Heat Press", "Promotional Items"]);
 const ALLOWED_ITEM_TYPES   = new Set(["Screen", "Ink", "Thread", "Digitization", "Transfer"]);
@@ -94,6 +108,13 @@ export async function onRequestPost({ env, request }) {
   for (const it of itemList) {
     if (!it || !ALLOWED_ITEM_TYPES.has(it.type)) {
       return Response.json({ error: "bad_item_type", detail: it && it.type }, { status: 400 });
+    }
+    // Restricted picklists: reject bad values before they reach Salesforce.
+    if (it.type === "Screen" && it.mesh != null && it.mesh !== "" && !ALLOWED_MESH.has(String(it.mesh))) {
+      return Response.json({ error: "bad_mesh", detail: it.mesh }, { status: 400 });
+    }
+    if (it.type === "Transfer" && it.transferType != null && it.transferType !== "" && !ALLOWED_TRANSFER_TYPE.has(it.transferType)) {
+      return Response.json({ error: "bad_transfer_type", detail: it.transferType }, { status: 400 });
     }
   }
 
@@ -138,17 +159,34 @@ export async function onRequestPost({ env, request }) {
     },
   });
 
-  // Items (both paths).
+  // Items (both paths). Each item carries only its type-specific fields.
+  // Sub-status fields are intentionally omitted (default blank in SF).
   itemList.forEach((item, i) => {
+    const body = {
+      [ITEM_PM_FIELD]:     "@{pm.id}",
+      [ITEM_TYPE_FIELD]:   item.type,
+      [ITEM_STATUS_FIELD]: item.status || ITEM_STATUS_DEFAULT,
+    };
+    if (item.type === "Screen") {
+      if (item.mesh) body[ITEM_MESH_FIELD] = String(item.mesh);
+    } else if (item.type === "Ink") {
+      if (item.pantone) body[ITEM_PANTONE_FIELD] = String(item.pantone);
+    } else if (item.type === "Thread") {
+      if (item.threadColor)  body[ITEM_THREADCOLOR_FIELD] = String(item.threadColor);
+      if (item.threadNumber) body[ITEM_THREADNUM_FIELD]   = String(item.threadNumber);
+    } else if (item.type === "Digitization") {
+      if (item.stitchCount != null && item.stitchCount !== "") {
+        const n = Number(item.stitchCount);
+        if (!Number.isNaN(n)) body[ITEM_STITCH_FIELD] = n;
+      }
+    } else if (item.type === "Transfer") {
+      if (item.transferType) body[ITEM_TRANSFERTYPE_FIELD] = String(item.transferType);
+    }
     compositeRequest.push({
       method: "POST",
       url: `${base}/${ITEM_OBJECT}`,
       referenceId: `item${i}`,
-      body: {
-        [ITEM_PM_FIELD]:     "@{pm.id}",
-        [ITEM_TYPE_FIELD]:   item.type,
-        [ITEM_STATUS_FIELD]: item.status || ITEM_STATUS_DEFAULT,
-      },
+      body,
     });
   });
 
