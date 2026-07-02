@@ -702,9 +702,146 @@ function ocHTML(o,oi,rdyFn,pctFn,issFn,detFn,pfx,ac){
     +'</div>'
     +'<div class="odet'+(op?' on':'')+'">'
     +detFn(o)
+    +ppItemsPanel(o,pfx)
     +'<div class="sync-row"><div class="sync-dot"></div><span>Changes sync to Salesforce #'+o.num+' instantly</span></div>'
     +'</div>'
     +'</div>';
+}
+
+/* ══════════════════════════════════════
+   PRE-PRODUCTION ITEMS (worker board)
+   Lists the real Pre_Production_Item__c records for this order and lets
+   workers edit each item's fields, auto-saving to Salesforce on change.
+══════════════════════════════════════ */
+// Per-order item cache: ppItems[orderId] = {loading, error, items:[...]}
+let ppItems={};
+
+const PP_STATUS=['Not Started','In Progress','Ready'];
+const PP_SCREEN_SUB=['Not Clean','Needs Emulsion','Ready for Exposure','Needs Tape','Ready for Print'];
+const PP_INK_SUB=['Not Started','Pantone Label Printed','Mixing','Mixed'];
+const PP_TRANSFER_SUB=['Not Received','Transfers Received','Transfers Cut/Ready'];
+const PP_MESH=['110','125','156','180','196','230','305'];
+const PP_TRANSFER_TYPE=['Screen Transfer','Digital Transfer','Sublimation','Vinyl'];
+
+function ppItemsPanel(o,pfx){
+  const st=ppItems[o.id];
+  let h='<div style="margin-top:14px;border-top:1px solid #262628;padding-top:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:#9C988F;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px"><i class="ti ti-list-details" aria-hidden="true"></i> Pre-production items</div>';
+  if(!st){ h+='<p style="font-size:12px;color:#6E6A62">Loading items…</p>'; }
+  else if(st.loading){ h+='<p style="font-size:12px;color:#6E6A62">Loading items…</p>'; }
+  else if(st.error){ h+='<p style="font-size:12px;color:#E8A89F">'+st.error+'</p>'; }
+  else if(!st.items.length){ h+='<p style="font-size:12px;color:#6E6A62">No pre-production items for this order.</p>'; }
+  else { h+=st.items.map(it=>ppItemCard(it)).join(''); }
+  h+='</div>';
+  return h;
+}
+
+function ppSel(itemId,field,value,options){
+  return '<select data-pp="'+itemId+'" data-ppf="'+field+'" style="width:100%;background:#141416;border:1px solid #262628;color:#ECEAE4;border-radius:6px;padding:7px 9px;font-size:13px;font-family:inherit;outline:none">'
+    +'<option value="">— None —</option>'
+    +options.map(v=>'<option value="'+escAttr(v)+'"'+(value===v?' selected':'')+'>'+v+'</option>').join('')
+    +'</select>';
+}
+function ppText(itemId,field,value,ph){
+  return '<input type="text" placeholder="'+(ph||'')+'" value="'+escAttr(value||'')+'" data-ppi="'+itemId+'" data-ppf="'+field+'" style="width:100%;background:#141416;border:1px solid #262628;color:#ECEAE4;border-radius:6px;padding:7px 9px;font-size:13px;font-family:inherit;outline:none">';
+}
+function ppNum(itemId,field,value,ph){
+  return '<input type="number" min="0" placeholder="'+(ph||'')+'" value="'+(value==null?'':value)+'" data-ppi="'+itemId+'" data-ppf="'+field+'" style="width:100%;background:#141416;border:1px solid #262628;color:#ECEAE4;border-radius:6px;padding:7px 9px;font-size:13px;font-family:inherit;outline:none">';
+}
+function ppFieldRow(label,control){
+  return '<div style="margin-bottom:8px"><div style="font-size:11px;color:#9C988F;margin-bottom:3px">'+label+'</div>'+control+'</div>';
+}
+
+function ppItemCard(it){
+  const open=!!ppOpen[it.Id];
+  const saving=!!ppSaving[it.Id];
+  const type=it.Type__c||'—';
+  const badge=(s)=>{
+    const map={'Ready':'#1E2D0E|#E7F2D2','In Progress':'#281C09|#E0B870','Not Started':'#1A1A1C|#9C988F'};
+    const c=(map[s]||'#1A1A1C|#9C988F').split('|');
+    return '<span class="badge" style="background:'+c[0]+';color:'+c[1]+'">'+(s||'—')+'</span>';
+  };
+  let h='<div style="background:#0E0E10;border:1px solid #262628;border-radius:8px;margin-bottom:8px;overflow:hidden">'
+    +'<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer" data-ppt="'+it.Id+'">'
+    +'<span style="font-size:13px;font-weight:600;color:#ECEAE4">'+type+'</span>'
+    +'<span style="font-size:11px;color:#6E6A62">'+(it.Name||'')+'</span>'
+    +badge(it.Status__c)
+    +(saving?'<span style="font-size:11px;color:#E0B870;margin-left:auto"><i class="ti ti-loader"></i> Saving…</span>':'')
+    +'<i class="ti ti-chevron-down chev'+(open?' on':'')+'" style="color:#6E6A62;margin-left:'+(saving?'8px':'auto')+'" aria-hidden="true"></i>'
+    +'</div>';
+  if(open){
+    h+='<div style="padding:0 12px 12px">';
+    // Status (all types)
+    h+=ppFieldRow('Status', ppSel(it.Id,'Status__c',it.Status__c,PP_STATUS));
+    // Type-specific fields
+    if(type==='Screen'){
+      h+=ppFieldRow('Screen Sub-Status', ppSel(it.Id,'Screen_Sub_Status__c',it.Screen_Sub_Status__c,PP_SCREEN_SUB));
+      h+=ppFieldRow('Mesh Count', ppSel(it.Id,'Mesh_Count__c',it.Mesh_Count__c,PP_MESH));
+    } else if(type==='Ink'){
+      h+=ppFieldRow('Ink Sub-Status', ppSel(it.Id,'Ink_Sub_Status__c',it.Ink_Sub_Status__c,PP_INK_SUB));
+      h+=ppFieldRow('Pantone Color', ppText(it.Id,'Pantone_Color__c',it.Pantone_Color__c,'Pantone'));
+    } else if(type==='Thread'){
+      h+=ppFieldRow('Thread Color', ppText(it.Id,'Thread_Color__c',it.Thread_Color__c,'Color'));
+      h+=ppFieldRow('Thread Number', ppText(it.Id,'Thread_Number__c',it.Thread_Number__c,'Number'));
+    } else if(type==='Digitization'){
+      h+=ppFieldRow('Stitch Count', ppNum(it.Id,'Stitch_Count__c',it.Stitch_Count__c,'e.g. 12000'));
+    } else if(type==='Transfer'){
+      h+=ppFieldRow('Transfers Sub-Status', ppSel(it.Id,'Transfers_Sub_Status__c',it.Transfers_Sub_Status__c,PP_TRANSFER_SUB));
+      h+=ppFieldRow('Transfer Type', ppSel(it.Id,'Transfer_Type__c',it.Transfer_Type__c,PP_TRANSFER_TYPE));
+    }
+    // Notes (all types)
+    h+=ppFieldRow('Notes', ppText(it.Id,'Notes__c',it.Notes__c,'Notes'));
+    if(ppErr[it.Id]) h+='<p style="font-size:11px;color:#E8A89F;margin-top:4px">'+ppErr[it.Id]+'</p>';
+    h+='</div>';
+  }
+  h+='</div>';
+  return h;
+}
+
+// UI state for item cards (open/saving/error), keyed by item Id.
+let ppOpen={}, ppSaving={}, ppErr={};
+
+// Lazy-load items for an order when its card opens.
+async function loadPpItems(orderId){
+  if(ppItems[orderId] && !ppItems[orderId].error) return; // already loaded/loading
+  ppItems[orderId]={loading:true,error:null,items:[]};
+  renderCur();
+  try{
+    const r=await fetch('/api/pre-production-items?orderId='+encodeURIComponent(orderId),{headers:{Accept:'application/json'}});
+    const d=await r.json();
+    if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+    ppItems[orderId]={loading:false,error:null,items:(d.records||[])};
+  }catch(e){
+    ppItems[orderId]={loading:false,error:'Could not load items: '+e.message,items:[]};
+  }
+  renderCur();
+}
+
+// Auto-save one field of one item to Salesforce.
+async function savePpField(itemId,field,value){
+  ppSaving[itemId]=true; ppErr[itemId]=''; renderCur();
+  try{
+    const r=await fetch('/api/pre-production-items/'+encodeURIComponent(itemId),{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({[field]:value}),
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.ok){
+      let msg='Save failed';
+      if(d&&d.detail){ if(Array.isArray(d.detail)&&d.detail[0]&&d.detail[0].message) msg=d.detail[0].message; else if(d.detail.message) msg=d.detail.message; }
+      else if(d&&d.error) msg=d.error;
+      throw new Error(msg);
+    }
+    // Update local cache so the field reflects the saved value.
+    for(const k in ppItems){
+      const it=(ppItems[k].items||[]).find(x=>x.Id===itemId);
+      if(it){ it[field]=(value===''?null:value); break; }
+    }
+  }catch(e){
+    ppErr[itemId]='Save error: '+e.message;
+  }
+  ppSaving[itemId]=false; renderCur();
 }
 
 /* ── OVERDUE GROUP ── */
@@ -1063,6 +1200,13 @@ function renderCur(){
 
 /* ── EVENTS ── */
 document.body.addEventListener('click',function(e){
+  // Pre-production item edit-panel toggle (no data-a on these).
+  const ppToggle=e.target.closest('[data-ppt]');
+  if(ppToggle){
+    e.preventDefault();e.stopPropagation();
+    ppOpen[ppToggle.dataset.ppt]=!ppOpen[ppToggle.dataset.ppt];
+    renderCur();return;
+  }
   const t=e.target.closest('[data-a]');if(!t)return;
   e.preventDefault();e.stopPropagation();
   const{a,p,id,sid,f,k,v,m,iso}=t.dataset;
@@ -1077,7 +1221,13 @@ document.body.addEventListener('click',function(e){
       openO[p]=!openO[p];
     } else {
       if(!openO[p])openO[p]={};
-      openO[p][id]=!openO[p][id];
+      const nowOpen=!openO[p][id];
+      openO[p][id]=nowOpen;
+      // When a real worker order card opens, lazy-load its pre-production items.
+      if(nowOpen&&(p==='sp'||p==='em'||p==='hp')){
+        const o=[...DB.sp,...DB.em,...DB.hp].find(x=>x.id===id);
+        if(o&&o.id) loadPpItems(o.id);
+      }
     }
     renderCur();return;
   }
@@ -1113,6 +1263,12 @@ document.body.addEventListener('change',function(e){
   if(t.dataset.a==='fpick'){
     F[t.dataset.p].pick=snapToMonday(t.value);
     renderCur();
+    return;
+  }
+  // Pre-production item field edited (select or text/number) -> auto-save.
+  const itemId=t.dataset.pp||t.dataset.ppi;
+  if(itemId&&t.dataset.ppf){
+    savePpField(itemId,t.dataset.ppf,t.value);
   }
 });
 
