@@ -1,43 +1,74 @@
 /**
  * POST /api/production-methods
  *
- * Creates one Production Method (a detail of an existing Order via master-detail)
- * plus zero-or-more Pre-Production Items, in a SINGLE atomic Salesforce call.
+ * Creates a Production Method (+ its Pre-Production Items) for one order,
+ * atomically. The Method's ProductionPlan__c parent is supplied one of two ways:
  *
- * Uses the Composite API (/composite) with allOrNone:true, so a partial failure
- * rolls the whole thing back -- you never end up with a method that has no items,
- * or orphaned items with no method. The items reference the method's freshly
- * created Id via @{newPM.id}, so no child-relationship-name lookup is needed.
+ *   A) EXISTING PLAN  — body includes { planId }.
+ *      Just the Method + Items are created, attached to that plan.
+ *
+ *   B) CREATE FRESH   — body omits planId.
+ *      The chain Order → ProductionRequirements__c → ProductionPlan__c is
+ *      created first, then the Method + Items hang off the new plan:
+ *
+ *        Order (exists)
+ *          └─ ProductionRequirements__c   (Order__c master-detail)
+ *               └─ ProductionPlan__c      (ProductionRequirement__c master-detail)
+ *                    └─ Production_Method__c
+ *                         └─ Pre_Production_Item__c × N
+ *
+ * Everything runs in ONE Composite call with allOrNone:true, so a partial
+ * failure rolls the whole thing back. Levels reference each other via @{ref.id}.
  *
  * Expected JSON body from the browser:
  *   {
- *     "orderId": "801...",            // existing Order Id (required)
- *     "type": "Screen Print",         // Production_Method__c.Type__c picklist value (required)
- *     "items": [                      // 0+ pre-production items
- *       { "type": "Ink",    "status": "Not Started" },
- *       { "type": "Screen", "status": "Not Started" }
- *     ]
+ *     "orderId":  "801...",          // existing Order Id (required)
+ *     "vendorId": "001...",          // Account Id for Vendor__c (required)
+ *     "status":   "Pre-Production",  // Production_Method__c.Status__c (required, manager-set)
+ *     "type":     "Screen Print",    // Production_Method__c.Type__c (required)
+ *     "planId":   "a0X...",          // OPTIONAL existing ProductionPlan__c Id.
+ *                                    //   present -> path A (attach); absent -> path B (create chain)
+ *     "items": [ { "type": "Screen" }, { "type": "Ink" } ]   // 0+ items
  *   }
  *
- * SECURITY: this handler hard-codes exactly which SObjects/fields get written,
- * so the browser can only ever create these two objects with these fields --
- * it can't inject writes to anything else.
+ * SECURITY: hard-codes exactly which SObjects/fields get written; the browser
+ * can only ever create these objects with these fields, and picklist values are
+ * checked against allow-lists below.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 
 // ---------------------------------------------------------------------------
-// ORG-SPECIFIC FIELD API NAMES
-// This block is the ONE thing to verify before trusting this file.
-// If a name is wrong the Composite API names the exact bad field in its error
-// response (e.g. "No such column 'Order__c' on Production_Method__c"), so a
-// failure here is LOUD in the JSON response -- not the silent no-op from before.
+// ORG-SPECIFIC API NAMES  (confirmed against the sandbox 2026-07-02)
+// A wrong name makes the Composite API name the exact bad field/object in its
+// error, which this handler forwards as `detail` — loud, never a silent no-op.
 // ---------------------------------------------------------------------------
-const ORDER_FIELD       = "Order__c";              // master-detail: Production_Method__c -> Order   ** VERIFY THIS ONE **
-const PM_LOOKUP_FIELD   = "Production_Method__c";  // lookup: Pre_Production_Item__c -> Production_Method__c
-const PM_TYPE_FIELD     = "Type__c";               // picklist on Production_Method__c
-const ITEM_TYPE_FIELD   = "Type__c";               // picklist on Pre_Production_Item__c
-const ITEM_STATUS_FIELD = "Status__c";             // picklist on Pre_Production_Item__c
-const DEFAULT_STATUS    = "Not Started";
+const REQ_OBJECT        = "ProductionRequirements__c";
+const REQ_ORDER_FIELD   = "Order__c";                 // master-detail: Requirement -> Order
+
+const PLAN_OBJECT       = "ProductionPlan__c";
+const PLAN_REQ_FIELD    = "ProductionRequirement__c"; // master-detail: Plan -> Requirement
+
+const PM_OBJECT         = "Production_Method__c";
+const PM_PLAN_FIELD     = "ProductionPlan__c";         // master-detail: Method -> Plan (required)
+const PM_ORDER_FIELD    = "Order__c";                  // also required on Method
+const PM_VENDOR_FIELD   = "Vendor__c";                 // lookup -> Account (required)
+const PM_STATUS_FIELD   = "Status__c";                 // picklist (required, manager-set)
+const PM_TYPE_FIELD     = "Type__c";                   // picklist (required)
+
+const ITEM_OBJECT       = "Pre_Production_Item__c";
+const ITEM_PM_FIELD     = "Production_Method__c";      // lookup -> Method
+const ITEM_TYPE_FIELD   = "Type__c";                   // picklist: Screen|Ink|Thread|Digitization|Transfer
+const ITEM_STATUS_FIELD = "Status__c";                 // picklist
+const ITEM_STATUS_DEFAULT = "Not Started";
+
+// Allow-lists, enforced server-side so the browser can't write arbitrary values.
+const ALLOWED_METHOD_TYPES = new Set(["Screen Print", "Embroidery", "Heat Press", "Promotional Items"]);
+const ALLOWED_ITEM_TYPES   = new Set(["Screen", "Ink", "Thread", "Digitization", "Transfer"]);
+// Exact Status__c picklist values, confirmed from Setup 2026-07-02.
+const ALLOWED_STATUSES     = new Set([
+  "Pre-Production", "Ready for Print", "In Production",
+  "Post-Production", "Completed", "Cancelled", "On Hold",
+]);
 
 export async function onRequestPost({ env, request }) {
   let payload;
@@ -47,37 +78,79 @@ export async function onRequestPost({ env, request }) {
     return jsonError("invalid_json", 400);
   }
 
-  const { orderId, type, items } = payload || {};
+  const { orderId, vendorId, status, type, planId, items } = payload || {};
 
   // --- validate before touching Salesforce ---
-  if (!orderId || typeof orderId !== "string") return jsonError("missing_orderId", 400);
-  if (!type || typeof type !== "string")       return jsonError("missing_type", 400);
+  if (!orderId || typeof orderId !== "string")   return jsonError("missing_orderId", 400);
+  if (!vendorId || typeof vendorId !== "string") return jsonError("missing_vendorId", 400);
+  if (!status || typeof status !== "string")     return jsonError("missing_status", 400);
+  if (!ALLOWED_STATUSES.has(status))             return jsonError("bad_status", 400);
+  if (!type || typeof type !== "string")         return jsonError("missing_type", 400);
+  if (!ALLOWED_METHOD_TYPES.has(type))           return jsonError("bad_method_type", 400);
+
+  const hasExistingPlan = typeof planId === "string" && planId.length > 0;
+
   const itemList = Array.isArray(items) ? items : [];
+  for (const it of itemList) {
+    if (!it || !ALLOWED_ITEM_TYPES.has(it.type)) {
+      return Response.json({ error: "bad_item_type", detail: it && it.type }, { status: 400 });
+    }
+  }
 
   const v = apiVersion(env);
+  const base = `/services/data/${v}/sobjects`;
 
-  // Method first; each item references the created method's Id via @{newPM.id}.
-  const compositeRequest = [
-    {
-      method: "POST",
-      url: `/services/data/${v}/sobjects/Production_Method__c`,
-      referenceId: "newPM",
-      body: {
-        [ORDER_FIELD]: orderId,
-        [PM_TYPE_FIELD]: type,
+  // The Method's plan parent: either the existing planId, or @{plan.id} from the
+  // freshly-created chain.
+  const planRef = hasExistingPlan ? planId : "@{plan.id}";
+
+  const compositeRequest = [];
+
+  // Path B: create Requirement + Plan first.
+  if (!hasExistingPlan) {
+    compositeRequest.push(
+      {
+        method: "POST",
+        url: `${base}/${REQ_OBJECT}`,
+        referenceId: "req",
+        body: { [REQ_ORDER_FIELD]: orderId },
       },
+      {
+        method: "POST",
+        url: `${base}/${PLAN_OBJECT}`,
+        referenceId: "plan",
+        body: { [PLAN_REQ_FIELD]: "@{req.id}" },
+      }
+    );
+  }
+
+  // Method (both paths).
+  compositeRequest.push({
+    method: "POST",
+    url: `${base}/${PM_OBJECT}`,
+    referenceId: "pm",
+    body: {
+      [PM_PLAN_FIELD]:   planRef,
+      [PM_ORDER_FIELD]:  orderId,
+      [PM_VENDOR_FIELD]: vendorId,
+      [PM_STATUS_FIELD]: status,
+      [PM_TYPE_FIELD]:   type,
     },
-    ...itemList.map((item, i) => ({
+  });
+
+  // Items (both paths).
+  itemList.forEach((item, i) => {
+    compositeRequest.push({
       method: "POST",
-      url: `/services/data/${v}/sobjects/Pre_Production_Item__c`,
+      url: `${base}/${ITEM_OBJECT}`,
       referenceId: `item${i}`,
       body: {
-        [PM_LOOKUP_FIELD]: "@{newPM.id}",
-        [ITEM_TYPE_FIELD]: item.type,
-        [ITEM_STATUS_FIELD]: item.status || DEFAULT_STATUS,
+        [ITEM_PM_FIELD]:     "@{pm.id}",
+        [ITEM_TYPE_FIELD]:   item.type,
+        [ITEM_STATUS_FIELD]: item.status || ITEM_STATUS_DEFAULT,
       },
-    })),
-  ];
+    });
+  });
 
   try {
     const resp = await sfFetch(env, `/services/data/${v}/composite`, {
@@ -87,26 +160,29 @@ export async function onRequestPost({ env, request }) {
     });
     const data = await resp.json();
 
-    // NOTE: /composite returns HTTP 200 even when a sub-request failed.
-    // Inspect each sub-result's httpStatusCode to detect the real outcome.
+    // /composite returns HTTP 200 even when a sub-request failed; inspect each.
     const subResults = Array.isArray(data.compositeResponse) ? data.compositeResponse : [];
     const failed = subResults.find(
       (r) => r.httpStatusCode < 200 || r.httpStatusCode >= 300
     );
 
     if (!resp.ok || failed) {
-      console.error("Production method create failed", resp.status, JSON.stringify(data));
-      // Surface Salesforce's own error so the UI can show WHY (bad picklist
-      // value, missing field, or 403 INSUFFICIENT_ACCESS = run-as user lacks Create).
+      console.error("Method create failed", resp.status, JSON.stringify(data));
       return Response.json(
         { error: "create_failed", detail: failed ? failed.body : data },
         { status: 502 }
       );
     }
 
-    const pmResult = subResults.find((r) => r.referenceId === "newPM");
+    const byRef = (ref) => subResults.find((r) => r.referenceId === ref)?.body?.id ?? null;
     return Response.json(
-      { ok: true, productionMethodId: pmResult?.body?.id ?? null, raw: data.compositeResponse },
+      {
+        ok: true,
+        requirementId: hasExistingPlan ? null : byRef("req"),
+        planId: hasExistingPlan ? planId : byRef("plan"),
+        productionMethodId: byRef("pm"),
+        raw: data.compositeResponse,
+      },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (err) {
