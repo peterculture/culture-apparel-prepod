@@ -1260,6 +1260,7 @@ async function loadMgrInbox(){
       planId:null, planName:'',        // chosen existing ProductionPlan__c (when planMode==='existing')
       sending:false, sendErr:'',       // in-flight + error state for the Salesforce write
       elements:{filmsCreated:false,screens:[],inks:[],dfConfirmed:false,threads:[],
+                stitchCount:'',transferType:'Screen Transfer',
                 trRecvConfirmed:false,trReadyConfirmed:false,garmentsConfirmed:false,recvStatus:'Not Received'},
       sent:false,open:false,formOpen:false,
     }));
@@ -1267,7 +1268,7 @@ async function loadMgrInbox(){
   }catch(e){ el.innerHTML='<p class="empty" style="color:#E8A89F">Inbox load failed: '+e.message+'</p>'; }
 }
 
-const MESH_OPTIONS=['60','85','110','125','156','175','200','230','305'];
+const MESH_OPTIONS=['110','125','156','180','196','230','305'];
 // Production_Method__c.Status__c picklist (exact values, confirmed from Setup)
 const STATUS_OPTIONS=['Pre-Production','Ready for Print','In Production','Post-Production','Completed','Cancelled','On Hold'];
 // Method Type__c label the picker 'sp'/'em'/'hp' maps to (exact picklist values)
@@ -1418,12 +1419,16 @@ function renderMgrCardBody(o){
       +'<div class="confirm-row" data-mgr="toggle-df" data-id="'+o.id+'" style="cursor:pointer">'
       +'<div class="confirm-ck'+(o.elements.dfConfirmed?' checked':'')+'" id="ck-df-'+o.id+'">'+(o.elements.dfConfirmed?'<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>':'')+'</div>'
       +'<label style="cursor:pointer">'+d.design+' — file ready</label>'
-      +'</div></div>';
+      +'</div>'
+      +'<div class="field-row" style="margin-top:8px"><span style="font-size:12px;color:#9C988F;min-width:80px">Stitch count</span>'
+      +'<input type="number" min="0" placeholder="e.g. 12000" value="'+(o.elements.stitchCount||'')+'" data-minput="stitch-count" data-id="'+o.id+'"></div>'
+      +'</div>';
     html+='<div class="form-sec">'
       +'<div class="form-sec-title" style="color:#B0A090"><i class="ti ti-needle-thread" aria-hidden="true"></i> Thread colors</div>'
       +o.elements.threads.map((t,i)=>'<div class="field-row">'
         +'<div style="width:18px;height:18px;border-radius:50%;background:'+t.hex+';border:1px solid #444;flex-shrink:0"></div>'
-        +'<input type="text" value="'+t.color+'" data-minput="thread-name" data-id="'+o.id+'" data-idx="'+i+'">'
+        +'<input type="text" placeholder="Color" value="'+t.color+'" data-minput="thread-name" data-id="'+o.id+'" data-idx="'+i+'">'
+        +'<input type="text" placeholder="Thread #" value="'+(t.number||'')+'" data-minput="thread-number" data-id="'+o.id+'" data-idx="'+i+'" style="max-width:110px">'
         +'<input type="color" value="'+t.hex+'" data-mchg="thread-hex" data-id="'+o.id+'" data-idx="'+i+'" style="width:36px;height:36px;padding:2px;border-radius:4px;flex-shrink:0;cursor:pointer">'
         +'<button class="remove-btn" data-mgr="rm-thread" data-id="'+o.id+'" data-idx="'+i+'"><i class="ti ti-x" aria-hidden="true"></i></button>'
         +'</div>').join('')
@@ -1447,6 +1452,10 @@ function renderMgrCardBody(o){
       +'<div class="confirm-ck'+(o.elements.trReadyConfirmed?' checked':'')+'" id="ck-tr2-'+o.id+'">'+(o.elements.trReadyConfirmed?'<i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>':'')+'</div>'
       +'<label style="cursor:pointer">Cut &amp; prep requirements noted</label>'
       +'</div>'
+      +'<div class="field-row" style="margin-top:8px"><span style="font-size:12px;color:#9C988F;min-width:90px">Transfer type</span>'
+      +'<select data-mchg="transfer-type" data-id="'+o.id+'" style="flex:1;background:#141416;border:1px solid #262628;color:#ECEAE4;border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none">'
+      +['Screen Transfer','Digital Transfer','Sublimation','Vinyl'].map(tt=>'<option value="'+tt+'"'+(o.elements.transferType===tt?' selected':'')+'>'+tt+'</option>').join('')
+      +'</select></div>'
       +'<div style="font-size:12px;color:#6E6A62;margin-top:8px;padding:8px 10px;background:#0A0A0C;border-radius:5px">'+d.transfers+'</div>'
       +'</div>';
     html+='<div class="form-sec">'
@@ -1586,7 +1595,7 @@ function handleMgrClick(e){
   if(action==='rm-screen'){o.elements.screens.splice(+idx,1);renderMgrInbox();return;}
   if(action==='add-ink'){o.elements.inks.push({pantone:'New color',hex:'#888888'});renderMgrInbox();return;}
   if(action==='rm-ink'){o.elements.inks.splice(+idx,1);renderMgrInbox();return;}
-  if(action==='add-thread'){o.elements.threads.push({color:'New thread',hex:'#888888'});renderMgrInbox();return;}
+  if(action==='add-thread'){o.elements.threads.push({color:'New thread',number:'',hex:'#888888'});renderMgrInbox();return;}
   if(action==='rm-thread'){o.elements.threads.splice(+idx,1);renderMgrInbox();return;}
   // ── vendor ──
   if(action==='pick-vendor'){o.vendorId=t.dataset.vid;o.vendorName=t.dataset.vname;o.vendorResults=[];o.vendorQuery='';renderMgrInbox();return;}
@@ -1607,6 +1616,7 @@ function handleMgrChange(e){
   if(action==='ink-hex'){o.elements.inks[+idx].hex=t.value;}
   if(action==='thread-hex'){o.elements.threads[+idx].hex=t.value;}
   if(action==='status'){o.status=t.value;}
+  if(action==='transfer-type'){o.elements.transferType=t.value;}
   renderMgrInbox();
 }
 
@@ -1616,6 +1626,8 @@ function handleMgrInput(e){
   if(action==='screen-label'){o.elements.screens[+idx].label=t.value;}
   if(action==='ink-name'){o.elements.inks[+idx].pantone=t.value;}
   if(action==='thread-name'){o.elements.threads[+idx].color=t.value;}
+  if(action==='thread-number'){o.elements.threads[+idx].number=t.value;}
+  if(action==='stitch-count'){o.elements.stitchCount=t.value;}
   if(action==='vendor-q'){o.vendorQuery=t.value;debouncedSearch(o,'vendor');}
   if(action==='plan-q'){o.planQuery=t.value;debouncedSearch(o,'plan');}
   // don't re-render on input (would reset cursor) — just update data
@@ -1652,13 +1664,13 @@ async function runSearch(o,kind){
 function buildItemsPayload(o){
   const items=[];
   if(o.method==='sp'){
-    o.elements.screens.forEach(()=>items.push({type:'Screen'}));
-    o.elements.inks.forEach(()=>items.push({type:'Ink'}));
+    o.elements.screens.forEach(sc=>items.push({type:'Screen', mesh:sc.mesh}));
+    o.elements.inks.forEach(k=>items.push({type:'Ink', pantone:k.pantone}));
   } else if(o.method==='em'){
-    if(o.elements.dfConfirmed) items.push({type:'Digitization'});
-    o.elements.threads.forEach(()=>items.push({type:'Thread'}));
+    if(o.elements.dfConfirmed) items.push({type:'Digitization', stitchCount:o.elements.stitchCount});
+    o.elements.threads.forEach(t=>items.push({type:'Thread', threadColor:t.color, threadNumber:t.number}));
   } else if(o.method==='hp'){
-    items.push({type:'Transfer'});
+    items.push({type:'Transfer', transferType:o.elements.transferType});
   }
   return items;
 }
