@@ -1714,6 +1714,13 @@ function renderMethodFields(o){
 }
 
 // Escape a value for safe use inside an HTML attribute (data-* names).
+ // GOA_Order_Number__c comes back as an HTML anchor from Salesforce;
+// pull out just the visible number text.
+function goaText(v){
+  if(v==null) return '';
+  const m=String(v).match(/>([^<]+)<\/a>/);
+  return (m?m[1]:String(v)).trim();
+}
 function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function mgrMethodFieldsReady(o){
