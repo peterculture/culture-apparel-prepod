@@ -17,7 +17,7 @@ const FIELDS = [
   "Id",
   "OrderNumber",
   "GOA_Order_Number__c",
-  "Name",          // verify this exists on Order in your org (same caveat as /api/orders)
+  "Customer_Order_Name__c",
   "Print_Date__c",
   "Account.Name",
 ];
