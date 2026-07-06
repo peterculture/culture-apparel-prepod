@@ -803,7 +803,7 @@ function openOrderSheet(o){
   const w=window.open('','_blank');
   if(!w) return; // popup blocked
   w.document.write('<p style="font-family:Arial;padding:24px;color:#666">Loading order sheet…</p>');
-  fetch('/api/order-sizes?quoteId='+encodeURIComponent(o.quoteId),{headers:{Accept:'application/json'}})
+  fetch('/api/order-sizes?orderId='+encodeURIComponent(o.id),{headers:{Accept:'application/json'}})
     .then(r=>r.json())
     .then(d=>{
       const rows=(d&&d.records)||[];
@@ -841,9 +841,7 @@ function ocHTML(o,oi,rdyFn,pctFn,issFn,detFn,pfx,ac){
     +'</div>'
     +'<div class="odet'+(op?' on':'')+'">'
     +detFn(o)
-    +(o.quoteId?'<button data-a="sheet" data-id="'+o.id+'" style="width:100%;margin:4px 0 12px;background:#141416;border:1px solid #C6372B;color:#E8A89F;border-radius:6px;padding:10px;font-family:var(--cond,sans-serif);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px"><i class="ti ti-file-invoice" aria-hidden="true"></i> Order Sheet — Size Breakdown</button>':'')
-    +ppItemsPanel(o,pfx)
-    +'<div class="sync-row"><div class="sync-dot"></div><span>Changes sync to Salesforce #'+o.num+' instantly</span></div>'
+    +'<button data-a="sheet" data-id="'+o.id+'" style="width:100%;margin:4px 0 12px;background:#141416;border:1px solid #C6372B;color:#E8A89F;border-radius:6px;padding:10px;font-family:var(--cond,sans-serif);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px"><i class="ti ti-file-invoice" aria-hidden="true"></i> Order Sheet — Size Breakdown</button>'
     +'</div>'
     +'</div>';
 }
