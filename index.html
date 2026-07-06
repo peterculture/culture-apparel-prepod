@@ -556,7 +556,7 @@ window.doLoad=doLoad;
 
 function mapRec(r){
   return{
-    id:r.Id,num:goaText(r.GOA_Order_Number__c)||'—',name:r.Customer_Order_Name__c||'',acct:(r.Account&&r.Account.Name)||'—',
+    id:r.Id,num:goaText(r.GOA_Order_Number__c)||'—',name:r.Customer_Order_Name__c||'',acct:(r.Account&&r.Account.Name)||'—',quoteId:r.QuoteId||'',
     due:r.Print_Date__c?r.Print_Date__c.slice(0,10):null,
     recv:r.Receiving_Status__c||'Not Received',
     filmsPrinted:!!r.Films_Printed__c,
@@ -703,6 +703,7 @@ function ocHTML(o,oi,rdyFn,pctFn,issFn,detFn,pfx,ac){
     +'</div>'
     +'<div class="odet'+(op?' on':'')+'">'
     +detFn(o)
+    +(o.quoteId?'<button data-a="sheet" data-id="'+o.id+'" style="width:100%;margin:4px 0 12px;background:#141416;border:1px solid #C6372B;color:#E8A89F;border-radius:6px;padding:10px;font-family:var(--cond,sans-serif);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px"><i class="ti ti-file-invoice" aria-hidden="true"></i> Order Sheet — Size Breakdown</button>':'')
     +ppItemsPanel(o,pfx)
     +'<div class="sync-row"><div class="sync-dot"></div><span>Changes sync to Salesforce #'+o.num+' instantly</span></div>'
     +'</div>'
@@ -1211,6 +1212,11 @@ document.body.addEventListener('click',function(e){
   const t=e.target.closest('[data-a]');if(!t)return;
   e.preventDefault();e.stopPropagation();
   const{a,p,id,sid,f,k,v,m,iso}=t.dataset;
+  if(a==='sheet'){
+    const o=[...DB.sp,...DB.em,...DB.hp].find(x=>x.id===id);
+    if(o) openOrderSheet(o);
+    return;
+  }
   if(a==='td'){
     if(!openD[p])openD[p]={};
     openD[p][iso]=!openD[p][iso];
