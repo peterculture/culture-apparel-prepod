@@ -677,7 +677,145 @@ function spDet(o){return recvHTML(o)+'<div class="cklist">'+ckHTML('Films printe
 function emDet(o){return recvHTML(o)+'<div class="cklist">'+ckHTML('Digitize File',o.dfDone,!!o.sav.dfDone,o.id,'Digitize_File__c','dfDone')+ckHTML('Thread Color / Materials',o.thDone,!!o.sav.thDone,o.id,'Thread_Color_Materials__c','thDone')+'</div>';}
 function hpDet(o){return recvHTML(o)+'<div class="cklist">'+ckHTML('Transfers Received',o.trRecv,!!o.sav.trRecv,o.id,'Transfers_Received__c','trRecv')+ckHTML('Transfers Ready',o.trRdy,!!o.sav.trRdy,o.id,'Transfers_Ready__c','trRdy')+'</div>';}
 
-/* ── ORDER CARD ── */
+/* ══════════════════════════════════════
+   ORDER SHEET — SIZE BREAKDOWN (printable)
+   Paste this whole block inside the IIFE, directly ABOVE the
+   line:  /* ── ORDER CARD ── *\/  (i.e. just before function ocHTML).
+   Uses escAttr() and goaText() already defined lower in the IIFE
+   (function declarations hoist, so order doesn't matter).
+══════════════════════════════════════ */
+
+// Canonical size ordering; unknown sizes fall to the end, then A–Z.
+const SIZE_RANK={YXS:0,YS:1,YM:2,YL:3,YXL:4,XS:5,S:6,M:7,L:8,XL:9,
+                 '2XL':10,XXL:10,'3XL':11,XXXL:11,'4XL':12,'5XL':13};
+
+// Group QuoteLineItem rows into a size grid.
+// Rows with a blank Size__c are non-garment lines (fees/upcharges) and are
+// kept out of the grid — surfaced separately as fees.
+function buildSizeSheet(items){
+  const groups={}, fees=[], seen=new Set();
+  (items||[]).forEach(li=>{
+    const size=(li.Size__c||'').trim();
+    const qty=Number(li.Quantity)||0;
+    if(!size){
+      fees.push({name:li.Description||(li.Product2&&li.Product2.Name)||'Fee',unit:Number(li.UnitPrice)||0});
+      return;
+    }
+    const product=(li.Product2&&li.Product2.Name)||'Item';
+    const color=(li.Color__c||'').trim();
+    const design=(li.Design__r&&li.Design__r.Name)||'';
+    const key=design+'|'+product+'|'+color;
+    if(!groups[key]) groups[key]={product,color,design,sizes:{},total:0};
+    groups[key].sizes[size]=(groups[key].sizes[size]||0)+qty;
+    groups[key].total+=qty;
+    seen.add(size);
+  });
+  const sizeCols=[...seen].sort((a,b)=>((SIZE_RANK[a]??99)-(SIZE_RANK[b]??99))||a.localeCompare(b));
+  return {groups:Object.values(groups), sizeCols, fees};
+}
+
+// Build the full standalone HTML document for the print window.
+function renderSheetHTML(order, rows){
+  const {groups, sizeCols, fees}=buildSizeSheet(rows);
+  const grand=groups.reduce((s,g)=>s+g.total,0);
+
+  const garmentHTML=groups.map(g=>{
+    const head='<div class="g-head">'
+      +'<span class="g-title">'+escAttr(g.product)+'</span>'
+      +(g.color?'<span class="g-swatch">'+escAttr(g.color)+'</span>':'')
+      +(g.design?'<span class="g-design">'+escAttr(g.design)+'</span>':'')
+      +'</div>';
+    const headCells=sizeCols.map(s=>'<th>'+escAttr(s)+'</th>').join('');
+    const bodyCells=sizeCols.map(s=>{
+      const q=g.sizes[s]||0;
+      return '<td'+(q?'':' class="zero"')+'>'+q+'</td>';
+    }).join('');
+    const table='<table class="grid"><thead><tr>'
+      +'<th class="rl"></th>'+headCells+'<th class="tc">Total</th></tr></thead>'
+      +'<tbody><tr><td class="rl">Qty</td>'+bodyCells+'<td class="tcell">'+g.total+'</td></tr></tbody></table>';
+    return '<div class="garment">'+head+table+'</div>';
+  }).join('');
+
+  const feesHTML=fees.length
+    ? '<div class="fees"><div class="fees-h">Fees &amp; upcharges</div>'
+      +fees.map(f=>'<div class="fee-row"><span>'+escAttr(f.name)+'</span><span>$'+f.unit.toFixed(2)+'</span></div>').join('')
+      +'</div>'
+    : '';
+
+  const body='<header class="masthead">'
+      +'<div class="brand">Culture Apparel<small>Pre-Production Order Sheet</small></div>'
+      +'<div class="tag"><div class="k">GOA Order</div><div class="goa">'+escAttr(order.goa||'—')+'</div></div>'
+    +'</header>'
+    +'<div class="meta">'
+      +'<div class="row"><span class="lbl">Order</span><span class="val name">'+escAttr(order.name||'—')+'</span></div>'
+      +'<div class="row"><span class="lbl">Account</span><span class="val">'+escAttr(order.account||'—')+'</span></div>'
+    +'</div>'
+    +(groups.length?garmentHTML:'<p class="empty">No size breakdown found on the linked quote.</p>')
+    +(groups.length?'<div class="grand"><span class="glab">Total Garments</span><span class="gnum">'+grand+'<small>pcs</small></span></div>':'')
+    +feesHTML
+    +'<div class="foot"><span>Culture Apparel · Pre-Production</span><span>Generated live from Salesforce</span></div>';
+
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Order Sheet '+escAttr(order.goa||'')+'</title>'
+    +'<style>'
+    +'*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:"Helvetica Neue",Arial,sans-serif;color:#141210;background:#e9e6e0;padding:24px;-webkit-font-smoothing:antialiased}'
+    +'.bar{max-width:760px;margin:0 auto 14px;display:flex;justify-content:flex-end;gap:10px}'
+    +'.btn{font:600 14px/1 Arial;color:#fff;background:#141210;border:none;border-radius:7px;padding:11px 18px;cursor:pointer}'
+    +'.sheet{max-width:760px;margin:0 auto;background:#fff;padding:44px 48px 40px;box-shadow:0 18px 40px -24px rgba(0,0,0,.35)}'
+    +'.masthead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #141210;padding-bottom:14px;margin-bottom:20px}'
+    +'.brand{font:800 22px/1 Arial;letter-spacing:.14em;text-transform:uppercase}'
+    +'.brand small{display:block;font:600 10px/1.4 Arial;letter-spacing:.32em;color:#6b645c;margin-top:6px}'
+    +'.tag{text-align:right}.tag .k{font:700 10px/1 Arial;letter-spacing:.28em;text-transform:uppercase;color:#6b645c}'
+    +'.tag .goa{font:800 26px/1 Arial;margin-top:6px}'
+    +'.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;margin-bottom:26px}'
+    +'.meta .row{display:flex;justify-content:space-between;border-bottom:1px dotted #cfc7bd;padding:6px 0}'
+    +'.meta .lbl{font:700 10px/1.4 Arial;letter-spacing:.16em;text-transform:uppercase;color:#6b645c}'
+    +'.meta .val{font:600 15px/1.3 Arial;text-align:right}.meta .val.name{color:#b5321f}'
+    +'.garment{margin-bottom:22px;break-inside:avoid}'
+    +'.g-head{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}'
+    +'.g-title{font:700 17px/1.2 Arial}'
+    +'.g-swatch{font:700 11px/1 Arial;letter-spacing:.06em;text-transform:uppercase;border:1px solid #141210;border-radius:100px;padding:5px 11px}'
+    +'.g-design{font:500 13px/1 Arial;color:#6b645c;margin-left:auto}'
+    +'table.grid{width:100%;border-collapse:collapse}'
+    +'table.grid th,table.grid td{border:1.5px solid #141210;text-align:center}'
+    +'table.grid thead th{background:#f2ede6;font:700 12px/1 Arial;letter-spacing:.08em;text-transform:uppercase;padding:8px 4px;color:#6b645c}'
+    +'table.grid thead th.tc,table.grid tbody td.tcell{background:#141210;color:#fff}'
+    +'table.grid tbody td{font:700 24px/1 Arial;padding:14px 4px}'
+    +'table.grid tbody td.zero{color:#c9c1b7;font-weight:400}'
+    +'table.grid .rl{font:700 11px/1 Arial;letter-spacing:.14em;text-transform:uppercase;color:#6b645c;text-align:left;padding-left:10px;width:64px}'
+    +'.grand{display:flex;justify-content:space-between;align-items:center;border-top:3px solid #141210;margin-top:8px;padding-top:14px}'
+    +'.glab{font:700 12px/1 Arial;letter-spacing:.16em;text-transform:uppercase;color:#6b645c}'
+    +'.gnum{font:800 30px/1 Arial}.gnum small{font:600 13px/1 Arial;color:#6b645c;letter-spacing:.1em;margin-left:6px;text-transform:uppercase}'
+    +'.fees{margin-top:16px;border-top:1px dotted #cfc7bd;padding-top:10px}'
+    +'.fees-h{font:700 10px/1 Arial;letter-spacing:.18em;text-transform:uppercase;color:#6b645c;margin-bottom:6px}'
+    +'.fee-row{display:flex;justify-content:space-between;font:500 13px/1.5 Arial;color:#6b645c}'
+    +'.empty{font:500 14px/1.5 Arial;color:#6b645c;padding:20px 0}'
+    +'.foot{margin-top:26px;display:flex;justify-content:space-between;color:#6b645c;font:500 11px/1.4 Arial}'
+    +'@media print{@page{margin:14mm}body{background:#fff;padding:0}.bar{display:none}.sheet{box-shadow:none;max-width:none;padding:0}.garment{break-inside:avoid}}'
+    +'</style></head><body>'
+    +'<div class="bar"><button class="btn" onclick="window.print()">Print / Save PDF</button></div>'
+    +'<div class="sheet">'+body+'</div>'
+    +'</body></html>';
+}
+
+// Open a new window and populate it with the printable sheet for one order.
+function openOrderSheet(o){
+  const w=window.open('','_blank');
+  if(!w) return; // popup blocked
+  w.document.write('<p style="font-family:Arial;padding:24px;color:#666">Loading order sheet…</p>');
+  fetch('/api/order-sizes?quoteId='+encodeURIComponent(o.quoteId),{headers:{Accept:'application/json'}})
+    .then(r=>r.json())
+    .then(d=>{
+      const rows=(d&&d.records)||[];
+      const html=renderSheetHTML({goa:o.num,name:o.name,account:o.acct}, rows);
+      w.document.open(); w.document.write(html); w.document.close();
+    })
+    .catch(e=>{
+      w.document.body.innerHTML='<p style="font-family:Arial;padding:24px">Could not load size data: '+(e&&e.message||'error')+'</p>';
+    });
+}
+ 
+ /* ── ORDER CARD ── */
 function ocHTML(o,oi,rdyFn,pctFn,issFn,detFn,pfx,ac){
   const col=OC[oi%OC.length];const pct=pctFn(o);const rdy=rdyFn(o);const iss=issFn(o);const od=isOD(o);
   const op=!!(openO[pfx]&&openO[pfx][o.id]);
