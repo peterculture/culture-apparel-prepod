@@ -687,7 +687,7 @@ function ocHTML(o,oi,rdyFn,pctFn,issFn,detFn,pfx,ac){
     +'<div style="flex:1;min-width:0">'
     +'<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:5px">'
     +'<span style="font-size:14px;font-weight:600;color:'+col.text+'">#'+o.num+'</span>'
-    +'<span style="font-size:12px;color:'+col.sub+'">'+o.name+'</span>'
+    +'<span style="font-size:12px;color:'+col.text+';font-weight:500">'+escAttr(o.acct)+'</span>'
     +(rdy?'<span class="badge" style="background:#1E2D0E;color:#E7F2D2"><i class="ti ti-check" aria-hidden="true"></i> Ready for print</span>':'')
     +(iss?'<span class="badge" style="background:#4A360F;color:#E6D5BC"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Partial</span>':'')
     +(od?'<span class="badge" style="background:#7A241C;color:#F6DAD5"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Overdue</span>':'')
