@@ -1,20 +1,21 @@
 /**
- * GET /api/order-sizes?quoteId=<15-or-18-char SF Id>
+ * GET /api/order-sizes?orderId=<15-or-18-char SF Id>
  *
- * Returns the QuoteLineItem rows for one quote, so the front end can pivot
- * them into a size breakdown. Read-only: it only ever runs this one SELECT.
+ * Returns the OrderItem ("Order Products") rows for one order, so the front
+ * end can pivot them into a size breakdown. Read-only: one SELECT, nothing else.
  *
- * SECURITY: quoteId comes from the client, so unlike /api/orders (whose SOQL
- * is fully hard-coded) this endpoint interpolates a value into the WHERE
- * clause. We therefore validate it against the strict Salesforce Id shape
- * (15 or 18 alphanumeric chars) and reject anything else BEFORE building the
- * query -- that blocks SOQL injection through the parameter. Note this shares
- * the same public exposure as /api/orders and is covered by the pending
- * Cloudflare Access lockdown, not by anything added here.
+ * Source is now the Order itself (OrderItem), NOT the quote. The old
+ * Order -> Opportunity -> SyncedQuoteId -> QuoteLineItem chain is gone: size,
+ * garment, color and quantity all hang directly off the order's products.
  *
- * FIELDS: each QuoteLineItem is ONE size of one garment. Rows with a blank
- * Size__c are non-garment lines (fees/upcharges) and are filtered out on the
- * front end, not here, so the raw data stays intact for other uses.
+ * SECURITY: orderId comes from the client, so it is validated against the
+ * strict Salesforce Id shape (15 or 18 alphanumeric chars) before it is ever
+ * placed in the WHERE clause -- that blocks SOQL injection through the param.
+ * Same public exposure as /api/orders; covered by the pending Access lockdown.
+ *
+ * Each OrderItem is ONE size of one garment. Any row with a blank Size__c is
+ * treated as a non-garment line on the front end (kept out of the grid), so
+ * the raw rows are returned intact.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 
@@ -27,22 +28,21 @@ const FIELDS = [
   "UnitPrice",
   "Color__c",
   "Description",
-  "SortOrder",
   "Product2.Name",
   "Design__r.Name",
 ];
 
 export async function onRequestGet({ env, request }) {
   try {
-    const quoteId = new URL(request.url).searchParams.get("quoteId") || "";
+    const orderId = new URL(request.url).searchParams.get("orderId") || "";
 
-    if (!SF_ID.test(quoteId)) {
-      return jsonError("invalid_quote_id", 400);
+    if (!SF_ID.test(orderId)) {
+      return jsonError("invalid_order_id", 400);
     }
 
     const soql =
-      `SELECT ${FIELDS.join(", ")} FROM QuoteLineItem ` +
-      `WHERE QuoteId = '${quoteId}' ORDER BY SortOrder`;
+      `SELECT ${FIELDS.join(", ")} FROM OrderItem ` +
+      `WHERE OrderId = '${orderId}'`;
     const path =
       `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
 
@@ -50,7 +50,7 @@ export async function onRequestGet({ env, request }) {
     const data = await resp.json();
 
     if (!resp.ok) {
-      console.error("QuoteLineItem query failed", resp.status, JSON.stringify(data));
+      console.error("OrderItem query failed", resp.status, JSON.stringify(data));
       return jsonError("query_failed", resp.status);
     }
 
