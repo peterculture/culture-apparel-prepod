@@ -17,7 +17,7 @@ const FIELDS = [
   "Id",
   "GOA_Order_Number__c",
   "OrderNumber",
-  "Name", // <-- verify this exists on Order in your org; see note above
+  "Customer_Order_Name__c",
   "Print_Date__c",
   "Account.Name",
   "Printer__r.Name", // <-- printer account drives the print method
