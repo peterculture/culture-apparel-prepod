@@ -16,6 +16,7 @@ import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 const FIELDS = [
   "Id",
   "GOA_Order_Number__c",
+  "QuoteId",
   "OrderNumber",
   "Customer_Order_Name__c",
   "Print_Date__c",
