@@ -277,5 +277,15 @@ export const STATION_CONFIG = {
     },
 
     doneStatus: "Ready",
+
+    // ROLL-UP TO THE STANDARD ORDER: after a transfer item's sub-status changes,
+    // the endpoint recomputes these Order checkboxes (the ones the MAIN dashboard
+    // heat-press checklist shows). Each is true iff EVERY transfer item on that
+    // order has reached the given stage or later; recomputed both ways, so a
+    // "Transfer Error" reset unchecks it again. Fields verified via index.html.
+    orderRollup: [
+      { field: "Transfers_Received__c", atOrAfter: "Transfers Received" },
+      { field: "Transfers_Ready__c",    atOrAfter: "Transfers Cut/Ready" },
+    ],
   },
 };
