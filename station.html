@@ -36,19 +36,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 /* ── LOGIN ── */
 #login{position:fixed;inset:0;background:var(--hdr);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
 .login-box{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:34px 34px 30px;width:100%;max-width:400px;text-align:center}
-.login-badge{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;background:var(--acc)}
+.login-badge{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;background:var(--red)}
 .login-badge svg{width:30px;height:30px}
-.login-station{font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--acc)}
+.login-station{font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--red)}
 .login-title{font-family:var(--cond);font-size:26px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin:2px 0 4px}
 .login-sub{font-size:12px;color:var(--ink3);margin-bottom:24px}
 .pin-dots{display:flex;justify-content:center;gap:14px;margin-bottom:22px}
 .pin-dot{width:15px;height:15px;border-radius:50%;border:2px solid #46443f;transition:all .12s}
-.pin-dot.on{background:var(--acc);border-color:var(--acc)}
+.pin-dot.on{background:var(--red);border-color:var(--red)}
 .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .key{background:var(--chip);border:1px solid var(--line);color:var(--ink);font-family:var(--cond);font-size:24px;font-weight:600;border-radius:10px;padding:20px 0;cursor:pointer;user-select:none;transition:transform .08s,background .12s}
-.key:active{transform:scale(.94);background:var(--acc);color:#000;border-color:var(--acc)}
+.key:active{transform:scale(.94);background:var(--red);color:#fff;border-color:var(--red)}
 .key.util{font-size:15px;color:var(--ink3);background:transparent}
-.key.go{background:var(--acc);color:#000;border-color:var(--acc)}
+.key.go{background:var(--red);color:#fff;border-color:var(--red)}
 .login-err{min-height:18px;margin-top:14px;font-size:13px;font-weight:500;color:var(--red-tx)}
 
 /* ── BOARD ── */
@@ -161,6 +161,8 @@ const ICON_DROP='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width
 const ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>';
 const ICON_ALERT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17.5v.4"/></svg>';
 const ICON_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/></svg>';
+const ICON_SCREEN='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>';
+const ICON_TSHIRT='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l6 2v5h-3v8a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1v-8h-3v-5l6 -2a3 3 0 0 0 6 0"/></svg>';
 
 /* ── STATION CONFIG (client-side, for labels/theme only) ──
    The SERVER's STATION_CONFIG is the source of truth for what a token can see
@@ -171,6 +173,10 @@ const STATIONS={
     label:'Ink Station', accent:'#2E9CCA', accentBg:'#0C2733', accentTx:'#BFE4F2',
     icon:ICON_DROP,
     field:'Ink_Sub_Status__c',
+    // record field shown as the card's headline + swatch, and its wording
+    idField:'Pantone_Color__c', idFallback:'(no Pantone)', idSuffix:'',
+    countWord:'to mix', emptyMsg:'All inks mixed — nothing waiting.',
+    doneMsg:'Mixed — moved off the board',
     // pipeline stages in order; blank is treated as the first stage
     stages:['Not Started','Pantone Label Printed','Mixing','Mixed'],
     // button wording to advance FROM each stage to the next
@@ -180,11 +186,29 @@ const STATIONS={
       'Mixing':'Mark mixed — done'
     },
     doneStage:'Mixed',
-    // secondary "error" action: bounce the ink back to the start of the pipeline.
+    // secondary "error" action: bounce the item back to the start of the pipeline.
     // errorTo must be one of the stages above (the server validates against it).
     errorLabel:'Mixing Error', errorTo:'Not Started'
+  },
+  screen:{
+    label:'The Blue Lagoon', accent:'#1FB2A6', accentBg:'#06282A', accentTx:'#A7E8E0',
+    icon:ICON_SCREEN,
+    field:'Screen_Sub_Status__c',
+    idField:'Mesh_Count__c', idFallback:'(no mesh)', idSuffix:' mesh',
+    countWord:'to prep', emptyMsg:'All screens ready — nothing waiting.',
+    doneMsg:'Ready for print — moved off the board',
+    // Pipeline order from index.html's PP_SCREEN_SUB — CONFIRM it's the real order.
+    stages:['Not Clean','Needs Emulsion','Ready for Exposure','Needs Tape','Ready for Print'],
+    action:{
+      'Not Clean':'Screen cleaned',
+      'Needs Emulsion':'Emulsion applied',
+      'Ready for Exposure':'Exposed',
+      'Needs Tape':'Taped — ready to print'
+    },
+    doneStage:'Ready for Print',
+    errorLabel:'Screen Error', errorTo:'Not Clean'
   }
-  // screen / garment / film: configured later, once their fields are verified.
+  // garment / film: configured later, once their fields are verified.
 };
 
 const params=new URLSearchParams(location.search);
@@ -195,10 +219,10 @@ const CFG=STATIONS[STATION]||STATIONS.ink;
 document.documentElement.style.setProperty('--acc',CFG.accent);
 document.documentElement.style.setProperty('--acc-bg',CFG.accentBg);
 document.documentElement.style.setProperty('--acc-tx',CFG.accentTx);
-document.getElementById('login-badge').innerHTML=CFG.icon;
+document.getElementById('login-badge').innerHTML=ICON_TSHIRT;
 document.getElementById('bar-badge').innerHTML=CFG.icon;
-document.getElementById('login-station').textContent=CFG.label.replace(/ Station$/,'')+' Station';
-document.getElementById('login-title').textContent='Culture Apparel';
+document.getElementById('login-station').textContent='Culture Apparel';
+document.getElementById('login-title').textContent='Pre-Production Login';
 document.getElementById('bar-title').textContent=CFG.label;
 
 const $=id=>document.getElementById(id);
@@ -299,9 +323,9 @@ function stageIndex(item){
 
 function render(records){
   const list=$('list');
-  $('count-pill').textContent=records.length+' to mix';
+  $('count-pill').textContent=records.length+' '+CFG.countWord;
   if(!records.length){
-    list.innerHTML='<div class="state empty">'+ICON_CHECK.replace('currentColor','#7FA644')+'All inks mixed — nothing waiting.</div>';
+    list.innerHTML='<div class="state empty">'+ICON_CHECK.replace('currentColor','#7FA644')+esc(CFG.emptyMsg)+'</div>';
     return;
   }
   list.innerHTML=records.map(cardHTML).join('');
@@ -314,7 +338,9 @@ function cardHTML(rec){
   const goa=goaText(order.GOA_Order_Number__c)||order.Name||'—';
   const cust=order.Customer_Order_Name__c||'';
   const printDate=(order.Print_Date__c||'').slice(0,10);
-  const pantone=(rec.Pantone_Color__c||'').trim()||'(no Pantone)';
+  const idRaw=(rec[CFG.idField]!=null?String(rec[CFG.idField]):'').trim();
+  const headline=idRaw ? idRaw+(CFG.idSuffix||'') : CFG.idFallback;
+  const swatchTxt=idRaw ? idRaw.slice(0,10) : '—';
   const notes=(rec.Notes__c||'').trim();
   const idx=stageIndex(rec);
   const cur=CFG.stages[idx];
@@ -339,9 +365,9 @@ function cardHTML(rec){
 
   return '<div class="card" id="card-'+esc(rec.Id)+'">'
     +'<div class="card-top">'
-      +'<div class="swatch">'+esc(pantone.slice(0,10))+'</div>'
+      +'<div class="swatch">'+esc(swatchTxt)+'</div>'
       +'<div class="card-id">'
-        +'<div class="pantone">'+esc(pantone)+'</div>'
+        +'<div class="pantone">'+esc(headline)+'</div>'
         +'<div class="ordline">Order <b>#'+esc(goa)+'</b>'+(cust?' · '+esc(cust):'')+'</div>'
         +dueChip(printDate)
         +(notes?'<div class="notes">'+esc(notes)+'</div>':'')
@@ -358,7 +384,7 @@ async function onAdvance(e){
   const b=e.currentTarget;
   const itemId=b.dataset.id, next=b.dataset.next;
   await writeStatus(itemId, next,
-    next===CFG.doneStage ? 'Mixed — moved off the board' : 'Updated: '+next);
+    next===CFG.doneStage ? CFG.doneMsg : 'Updated: '+next);
 }
 
 // "Mixing Error" — bounce the ink back to the start of the pipeline.
