@@ -108,6 +108,34 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 .err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red-tx);border-radius:8px;padding:9px 12px;font-size:12px;margin-top:10px}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--grn-bg);border:1px solid var(--grn-bd);color:var(--grn-tx);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:60;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red-bg);border-color:var(--red-bd);color:var(--red-tx)}
+
+/* ── COMPACT CARD (summary; opens the modal) ── */
+.card-sm{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:background .12s,border-color .12s}
+.card-sm:hover{border-color:var(--line2)}
+.card-sm:active{background:#16161a}
+.card-sm .card-id{flex:1;min-width:0}
+.swatch-sm{width:42px;height:42px;font-size:10px}
+.pantone-sm{font-size:16px}
+.sm-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.sm-chev{color:var(--ink3);font-size:24px;line-height:1;font-family:var(--cond)}
+
+/* ── FULL-SCREEN ITEM MODAL ── */
+body.modal-open{overflow:hidden}
+.modal{position:fixed;inset:0;z-index:80;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal.busy{pointer-events:none;opacity:.55}
+.m-card{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;min-height:100%}
+.m-head{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--hdr);z-index:2}
+.m-back{background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:8px;padding:10px 15px;font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.m-back:active{border-color:var(--acc);color:var(--acc)}
+.m-station{margin-left:auto;font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+.m-body{padding:22px 20px 44px}
+.m-idrow{display:flex;align-items:center;gap:15px;margin-bottom:12px}
+.m-swatch{width:66px;height:66px;border-radius:12px;border:1px solid var(--line2);background:var(--chip);display:flex;align-items:center;justify-content:center;font-family:var(--cond);font-size:14px;font-weight:700;color:var(--ink2);flex-shrink:0;text-align:center;padding:4px;line-height:1.05;overflow:hidden}
+.m-headline{font-family:var(--cond);font-size:28px;font-weight:700;color:var(--ink);line-height:1.05}
+.m-stage{display:flex;justify-content:space-between;align-items:center;background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:12px 15px;margin:16px 0 4px;font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.m-stage span{font-family:var(--cond);font-size:15px;font-weight:600;color:var(--acc-tx);letter-spacing:.02em;text-transform:none}
+.m-steps{margin:20px 0 24px}
 </style>
 </head>
 <body>
@@ -151,6 +179,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="modal hide" id="modal"></div>
 
 <script>
 (function(){
@@ -280,16 +309,31 @@ async function submitPin(){
 }
 
 /* ── BOARD ── */
-function showLogin(){ $('board').classList.add('hide'); $('login').classList.remove('hide'); }
+function showLogin(){ closeModal(); $('board').classList.add('hide'); $('login').classList.remove('hide'); }
 function showBoard(){ $('login').classList.add('hide'); $('board').classList.remove('hide'); loadSchedule(); }
 
 $('btn-refresh').addEventListener('click',loadSchedule);
 $('btn-lock').addEventListener('click',showLogin);   // soft lock: re-prompt PIN in the UI
 
+// Tap a compact card -> open the full-screen item modal (delegated, since the
+// cards are re-rendered on every refresh).
+$('list').addEventListener('click',e=>{
+  const c=e.target.closest('[data-open]');
+  if(c) openModal(c.dataset.id);
+});
+// Modal controls (back / advance / error), delegated once.
+$('modal').addEventListener('click',e=>{
+  if(e.target.closest('[data-close]')){ closeModal(); return; }
+  const adv=e.target.closest('[data-adv]'); if(adv){ onAdvance({currentTarget:adv}); return; }
+  const err=e.target.closest('[data-err]'); if(err){ onError({currentTarget:err}); return; }
+});
+
 let toastTimer=null;
-function toast(msg){
-  const t=$('toast'); t.textContent=msg; t.classList.add('on');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),1800);
+function toast(msg,isErr){
+  const t=$('toast'); t.textContent=msg;
+  t.classList.toggle('err',!!isErr);
+  t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),isErr?2600:1800);
 }
 
 async function loadSchedule(opts){
@@ -308,7 +352,8 @@ async function loadSchedule(opts){
     if(opts.keepScroll){
       // Silent refresh (after a write) failed — keep the board as-is, just flag it.
       document.querySelectorAll('.card.busy').forEach(c=>c.classList.remove('busy'));
-      toast('Couldn\'t refresh — '+e.message);
+      $('modal').classList.remove('busy');
+      toast('Couldn\'t refresh — '+e.message,true);
     } else {
       list.innerHTML='<div class="state" style="color:var(--red-tx)">Could not load schedule: '+esc(e.message)+'</div>';
     }
@@ -321,19 +366,76 @@ function stageIndex(item){
   return i<0?0:i;
 }
 
+let CURRENT=[];
 function render(records){
+  CURRENT=records;
   const list=$('list');
   $('count-pill').textContent=records.length+' '+CFG.countWord;
   if(!records.length){
     list.innerHTML='<div class="state empty">'+ICON_CHECK.replace('currentColor','#7FA644')+esc(CFG.emptyMsg)+'</div>';
+    syncModal();
     return;
   }
   list.innerHTML=records.map(cardHTML).join('');
-  list.querySelectorAll('[data-adv]').forEach(b=>b.addEventListener('click',onAdvance));
-  list.querySelectorAll('[data-err]').forEach(b=>b.addEventListener('click',onError));
+  syncModal();   // keep an open modal in step with fresh data (or close it if done)
 }
 
+// Compact summary card — vital info only; tap to open the working modal.
 function cardHTML(rec){
+  const order=(rec.Production_Method__r&&rec.Production_Method__r.Order__r)||{};
+  const goa=goaText(order.GOA_Order_Number__c)||order.Name||'—';
+  const cust=order.Customer_Order_Name__c||'';
+  const printDate=(order.Print_Date__c||'').slice(0,10);
+  const idRaw=(rec[CFG.idField]!=null?String(rec[CFG.idField]):'').trim();
+  const headline=idRaw ? idRaw+(CFG.idSuffix||'') : CFG.idFallback;
+  const swatchTxt=idRaw ? idRaw.slice(0,10) : '—';
+  const cur=CFG.stages[stageIndex(rec)];
+  return '<div class="card card-sm" id="card-'+esc(rec.Id)+'" data-open data-id="'+esc(rec.Id)+'">'
+    +'<div class="swatch swatch-sm">'+esc(swatchTxt)+'</div>'
+    +'<div class="card-id">'
+      +'<div class="pantone pantone-sm">'+esc(headline)+'</div>'
+      +'<div class="ordline">Order <b>#'+esc(goa)+'</b>'+(cust?' · '+esc(cust):'')+'</div>'
+      +dueChip(printDate)
+    +'</div>'
+    +'<div class="sm-right">'
+      +'<div class="stagetag">'+esc(cur)+'</div>'
+      +'<div class="sm-chev">&#8250;</div>'
+    +'</div>'
+  +'</div>';
+}
+
+/* ── FULL-SCREEN ITEM MODAL ──
+   One item, whole screen: identity + flow line + advance/error controls. */
+let modalId=null;
+function openModal(id){
+  const rec=CURRENT.find(x=>x.Id===id);
+  if(!rec) return;
+  modalId=id;
+  renderModal(rec);
+  $('modal').classList.remove('hide');
+  document.body.classList.add('modal-open');
+}
+function renderModal(rec){
+  const m=$('modal');
+  m.classList.remove('busy');
+  m.innerHTML=detailInner(rec);
+  m.scrollTop=0;
+}
+function closeModal(){
+  modalId=null;
+  const m=$('modal'); m.classList.add('hide'); m.classList.remove('busy'); m.innerHTML='';
+  document.body.classList.remove('modal-open');
+}
+// After any refresh: re-render the open modal from fresh data, or close it if
+// the item finished and dropped off the schedule.
+function syncModal(){
+  if(!modalId) return;
+  const rec=CURRENT.find(x=>x.Id===modalId);
+  if(!rec){ closeModal(); return; }
+  renderModal(rec);
+}
+
+function detailInner(rec){
   const order=(rec.Production_Method__r&&rec.Production_Method__r.Order__r)||{};
   const goa=goaText(order.GOA_Order_Number__c)||order.Name||'—';
   const cust=order.Customer_Order_Name__c||'';
@@ -356,28 +458,33 @@ function cardHTML(rec){
     ? '<button class="advance'+(toDone?' done-btn':'')+'" data-adv data-id="'+esc(rec.Id)+'" data-next="'+esc(nextStage)+'">'
         +(toDone?ICON_CHECK:'')+esc(CFG.action[cur]||('Advance to '+nextStage))+'</button>'
     : '';
-
-  // Show the "Mixing Error" reset only once the ink has left the first stage.
+  // Error reset appears once the item has left the first stage.
   const errBtn = (idx>0 && CFG.errorLabel)
     ? '<button class="errbtn" data-err data-id="'+esc(rec.Id)+'" data-back="'+esc(CFG.errorTo)+'">'
         +ICON_ALERT+esc(CFG.errorLabel)+'</button>'
     : '';
 
-  return '<div class="card" id="card-'+esc(rec.Id)+'">'
-    +'<div class="card-top">'
-      +'<div class="swatch">'+esc(swatchTxt)+'</div>'
-      +'<div class="card-id">'
-        +'<div class="pantone">'+esc(headline)+'</div>'
-        +'<div class="ordline">Order <b>#'+esc(goa)+'</b>'+(cust?' · '+esc(cust):'')+'</div>'
-        +dueChip(printDate)
-        +(notes?'<div class="notes">'+esc(notes)+'</div>':'')
-      +'</div>'
-      +'<div class="stagetag">'+esc(cur)+'</div>'
+  return '<div class="m-card">'
+    +'<div class="m-head">'
+      +'<button class="m-back" data-close>&#8249; Back to board</button>'
+      +'<span class="m-station">'+esc(CFG.label)+'</span>'
     +'</div>'
-    +'<div class="steps">'+steps+'</div>'
-    +btn
-    +errBtn
-    +'</div>';
+    +'<div class="m-body">'
+      +'<div class="m-idrow">'
+        +'<div class="m-swatch">'+esc(swatchTxt)+'</div>'
+        +'<div style="min-width:0">'
+          +'<div class="m-headline">'+esc(headline)+'</div>'
+          +'<div class="ordline">Order <b>#'+esc(goa)+'</b>'+(cust?' · '+esc(cust):'')+'</div>'
+        +'</div>'
+      +'</div>'
+      +dueChip(printDate)
+      +(notes?'<div class="notes">'+esc(notes)+'</div>':'')
+      +'<div class="m-stage">Current status<span>'+esc(cur)+'</span></div>'
+      +'<div class="steps m-steps">'+steps+'</div>'
+      +btn
+      +errBtn
+    +'</div>'
+  +'</div>';
 }
 
 async function onAdvance(e){
@@ -398,6 +505,7 @@ async function onError(e){
 async function writeStatus(itemId, value, okMsg){
   const card=$('card-'+itemId);
   if(card) card.classList.add('busy');
+  if(modalId===itemId) $('modal').classList.add('busy');
   try{
     const r=await fetch('/api/update-item-status',{
       method:'POST',
@@ -407,16 +515,14 @@ async function writeStatus(itemId, value, okMsg){
     if(r.status===401){ showLogin(); return; }
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.ok) throw new Error((d&&d.error)||('Save failed '+r.status));
-    // d.status is the rolled-up Status__c the server wrote (e.g. "Ready" when Mixed).
     toast(okMsg);
-    // Re-pull the board (a "Mixed" item is now Ready and drops off), holding scroll.
+    // Re-pull the board (a finished item drops off), holding scroll; render()
+    // then re-syncs the open modal or closes it if the item is done.
     await loadSchedule({keepScroll:true});
   }catch(err){
-    if(card){
-      card.classList.remove('busy');
-      let e2=card.querySelector('.err'); if(!e2){ e2=document.createElement('div'); e2.className='err'; card.appendChild(e2); }
-      e2.textContent=err.message;
-    }
+    if(card) card.classList.remove('busy');
+    if(modalId===itemId) $('modal').classList.remove('busy');
+    toast('Couldn\'t save — '+err.message, true);
   }
 }
 
