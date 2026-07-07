@@ -78,6 +78,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 .ordline{font-size:12px;color:var(--ink2);margin-top:3px}
 .ordline b{color:var(--ink);font-weight:600}
 .notes{font-size:12px;color:var(--ink3);margin-top:6px;font-style:italic}
+.duetag{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.04em;padding:4px 10px;border-radius:20px;background:var(--chip);color:var(--ink2);border:1px solid var(--line)}
+.duetag svg{width:13px;height:13px;flex-shrink:0}
+.duetag.today{background:var(--amb-bg);color:var(--amb-tx);border-color:var(--amb-bd)}
+.duetag.over{background:var(--red-bg);color:var(--red-tx);border-color:var(--red-bd)}
+.duetag.none{opacity:.6}
 .stagetag{font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:20px;white-space:nowrap;background:var(--acc-bg);color:var(--acc-tx);border:1px solid var(--acc)}
 
 /* stepper */
@@ -155,6 +160,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 const ICON_DROP='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.8 11a6 6 0 1 0 10.4 0L12 3z"/></svg>';
 const ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>';
 const ICON_ALERT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17.5v.4"/></svg>';
+const ICON_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/></svg>';
 
 /* ── STATION CONFIG (client-side, for labels/theme only) ──
    The SERVER's STATION_CONFIG is the source of truth for what a token can see
@@ -199,6 +205,20 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 // GOA_Order_Number__c comes back from Salesforce as an <a> anchor; show the text.
 function goaText(v){ if(v==null)return''; const m=String(v).match(/>([^<]+)<\/a>/); return (m?m[1]:String(v)).trim(); }
+
+/* ── PRINT DATE ── */
+const TODAY_ISO=new Date().toLocaleDateString('en-CA');   // local YYYY-MM-DD
+function fmtDate(iso){
+  const d=new Date(iso+'T00:00:00');                      // parse as local midnight
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+function dueChip(iso){
+  if(!iso) return '<div class="duetag none">'+ICON_CAL+'No print date</div>';
+  const cls = iso<TODAY_ISO ? 'over' : iso===TODAY_ISO ? 'today' : '';
+  const lead = cls==='over' ? 'Overdue · ' : cls==='today' ? 'Today · ' : 'Prints ';
+  return '<div class="duetag '+cls+'">'+ICON_CAL+esc(lead+fmtDate(iso))+'</div>';
+}
 
 /* ── PIN ENTRY ── */
 let pin='';
@@ -293,6 +313,7 @@ function cardHTML(rec){
   const order=(rec.Production_Method__r&&rec.Production_Method__r.Order__r)||{};
   const goa=goaText(order.GOA_Order_Number__c)||order.Name||'—';
   const cust=order.Customer_Order_Name__c||'';
+  const printDate=(order.Print_Date__c||'').slice(0,10);
   const pantone=(rec.Pantone_Color__c||'').trim()||'(no Pantone)';
   const notes=(rec.Notes__c||'').trim();
   const idx=stageIndex(rec);
@@ -322,6 +343,7 @@ function cardHTML(rec){
       +'<div class="card-id">'
         +'<div class="pantone">'+esc(pantone)+'</div>'
         +'<div class="ordline">Order <b>#'+esc(goa)+'</b>'+(cust?' · '+esc(cust):'')+'</div>'
+        +dueChip(printDate)
         +(notes?'<div class="notes">'+esc(notes)+'</div>':'')
       +'</div>'
       +'<div class="stagetag">'+esc(cur)+'</div>'
