@@ -193,6 +193,7 @@ const ICON_ALERT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const ICON_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/></svg>';
 const ICON_SCREEN='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>';
 const ICON_TSHIRT='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l6 2v5h-3v8a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1v-8h-3v-5l6 -2a3 3 0 0 0 6 0"/></svg>';
+const ICON_FLAME='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z"/></svg>';
 
 /* ── STATION CONFIG (client-side, for labels/theme only) ──
    The SERVER's STATION_CONFIG is the source of truth for what a token can see
@@ -237,8 +238,24 @@ const STATIONS={
     },
     doneStage:'Ready for Print',
     errorLabel:'Screen Error', errorTo:'Needs Emulsion'
+  },
+  transfer:{
+    label:'Transfer Station', accent:'#E0B23C', accentBg:'#2A1E06', accentTx:'#F2DCA0',
+    icon:ICON_FLAME,
+    field:'Transfers_Sub_Status__c',
+    idField:'Transfer_Type__c', idFallback:'(no type)', idSuffix:'',
+    countWord:'to prep', emptyMsg:'All transfers ready — nothing waiting.',
+    doneMsg:'Cut & ready — moved off the board',
+    // Sub-status flow from index.html's PP_TRANSFER_SUB — CONFIRM the order.
+    stages:['Not Received','Transfers Received','Transfers Cut/Ready'],
+    action:{
+      'Not Received':'Transfers received',
+      'Transfers Received':'Cut & ready'
+    },
+    doneStage:'Transfers Cut/Ready',
+    errorLabel:'Transfer Error', errorTo:'Not Received'
   }
-  // garment / film: configured later, once their fields are verified.
+  // film: configured later, once its fields are verified.
 };
 
 const params=new URLSearchParams(location.search);
