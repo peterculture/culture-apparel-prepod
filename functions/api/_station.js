@@ -288,4 +288,23 @@ export const STATION_CONFIG = {
       { field: "Transfers_Ready__c",    atOrAfter: "Transfers Cut/Ready" },
     ],
   },
+
+  // ── GARMENT COUNT-IN STATION ──
+  // Different from the other three: NO pre-prod item and NO production method.
+  // It works off the standard Order directly — the board reuses /api/orders and
+  // the write goes to /api/update-order-receiving (which targets the Order).
+  // `source: "order"` tells the client to use that path. This config is what
+  // /api/station-login checks (so the garment PIN is accepted) and what the
+  // receiving-write endpoint validates against.
+  garment: {
+    source: "order",
+    field: "Receiving_Status__c",
+    // Allowed picklist values (same set the main dashboard uses). Not a strict
+    // pipeline for the write, but the client advances through them in this order.
+    statuses: ["Not Received", "Partial", "Counted In", "Staged"],
+    doneStatus: "Staged", // board hides orders at this value
+    // Free-text "missing count-in" note; kept only while at "Partial".
+    missingField: "Partial_Check_in_Missing_Items__c",
+    missingAtStage: "Partial",
+  },
 };
