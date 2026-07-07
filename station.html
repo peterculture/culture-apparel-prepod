@@ -97,6 +97,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 .advance:active{filter:brightness(.9)}
 .advance.done-btn{background:var(--grn)}
 .advance svg{width:17px;height:17px;flex-shrink:0}
+.errbtn{width:100%;margin-top:8px;background:transparent;border:1px solid var(--red-bd);color:var(--red-tx);border-radius:10px;padding:11px;font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.errbtn:active{background:var(--red-bg)}
+.errbtn svg{width:15px;height:15px;flex-shrink:0}
 .err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red-tx);border-radius:8px;padding:9px 12px;font-size:12px;margin-top:10px}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--grn-bg);border:1px solid var(--grn-bd);color:var(--grn-tx);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:60;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -151,6 +154,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 /* ── ICONS (inline so there's no font dependency) ── */
 const ICON_DROP='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.8 11a6 6 0 1 0 10.4 0L12 3z"/></svg>';
 const ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>';
+const ICON_ALERT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17.5v.4"/></svg>';
 
 /* ── STATION CONFIG (client-side, for labels/theme only) ──
    The SERVER's STATION_CONFIG is the source of truth for what a token can see
@@ -169,7 +173,10 @@ const STATIONS={
       'Pantone Label Printed':'Start mixing',
       'Mixing':'Mark mixed — done'
     },
-    doneStage:'Mixed'
+    doneStage:'Mixed',
+    // secondary "error" action: bounce the ink back to the start of the pipeline.
+    // errorTo must be one of the stages above (the server validates against it).
+    errorLabel:'Mixing Error', errorTo:'Not Started'
   }
   // screen / garment / film: configured later, once their fields are verified.
 };
@@ -270,6 +277,7 @@ function render(records){
   }
   list.innerHTML=records.map(cardHTML).join('');
   list.querySelectorAll('[data-adv]').forEach(b=>b.addEventListener('click',onAdvance));
+  list.querySelectorAll('[data-err]').forEach(b=>b.addEventListener('click',onError));
 }
 
 function cardHTML(rec){
@@ -293,6 +301,12 @@ function cardHTML(rec){
         +(toDone?ICON_CHECK:'')+esc(CFG.action[cur]||('Advance to '+nextStage))+'</button>'
     : '';
 
+  // Show the "Mixing Error" reset only once the ink has left the first stage.
+  const errBtn = (idx>0 && CFG.errorLabel)
+    ? '<button class="errbtn" data-err data-id="'+esc(rec.Id)+'" data-back="'+esc(CFG.errorTo)+'">'
+        +ICON_ALERT+esc(CFG.errorLabel)+'</button>'
+    : '';
+
   return '<div class="card" id="card-'+esc(rec.Id)+'">'
     +'<div class="card-top">'
       +'<div class="swatch">'+esc(pantone.slice(0,10))+'</div>'
@@ -305,25 +319,39 @@ function cardHTML(rec){
     +'</div>'
     +'<div class="steps">'+steps+'</div>'
     +btn
+    +errBtn
     +'</div>';
 }
 
 async function onAdvance(e){
   const b=e.currentTarget;
   const itemId=b.dataset.id, next=b.dataset.next;
+  await writeStatus(itemId, next,
+    next===CFG.doneStage ? 'Mixed — moved off the board' : 'Updated: '+next);
+}
+
+// "Mixing Error" — bounce the ink back to the start of the pipeline.
+async function onError(e){
+  const b=e.currentTarget;
+  const itemId=b.dataset.id, back=b.dataset.back;
+  await writeStatus(itemId, back, 'Reset — back to '+back);
+}
+
+// Shared write: POST one sub-status value, toast on success, refetch the board.
+async function writeStatus(itemId, value, okMsg){
   const card=$('card-'+itemId);
   if(card) card.classList.add('busy');
   try{
     const r=await fetch('/api/update-item-status',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({itemId,subStatus:next})
+      body:JSON.stringify({itemId,subStatus:value})
     });
     if(r.status===401){ showLogin(); return; }
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.ok) throw new Error((d&&d.error)||('Save failed '+r.status));
-    // d.status is the rolled-up Status__c the server wrote (e.g. "Ready" when Mixed)
-    toast(next===CFG.doneStage ? 'Mixed — moved off the board' : 'Updated: '+next);
+    // d.status is the rolled-up Status__c the server wrote (e.g. "Ready" when Mixed).
+    toast(okMsg);
     loadSchedule();   // re-pull; a "Mixed" item is now Ready and drops off
   }catch(err){
     if(card){
