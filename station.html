@@ -159,6 +159,23 @@ body.modal-open{overflow:hidden}
 .sizegrid tr:last-child td{border-bottom:none}
 .sizetotal{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:12px 14px;background:var(--chip);border:1px solid var(--line);border-radius:10px;font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
 .sizetotal span{font-size:22px;color:var(--ink);letter-spacing:0}
+
+/* garment tab strip */
+.subnav{display:flex;gap:8px;overflow-x:auto;padding:12px 18px;background:var(--hdr);border-bottom:1px solid var(--line);position:sticky;top:74px;z-index:15;-webkit-overflow-scrolling:touch}
+.subtab{flex-shrink:0;display:inline-flex;align-items:center;gap:7px;background:var(--chip);border:1px solid var(--line);color:var(--ink2);border-radius:22px;padding:8px 14px;font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s;white-space:nowrap}
+.subtab.on{background:var(--acc);border-color:var(--acc);color:#04140A}
+.subtab .tab-ct{font-size:11px;font-weight:700;background:rgba(0,0,0,.22);border-radius:20px;padding:1px 7px;min-width:20px;text-align:center}
+.subtab:not(.on) .tab-ct{background:var(--bg);color:var(--ink3)}
+
+/* garment 4-way status picker */
+.picker{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:6px}
+.pick{border:1.5px solid transparent;border-radius:11px;padding:15px 10px;font-family:var(--cond);font-size:15px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:opacity .15s,transform .08s}
+.pick:active{transform:scale(.97)}
+.pick.on{cursor:default}
+
+.printbtn{width:100%;margin-top:14px;background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:13px;font-family:var(--cond);font-size:14px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .15s}
+.printbtn:active{border-color:var(--acc);color:var(--acc)}
+.printbtn svg{width:17px;height:17px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -198,6 +215,7 @@ body.modal-open{overflow:hidden}
       <button class="btn-ghost" id="btn-lock">Lock</button>
     </div>
   </div>
+  <div class="subnav hide" id="subnav"></div>
   <div class="wrap" id="list"><div class="state">Loading schedule…</div></div>
 </div>
 
@@ -217,6 +235,7 @@ const ICON_SCREEN='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-wid
 const ICON_TSHIRT='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l6 2v5h-3v8a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1v-8h-3v-5l6 -2a3 3 0 0 0 6 0"/></svg>';
 const ICON_FLAME='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z"/></svg>';
 const ICON_BOX='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4"/><path d="M12 11v10"/></svg>';
+const ICON_PRINT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>';
 
 /* ── STATION CONFIG (client-side, for labels/theme only) ──
    The SERVER's STATION_CONFIG is the source of truth for what a token can see
@@ -380,11 +399,20 @@ $('list').addEventListener('click',e=>{
   const c=e.target.closest('[data-open]');
   if(c) openModal(c.dataset.id);
 });
-// Modal controls (back / advance / error / save-missing), delegated once.
+// Garment tab strip (Master / per-status) — re-filter in place, no refetch.
+$('subnav').addEventListener('click',e=>{
+  const b=e.target.closest('[data-view]'); if(!b) return;
+  garmentView=b.dataset.view;
+  displayList();
+});
+// Modal controls (back / advance / error / save-missing / set-status / print).
 $('modal').addEventListener('click',e=>{
   if(e.target.closest('[data-close]')){ closeModal(); return; }
   const adv=e.target.closest('[data-adv]'); if(adv){ onAdvance({currentTarget:adv}); return; }
   const err=e.target.closest('[data-err]'); if(err){ onError({currentTarget:err}); return; }
+  const ss=e.target.closest('[data-setstatus]');
+  if(ss){ if(!ss.classList.contains('on')) writeStatus(ss.dataset.id, ss.dataset.v, 'Moved to '+ss.dataset.v); return; }
+  const pr=e.target.closest('[data-print]'); if(pr){ openSheet(pr.dataset.id); return; }
   const sm=e.target.closest('[data-savemiss]');
   if(sm){
     const inp=document.getElementById('miss-input');
@@ -413,10 +441,8 @@ async function loadSchedule(opts){
     const d=await r.json();
     if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
     let records=(d.records)||[];
-    if(CFG.source==='order'){
-      // /api/orders returns every pre-prod order; show the ones not yet done.
-      records=records.filter(o=>(o[CFG.field]||CFG.stages[0])!==CFG.doneStatus);
-    }
+    // Order-based (garment): keep ALL statuses in memory so the per-status tabs
+    // (incl. Staged) have data; the active tab does the filtering in displayList.
     render(records);
     if(keepY!=null) window.scrollTo(0,keepY);           // stay put after a status update
   }catch(e){
@@ -438,17 +464,43 @@ function stageIndex(item){
 }
 
 let CURRENT=[];
+let garmentView='master';   // active tab for order-based (garment) boards
 function render(records){
   CURRENT=records;
+  displayList();
+  syncModal();   // keep an open modal in step with fresh data (or close it if done)
+}
+
+const statusOf=(o)=> o[CFG.field]||CFG.stages[0];
+function filterByView(records, view){
+  if(view==='master') return records.filter(o=>statusOf(o)!==CFG.doneStatus);
+  return records.filter(o=>statusOf(o)===view);
+}
+function subnavHTML(){
+  const views=[['master','Master']].concat(CFG.stages.map(s=>[s,s]));
+  return views.map(function(pair){
+    const v=pair[0], label=pair[1];
+    const n=filterByView(CURRENT,v).length;
+    return '<button class="subtab'+(garmentView===v?' on':'')+'" data-view="'+esc(v)+'">'
+      +esc(label)+'<span class="tab-ct">'+n+'</span></button>';
+  }).join('');
+}
+function displayList(){
   const list=$('list');
-  $('count-pill').textContent=records.length+' '+CFG.countWord;
-  if(!records.length){
-    list.innerHTML='<div class="state empty">'+ICON_CHECK.replace('currentColor','#7FA644')+esc(CFG.emptyMsg)+'</div>';
-    syncModal();
+  const isOrder=CFG.source==='order';
+  const sub=$('subnav');
+  if(isOrder){ sub.classList.remove('hide'); sub.innerHTML=subnavHTML(); }
+  else { sub.classList.add('hide'); }
+
+  const recs = isOrder ? filterByView(CURRENT, garmentView) : CURRENT;
+  $('count-pill').textContent = recs.length+' '+(isOrder && garmentView!=='master' ? 'orders' : CFG.countWord);
+
+  if(!recs.length){
+    const msg = isOrder && garmentView!=='master' ? 'Nothing in the '+garmentView+' list.' : CFG.emptyMsg;
+    list.innerHTML='<div class="state empty">'+ICON_CHECK.replace('currentColor','#7FA644')+esc(msg)+'</div>';
     return;
   }
-  list.innerHTML=records.map(CFG.source==='order'?orderCardHTML:cardHTML).join('');
-  syncModal();   // keep an open modal in step with fresh data (or close it if done)
+  list.innerHTML=recs.map(isOrder?orderCardHTML:cardHTML).join('');
 }
 
 // Compact summary card — vital info only; tap to open the working modal.
@@ -589,25 +641,21 @@ function orderCardHTML(rec){
 }
 function orderDetailInner(rec){
   const f=orderFields(rec);
-  const idx=stageIndex(rec);
-  const cur=CFG.stages[idx];
-  const nextStage=CFG.stages[idx+1];
-  const toDone=nextStage===CFG.doneStage;
+  const cur=statusOf(rec);
   const isPartial=cur===CFG.missingAtStage;
 
-  const steps=CFG.stages.map((s,i)=>{
-    const cls=i<idx?'done':i===idx?'cur':'';
-    return '<div class="step '+cls+'"><div class="bar-line"></div><div class="dot"></div><div class="lbl">'+esc(s)+'</div></div>';
-  }).join('');
-
-  const btn = nextStage
-    ? '<button class="advance'+(toDone?' done-btn':'')+'" data-adv data-id="'+esc(rec.Id)+'" data-next="'+esc(nextStage)+'">'
-        +(toDone?ICON_CHECK:'')+esc(CFG.action[cur]||('Advance to '+nextStage))+'</button>'
-    : '';
-  const errBtn = (idx>0 && CFG.errorLabel)
-    ? '<button class="errbtn" data-err data-id="'+esc(rec.Id)+'" data-back="'+esc(CFG.errorTo)+'">'
-        +ICON_ALERT+esc(CFG.errorLabel)+'</button>'
-    : '';
+  // 4-way status picker: any order can move to any status. Each tinted by its
+  // meaning; the current one is highlighted.
+  const picker='<div class="sec-lbl">Set receiving status</div>'
+    +'<div class="picker">'
+    +CFG.stages.map(function(s){
+      const on=s===cur;
+      const c=STATUS_C[s]||{bg:'var(--chip)',tx:'var(--ink2)',bd:'var(--line)'};
+      return '<button class="pick'+(on?' on':'')+'" data-setstatus data-id="'+esc(rec.Id)+'" data-v="'+esc(s)+'" '
+        +'style="background:'+c.bg+';color:'+c.tx+';border-color:'+(on?c.bd:'transparent')+';opacity:'+(on?'1':'.62')+'">'
+        +esc(s)+'</button>';
+    }).join('')
+    +'</div>';
 
   // Missing count-in note editor — only while at the Partial stage.
   const missBox = isPartial
@@ -638,15 +686,20 @@ function orderDetailInner(rec){
       +'</div>'
       +dueChip(f.printDate)
       +'<div class="m-stage">Current status<span>'+esc(cur)+'</span></div>'
-      +'<div class="steps m-steps">'+steps+'</div>'
-      +btn
-      +errBtn
+      +picker
       +missBox
+      +'<button class="printbtn" data-print data-id="'+esc(rec.Id)+'">'+ICON_PRINT+'Print order sheet</button>'
       +'<div class="sec-lbl">Garment summary</div>'
       +'<div id="size-grid">'+gridHtml+'</div>'
     +'</div>'
   +'</div>';
 }
+const STATUS_C={
+  'Not Received':{bg:'#2A100D',tx:'#F0B8B0',bd:'#7A241C'},
+  'Partial':     {bg:'#281C09',tx:'#E7C88A',bd:'#5E4214'},
+  'Counted In':  {bg:'#12122A',tx:'#C7C7F0',bd:'#33335E'},
+  'Staged':      {bg:'#12240C',tx:'#BBD382',bd:'#3D5418'}
+};
 
 /* Garment size breakdown — fetched per order from /api/order-sizes, cached. */
 let sizeCache={};
@@ -694,6 +747,87 @@ async function ensureSizes(orderId){
       ? sizeGridHTML(sizeCache[orderId])
       : '<div class="state" style="color:var(--red-tx)">Couldn\'t load garment summary.</div>';
   }
+}
+
+/* ── PRINTABLE ORDER SHEET (paper copy for shipping/receiving) ──
+   Opens a new tab with a print-styled size breakdown, like the main board. */
+async function openSheet(orderId){
+  const rec=CURRENT.find(x=>x.Id===orderId);
+  if(!rec) return;
+  const w=window.open('','_blank');
+  if(!w){ toast('Allow pop-ups to print the sheet',true); return; }
+  w.document.write('<p style="font-family:Arial;padding:24px;color:#666">Loading order sheet…</p>');
+  try{
+    const r=await fetch('/api/order-sizes?orderId='+encodeURIComponent(orderId),{headers:{Accept:'application/json'}});
+    const d=await r.json();
+    const order={
+      goa:  goaText(rec.GOA_Order_Number__c)||rec.OrderNumber||'—',
+      name: rec.Customer_Order_Name__c||'',
+      account:(rec.Account&&rec.Account.Name)||'',
+      printDate:(rec.Print_Date__c||'').slice(0,10)
+    };
+    const html=sheetHTML(order,(d&&d.records)||[]);
+    w.document.open(); w.document.write(html); w.document.close();
+  }catch(e){
+    w.document.body.innerHTML='<p style="font-family:Arial;padding:24px">Could not load size data.</p>';
+  }
+}
+function sheetHTML(order, rows){
+  const {groups, sizeCols}=buildSizeSheet(rows);
+  const grand=groups.reduce((s,g)=>s+g.total,0);
+  const e=esc;
+  const garments=groups.map(function(g){
+    const head='<div class="gh"><span class="gt">'+e(g.product)+'</span>'+(g.color?'<span class="gc">'+e(g.color)+'</span>':'')+'</div>';
+    const cols=sizeCols.map(s=>'<th>'+e(s)+'</th>').join('');
+    const cells=sizeCols.map(function(s){const q=g.sizes[s]||0;return '<td'+(q?'':' class="z"')+'>'+q+'</td>';}).join('');
+    return '<div class="gm">'+head
+      +'<table><thead><tr><th class="rl"></th>'+cols+'<th class="tc">Total</th></tr></thead>'
+      +'<tbody><tr><td class="rl">Ordered</td>'+cells+'<td class="tt">'+g.total+'</td></tr></tbody></table></div>';
+  }).join('');
+  const dateStr = order.printDate ? new Date(order.printDate+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}) : '—';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Count-In '+e(order.goa)+'</title><style>'
+    +'*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:"Helvetica Neue",Arial,sans-serif;color:#141210;background:#e9e6e0;padding:24px}'
+    +'.bar{max-width:760px;margin:0 auto 14px;display:flex;justify-content:flex-end}'
+    +'.btn{font:600 14px/1 Arial;color:#fff;background:#141210;border:none;border-radius:7px;padding:11px 18px;cursor:pointer}'
+    +'.sheet{max-width:760px;margin:0 auto;background:#fff;padding:44px 48px 40px;box-shadow:0 18px 40px -24px rgba(0,0,0,.35)}'
+    +'.mast{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #141210;padding-bottom:14px;margin-bottom:20px}'
+    +'.brand{font:800 22px/1 Arial;letter-spacing:.14em;text-transform:uppercase}'
+    +'.brand small{display:block;font:600 10px/1.4 Arial;letter-spacing:.3em;color:#6b645c;margin-top:6px}'
+    +'.tag{text-align:right}.tag .k{font:700 10px/1 Arial;letter-spacing:.26em;text-transform:uppercase;color:#6b645c}.tag .goa{font:800 26px/1 Arial;margin-top:6px}'
+    +'.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;margin-bottom:24px}'
+    +'.meta .row{display:flex;justify-content:space-between;border-bottom:1px dotted #cfc7bd;padding:6px 0}'
+    +'.meta .l{font:700 10px/1.4 Arial;letter-spacing:.14em;text-transform:uppercase;color:#6b645c}.meta .v{font:600 14px/1.3 Arial;text-align:right}'
+    +'.gm{margin-bottom:20px;break-inside:avoid}.gh{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}'
+    +'.gh .gt{font:700 16px/1.2 Arial}.gh .gc{font:700 11px/1 Arial;letter-spacing:.05em;text-transform:uppercase;border:1px solid #141210;border-radius:100px;padding:4px 10px}'
+    +'table{width:100%;border-collapse:collapse}th,td{border:1.5px solid #141210;text-align:center}'
+    +'thead th{background:#f2ede6;font:700 12px/1 Arial;letter-spacing:.06em;text-transform:uppercase;padding:7px 4px;color:#6b645c}'
+    +'thead th.tc,tbody td.tt{background:#141210;color:#fff}tbody td{font:700 22px/1 Arial;padding:12px 4px}tbody td.z{color:#c9c1b7;font-weight:400}'
+    +'.rl{font:700 10px/1 Arial;letter-spacing:.12em;text-transform:uppercase;color:#6b645c;text-align:left;padding-left:10px;width:70px}'
+    +'.grand{display:flex;justify-content:space-between;align-items:center;border-top:3px solid #141210;margin-top:8px;padding-top:14px}'
+    +'.grand .gl{font:700 12px/1 Arial;letter-spacing:.14em;text-transform:uppercase;color:#6b645c}.grand .gn{font:800 30px/1 Arial}'
+    +'.check{margin-top:22px;border-top:1px dotted #cfc7bd;padding-top:12px;font:600 11px/1 Arial;letter-spacing:.14em;text-transform:uppercase;color:#6b645c}'
+    +'.check .line{display:flex;justify-content:space-between;margin-top:14px}.check .box{border-bottom:1px solid #141210;flex:1;margin-left:14px}'
+    +'.empty{font:500 14px/1.5 Arial;color:#6b645c;padding:18px 0}'
+    +'@media print{@page{margin:14mm}body{background:#fff;padding:0}.bar{display:none}.sheet{box-shadow:none;max-width:none;padding:0}.gm{break-inside:avoid}}'
+    +'</style></head><body>'
+    +'<div class="bar"><button class="btn" onclick="window.print()">Print / Save PDF</button></div>'
+    +'<div class="sheet">'
+      +'<div class="mast"><div class="brand">Culture Apparel<small>Garment Count-In Sheet</small></div>'
+        +'<div class="tag"><div class="k">GOA Order</div><div class="goa">'+e(order.goa)+'</div></div></div>'
+      +'<div class="meta">'
+        +'<div class="row"><span class="l">Order</span><span class="v">'+e(order.name||'—')+'</span></div>'
+        +'<div class="row"><span class="l">Account</span><span class="v">'+e(order.account||'—')+'</span></div>'
+        +'<div class="row"><span class="l">Print Date</span><span class="v">'+e(dateStr)+'</span></div>'
+        +'<div class="row"><span class="l">Received By</span><span class="v">&nbsp;</span></div>'
+      +'</div>'
+      +(groups.length?garments:'<p class="empty">No garment breakdown found for this order.</p>')
+      +(groups.length?'<div class="grand"><span class="gl">Total Garments</span><span class="gn">'+grand+'</span></div>':'')
+      +'<div class="check"><div>Count-in verification</div>'
+        +'<div class="line"><span>Counted by</span><span class="box"></span></div>'
+        +'<div class="line"><span>Missing / notes</span><span class="box"></span></div>'
+      +'</div>'
+    +'</div></body></html>';
 }
 
 async function onAdvance(e){
