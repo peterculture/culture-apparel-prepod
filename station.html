@@ -248,17 +248,26 @@ function toast(msg){
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),1800);
 }
 
-async function loadSchedule(){
+async function loadSchedule(opts){
+  opts=opts||{};
   const list=$('list');
-  list.innerHTML='<div class="state">Loading schedule…</div>';
+  const keepY = opts.keepScroll ? window.scrollY : null;   // remember where we are
+  if(!opts.keepScroll) list.innerHTML='<div class="state">Loading schedule…</div>';
   try{
     const r=await fetch('/api/station-items',{headers:{Accept:'application/json'}});
     if(r.status===401){ showLogin(); return; }         // no/expired session → PIN
     const d=await r.json();
     if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
     render((d.records)||[]);
+    if(keepY!=null) window.scrollTo(0,keepY);           // stay put after a status update
   }catch(e){
-    list.innerHTML='<div class="state" style="color:var(--red-tx)">Could not load schedule: '+esc(e.message)+'</div>';
+    if(opts.keepScroll){
+      // Silent refresh (after a write) failed — keep the board as-is, just flag it.
+      document.querySelectorAll('.card.busy').forEach(c=>c.classList.remove('busy'));
+      toast('Couldn\'t refresh — '+e.message);
+    } else {
+      list.innerHTML='<div class="state" style="color:var(--red-tx)">Could not load schedule: '+esc(e.message)+'</div>';
+    }
   }
 }
 
@@ -352,7 +361,8 @@ async function writeStatus(itemId, value, okMsg){
     if(!r.ok||!d.ok) throw new Error((d&&d.error)||('Save failed '+r.status));
     // d.status is the rolled-up Status__c the server wrote (e.g. "Ready" when Mixed).
     toast(okMsg);
-    loadSchedule();   // re-pull; a "Mixed" item is now Ready and drops off
+    // Re-pull the board (a "Mixed" item is now Ready and drops off), holding scroll.
+    await loadSchedule({keepScroll:true});
   }catch(err){
     if(card){
       card.classList.remove('busy');
