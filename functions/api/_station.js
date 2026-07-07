@@ -229,4 +229,53 @@ export const STATION_CONFIG = {
 
     doneStatus: "Ready",
   },
+
+  // ── TRANSFER STATION (heat-press transfers) ──
+  // Field names + sub-status values come from the existing worker board
+  // (PP_TRANSFER_SUB, Transfers_Sub_Status__c, Transfer_Type__c in index.html),
+  // so they're verified-by-existing-use. STILL NEEDS YOUR SIGN-OFF (same as ink
+  // and screen did):
+  //   1. the sub-status ORDER below
+  //   2. the statusMap roll-up (inferred from the names, not yet seen in data)
+  //   3. whether a Salesforce flow owns Status__c for transfers -> set
+  //      statusViaFlow accordingly (see below).
+  transfer: {
+    type: "Transfer",
+    subStatusField: "Transfers_Sub_Status__c",
+
+    // A Salesforce flow rolls Status__c from Transfers_Sub_Status__c (confirmed
+    // 2026-07-07), so the endpoint writes ONLY the sub-status and lets the flow
+    // own Status__c — same pattern as screen.
+    statusViaFlow: true,
+
+    selectFields: [
+      "Id",
+      "Transfer_Type__c",
+      "Transfers_Sub_Status__c",
+      "Status__c",
+      "Notes__c",
+      "Production_Method__r.Order__r.Id",
+      "Production_Method__r.Order__r.GOA_Order_Number__c",
+      "Production_Method__r.Order__r.Customer_Order_Name__c",
+      "Production_Method__r.Order__r.Name",
+      "Production_Method__r.Order__r.Print_Date__c",
+    ],
+    orderBy: "Production_Method__r.Order__r.Print_Date__c NULLS LAST, Production_Method__r.Order__r.Name",
+
+    // Pipeline order confirmed 2026-07-07. Blank Transfers_Sub_Status__c is
+    // treated as the start (Not Received).
+    subStatusFlow: ["Not Received", "Transfers Received", "Transfers Cut/Ready"],
+
+    // Roll-up CONFIRMED 2026-07-07 and OWNED BY A SALESFORCE FLOW (statusViaFlow:
+    // true) — kept here for reference only; the endpoint does NOT write Status__c
+    // for transfers. The flow applies: Not Received => Not Started, Transfers
+    // Received => In Progress, Transfers Cut/Ready => Ready (drops off the board).
+    statusMap: {
+      "Not Received": "Not Started",
+      "Transfers Received": "In Progress",
+      "Transfers Cut/Ready": "Ready",
+    },
+
+    doneStatus: "Ready",
+  },
 };
