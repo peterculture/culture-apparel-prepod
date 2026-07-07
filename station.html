@@ -411,7 +411,7 @@ $('modal').addEventListener('click',e=>{
   const adv=e.target.closest('[data-adv]'); if(adv){ onAdvance({currentTarget:adv}); return; }
   const err=e.target.closest('[data-err]'); if(err){ onError({currentTarget:err}); return; }
   const ss=e.target.closest('[data-setstatus]');
-  if(ss){ if(!ss.classList.contains('on')) writeStatus(ss.dataset.id, ss.dataset.v, 'Moved to '+ss.dataset.v); return; }
+  if(ss){ if(!ss.classList.contains('on')){ const v=ss.dataset.v; writeStatus(ss.dataset.id, v, v===CFG.doneStage?CFG.doneMsg:'Moved to '+v); } return; }
   const pr=e.target.closest('[data-print]'); if(pr){ openSheet(pr.dataset.id); return; }
   const sm=e.target.closest('[data-savemiss]');
   if(sm){
@@ -477,7 +477,10 @@ function filterByView(records, view){
   return records.filter(o=>statusOf(o)===view);
 }
 function subnavHTML(){
-  const views=[['master','Master']].concat(CFG.stages.map(s=>[s,s]));
+  // Master + each non-done status. Staged (doneStatus) has no tab — a staged
+  // order leaves the board — but Staged stays a pickable status in the modal.
+  const views=[['master','Master']].concat(
+    CFG.stages.filter(s=>s!==CFG.doneStatus).map(s=>[s,s]));
   return views.map(function(pair){
     const v=pair[0], label=pair[1];
     const n=filterByView(CURRENT,v).length;
@@ -556,6 +559,8 @@ function syncModal(){
   if(!modalId) return;
   const rec=CURRENT.find(x=>x.Id===modalId);
   if(!rec){ closeModal(); return; }
+  // Garment: a staged order drops off every list, so close the modal too.
+  if(CFG.source==='order' && statusOf(rec)===CFG.doneStatus){ closeModal(); return; }
   renderModal(rec);
 }
 
