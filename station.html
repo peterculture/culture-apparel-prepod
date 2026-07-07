@@ -137,6 +137,28 @@ body.modal-open{overflow:hidden}
 .m-stage{display:flex;justify-content:space-between;align-items:center;background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:12px 15px;margin:16px 0 4px;font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
 .m-stage span{font-family:var(--cond);font-size:15px;font-weight:600;color:var(--acc-tx);letter-spacing:.02em;text-transform:none}
 .m-steps{margin:20px 0 24px}
+
+/* ── GARMENT COUNT-IN extras ── */
+.misschip{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.03em;padding:4px 10px;border-radius:20px;background:var(--amb-bg);color:var(--amb-tx);border:1px solid var(--amb-bd)}
+.misschip svg{width:13px;height:13px;flex-shrink:0}
+.miss-box{background:var(--amb-bg);border:1px solid var(--amb-bd);border-radius:10px;padding:14px 15px;margin-top:14px}
+.miss-lbl{font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--amb-tx);margin-bottom:8px}
+.miss-row{display:flex;gap:8px}
+.miss-row input{flex:1;background:var(--ink-bg,#0C0C0D);border:1px solid var(--line2);color:var(--ink);border-radius:8px;padding:11px 12px;font-size:14px;font-family:var(--sans);outline:none}
+.miss-row input:focus{border-color:var(--amb)}
+.miss-save{background:var(--amb);color:#000;border:none;border-radius:8px;padding:0 18px;font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.sec-lbl{font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin:24px 0 10px;padding-top:16px;border-top:1px solid var(--line)}
+.sizewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.sizegrid{width:100%;border-collapse:collapse;font-family:var(--cond)}
+.sizegrid th,.sizegrid td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:center;font-size:14px;white-space:nowrap}
+.sizegrid thead th,.sizegrid tr:first-child th{color:var(--ink3);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.sizegrid .gl{text-align:left;color:var(--ink);font-weight:600;position:sticky;left:0;background:var(--panel)}
+.sizegrid td.gl{font-size:13px}
+.sizegrid .gt{color:var(--acc-tx);font-weight:700}
+.sizegrid td.z{color:var(--ink4)}
+.sizegrid tr:last-child td{border-bottom:none}
+.sizetotal{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:12px 14px;background:var(--chip);border:1px solid var(--line);border-radius:10px;font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+.sizetotal span{font-size:22px;color:var(--ink);letter-spacing:0}
 </style>
 </head>
 <body>
@@ -194,6 +216,7 @@ const ICON_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const ICON_SCREEN='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>';
 const ICON_TSHIRT='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l6 2v5h-3v8a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1v-8h-3v-5l6 -2a3 3 0 0 0 6 0"/></svg>';
 const ICON_FLAME='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z"/></svg>';
+const ICON_BOX='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4"/><path d="M12 11v10"/></svg>';
 
 /* ── STATION CONFIG (client-side, for labels/theme only) ──
    The SERVER's STATION_CONFIG is the source of truth for what a token can see
@@ -254,6 +277,24 @@ const STATIONS={
     },
     doneStage:'Transfers Cut/Ready',
     errorLabel:'Transfer Error', errorTo:'Not Received'
+  },
+  garment:{
+    label:'Garment Count-In', accent:'#2E7D46', accentBg:'#0E2414', accentTx:'#A7D9B4',
+    icon:ICON_BOX,
+    source:'order',                 // reads /api/orders, writes the Order directly
+    field:'Receiving_Status__c',
+    countWord:'to count in', emptyMsg:'All orders staged — nothing waiting.',
+    doneMsg:'Staged — moved off the board',
+    stages:['Not Received','Partial','Counted In','Staged'],
+    action:{
+      'Not Received':'Partial receipt',
+      'Partial':'Counted in',
+      'Counted In':'Stage — done'
+    },
+    doneStage:'Staged',
+    errorLabel:'Reset receiving', errorTo:'Not Received',
+    // free-text "missing count-in" note, shown/edited only while Partial
+    missingField:'Partial_Check_in_Missing_Items__c', missingAtStage:'Partial'
   }
   // film: configured later, once its fields are verified.
 };
@@ -339,11 +380,17 @@ $('list').addEventListener('click',e=>{
   const c=e.target.closest('[data-open]');
   if(c) openModal(c.dataset.id);
 });
-// Modal controls (back / advance / error), delegated once.
+// Modal controls (back / advance / error / save-missing), delegated once.
 $('modal').addEventListener('click',e=>{
   if(e.target.closest('[data-close]')){ closeModal(); return; }
   const adv=e.target.closest('[data-adv]'); if(adv){ onAdvance({currentTarget:adv}); return; }
   const err=e.target.closest('[data-err]'); if(err){ onError({currentTarget:err}); return; }
+  const sm=e.target.closest('[data-savemiss]');
+  if(sm){
+    const inp=document.getElementById('miss-input');
+    writeStatus(sm.dataset.id, CFG.missingAtStage, 'Missing count saved', {missing: inp?inp.value:''});
+    return;
+  }
 });
 
 let toastTimer=null;
@@ -360,11 +407,17 @@ async function loadSchedule(opts){
   const keepY = opts.keepScroll ? window.scrollY : null;   // remember where we are
   if(!opts.keepScroll) list.innerHTML='<div class="state">Loading schedule…</div>';
   try{
-    const r=await fetch('/api/station-items',{headers:{Accept:'application/json'}});
+    const url = CFG.source==='order' ? '/api/orders' : '/api/station-items';
+    const r=await fetch(url,{headers:{Accept:'application/json'}});
     if(r.status===401){ showLogin(); return; }         // no/expired session → PIN
     const d=await r.json();
     if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
-    render((d.records)||[]);
+    let records=(d.records)||[];
+    if(CFG.source==='order'){
+      // /api/orders returns every pre-prod order; show the ones not yet done.
+      records=records.filter(o=>(o[CFG.field]||CFG.stages[0])!==CFG.doneStatus);
+    }
+    render(records);
     if(keepY!=null) window.scrollTo(0,keepY);           // stay put after a status update
   }catch(e){
     if(opts.keepScroll){
@@ -394,7 +447,7 @@ function render(records){
     syncModal();
     return;
   }
-  list.innerHTML=records.map(cardHTML).join('');
+  list.innerHTML=records.map(CFG.source==='order'?orderCardHTML:cardHTML).join('');
   syncModal();   // keep an open modal in step with fresh data (or close it if done)
 }
 
@@ -436,8 +489,9 @@ function openModal(id){
 function renderModal(rec){
   const m=$('modal');
   m.classList.remove('busy');
-  m.innerHTML=detailInner(rec);
+  m.innerHTML = CFG.source==='order' ? orderDetailInner(rec) : detailInner(rec);
   m.scrollTop=0;
+  if(CFG.source==='order') ensureSizes(rec.Id);   // load the garment size summary
 }
 function closeModal(){
   modalId=null;
@@ -505,6 +559,143 @@ function detailInner(rec){
   +'</div>';
 }
 
+/* ── ORDER (garment count-in) CARD + MODAL ──
+   No pre-prod item: the record IS the Order. Fields read directly off it. */
+function orderFields(rec){
+  return {
+    goa:  goaText(rec.GOA_Order_Number__c)||rec.OrderNumber||'—',
+    cust: rec.Customer_Order_Name__c||'',
+    printDate: (rec.Print_Date__c||'').slice(0,10),
+    status: rec[CFG.field]||CFG.stages[0],
+    missing: (rec[CFG.missingField]||'').trim()
+  };
+}
+function orderCardHTML(rec){
+  const f=orderFields(rec);
+  const showMiss = f.status===CFG.missingAtStage && f.missing;
+  return '<div class="card card-sm" id="card-'+esc(rec.Id)+'" data-open data-id="'+esc(rec.Id)+'">'
+    +'<div class="swatch swatch-sm">'+esc(f.goa.slice(0,10))+'</div>'
+    +'<div class="card-id">'
+      +'<div class="pantone pantone-sm">'+esc(f.cust||('Order #'+f.goa))+'</div>'
+      +'<div class="ordline">Order <b>#'+esc(f.goa)+'</b></div>'
+      +dueChip(f.printDate)
+      +(showMiss?'<div class="misschip">'+ICON_ALERT+'Missing: '+esc(f.missing)+'</div>':'')
+    +'</div>'
+    +'<div class="sm-right">'
+      +'<div class="stagetag">'+esc(f.status)+'</div>'
+      +'<div class="sm-chev">&#8250;</div>'
+    +'</div>'
+  +'</div>';
+}
+function orderDetailInner(rec){
+  const f=orderFields(rec);
+  const idx=stageIndex(rec);
+  const cur=CFG.stages[idx];
+  const nextStage=CFG.stages[idx+1];
+  const toDone=nextStage===CFG.doneStage;
+  const isPartial=cur===CFG.missingAtStage;
+
+  const steps=CFG.stages.map((s,i)=>{
+    const cls=i<idx?'done':i===idx?'cur':'';
+    return '<div class="step '+cls+'"><div class="bar-line"></div><div class="dot"></div><div class="lbl">'+esc(s)+'</div></div>';
+  }).join('');
+
+  const btn = nextStage
+    ? '<button class="advance'+(toDone?' done-btn':'')+'" data-adv data-id="'+esc(rec.Id)+'" data-next="'+esc(nextStage)+'">'
+        +(toDone?ICON_CHECK:'')+esc(CFG.action[cur]||('Advance to '+nextStage))+'</button>'
+    : '';
+  const errBtn = (idx>0 && CFG.errorLabel)
+    ? '<button class="errbtn" data-err data-id="'+esc(rec.Id)+'" data-back="'+esc(CFG.errorTo)+'">'
+        +ICON_ALERT+esc(CFG.errorLabel)+'</button>'
+    : '';
+
+  // Missing count-in note editor — only while at the Partial stage.
+  const missBox = isPartial
+    ? '<div class="miss-box"><div class="miss-lbl">Missing count-in items</div>'
+      +'<div class="miss-row">'
+        +'<input type="text" id="miss-input" value="'+esc(f.missing)+'" placeholder="e.g. M - 2, 3x L">'
+        +'<button class="miss-save" data-savemiss data-id="'+esc(rec.Id)+'">Save</button>'
+      +'</div></div>'
+    : '';
+
+  const sz=sizeCache[rec.Id];
+  const gridHtml = (sz&&sz.groups) ? sizeGridHTML(sz)
+    : (sz&&sz.error) ? '<div class="state" style="color:var(--red-tx)">Couldn\'t load garment summary.</div>'
+    : '<div class="state">Loading garment summary…</div>';
+
+  return '<div class="m-card">'
+    +'<div class="m-head">'
+      +'<button class="m-back" data-close>&#8249; Back to board</button>'
+      +'<span class="m-station">'+esc(CFG.label)+'</span>'
+    +'</div>'
+    +'<div class="m-body">'
+      +'<div class="m-idrow">'
+        +'<div class="m-swatch">'+esc(f.goa.slice(0,10))+'</div>'
+        +'<div style="min-width:0">'
+          +'<div class="m-headline">'+esc(f.cust||('Order #'+f.goa))+'</div>'
+          +'<div class="ordline">Order <b>#'+esc(f.goa)+'</b></div>'
+        +'</div>'
+      +'</div>'
+      +dueChip(f.printDate)
+      +'<div class="m-stage">Current status<span>'+esc(cur)+'</span></div>'
+      +'<div class="steps m-steps">'+steps+'</div>'
+      +btn
+      +errBtn
+      +missBox
+      +'<div class="sec-lbl">Garment summary</div>'
+      +'<div id="size-grid">'+gridHtml+'</div>'
+    +'</div>'
+  +'</div>';
+}
+
+/* Garment size breakdown — fetched per order from /api/order-sizes, cached. */
+let sizeCache={};
+const SIZE_RANK={YXS:0,YS:1,YM:2,YL:3,YXL:4,XS:5,S:6,M:7,L:8,XL:9,'2XL':10,XXL:10,'3XL':11,XXXL:11,'4XL':12,'5XL':13};
+function rankOf(s){ return SIZE_RANK[s]==null?99:SIZE_RANK[s]; }
+function buildSizeSheet(items){
+  const groups={}, seen=new Set();
+  (items||[]).forEach(li=>{
+    const size=(li.Size__c||'').trim();
+    if(!size) return;                       // fee / non-garment line
+    const qty=Number(li.Quantity)||0;
+    const product=(li.Product2&&li.Product2.Name)||'Item';
+    const color=(li.Color__c||'').trim();
+    const key=product+'|'+color;
+    if(!groups[key]) groups[key]={product,color,sizes:{},total:0};
+    groups[key].sizes[size]=(groups[key].sizes[size]||0)+qty;
+    groups[key].total+=qty; seen.add(size);
+  });
+  const sizeCols=[...seen].sort((a,b)=>(rankOf(a)-rankOf(b))||a.localeCompare(b));
+  return {groups:Object.values(groups), sizeCols};
+}
+function sizeGridHTML(sz){
+  if(!sz.groups.length) return '<div class="state">No garment breakdown found for this order.</div>';
+  const grand=sz.groups.reduce((s,g)=>s+g.total,0);
+  const head='<tr><th class="gl"></th>'+sz.sizeCols.map(c=>'<th>'+esc(c)+'</th>').join('')+'<th class="gt">Tot</th></tr>';
+  const rows=sz.groups.map(g=>{
+    const cells=sz.sizeCols.map(c=>{const q=g.sizes[c]||0;return '<td'+(q?'':' class="z"')+'>'+q+'</td>';}).join('');
+    const nm=g.product+(g.color?' · '+g.color:'');
+    return '<tr><td class="gl">'+esc(nm)+'</td>'+cells+'<td class="gt">'+g.total+'</td></tr>';
+  }).join('');
+  return '<div class="sizewrap"><table class="sizegrid">'+head+rows+'</table></div>'
+    +'<div class="sizetotal">Total garments<span>'+grand+'</span></div>';
+}
+async function ensureSizes(orderId){
+  if(sizeCache[orderId]!==undefined) return;   // already fetched or in flight
+  sizeCache[orderId]=null;                       // in-flight marker
+  try{
+    const r=await fetch('/api/order-sizes?orderId='+encodeURIComponent(orderId),{headers:{Accept:'application/json'}});
+    const d=await r.json();
+    sizeCache[orderId]=buildSizeSheet((d&&d.records)||[]);
+  }catch(e){ sizeCache[orderId]={error:true}; }
+  if(modalId===orderId){
+    const g=document.getElementById('size-grid');
+    if(g) g.innerHTML = sizeCache[orderId].groups
+      ? sizeGridHTML(sizeCache[orderId])
+      : '<div class="state" style="color:var(--red-tx)">Couldn\'t load garment summary.</div>';
+  }
+}
+
 async function onAdvance(e){
   const b=e.currentTarget;
   const itemId=b.dataset.id, next=b.dataset.next;
@@ -519,16 +710,23 @@ async function onError(e){
   await writeStatus(itemId, back, 'Reset — back to '+back);
 }
 
-// Shared write: POST one sub-status value, toast on success, refetch the board.
-async function writeStatus(itemId, value, okMsg){
+// Shared write: POST a status change, toast on success, refetch the board.
+// For order-based stations (garment) this targets /api/update-order-receiving
+// and can carry the free-text missing note; otherwise it hits the item endpoint.
+async function writeStatus(itemId, value, okMsg, extra){
   const card=$('card-'+itemId);
   if(card) card.classList.add('busy');
   if(modalId===itemId) $('modal').classList.add('busy');
   try{
-    const r=await fetch('/api/update-item-status',{
+    const isOrder = CFG.source==='order';
+    const url = isOrder ? '/api/update-order-receiving' : '/api/update-item-status';
+    const body = isOrder
+      ? { orderId:itemId, status:value, missing: extra && extra.missing }
+      : { itemId, subStatus:value };
+    const r=await fetch(url,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({itemId,subStatus:value})
+      body:JSON.stringify(body)
     });
     if(r.status===401){ showLogin(); return; }
     const d=await r.json().catch(()=>({}));
