@@ -421,15 +421,12 @@ async function writeStatus(itemId, value, okMsg){
 }
 
 /* ── INIT ──
-   Try the schedule first: a dedicated tablet with a live session skips the PIN.
-   A 401 drops to the PIN pad. */
-(async function init(){
-  try{
-    const r=await fetch('/api/station-items',{headers:{Accept:'application/json'}});
-    if(r.ok){ const d=await r.json(); $('login').classList.add('hide'); $('board').classList.remove('hide'); render((d.records)||[]); return; }
-  }catch(_){}
-  showLogin();
-})();
+   Always start at the PIN pad. A page refresh should require re-entering the
+   PIN rather than auto-resuming into the board. (Note: the signed session cookie
+   can still be valid server-side until it expires — this is a UI gate. If you
+   want a refresh to fully end the session server-side, that's a small
+   station-logout endpoint; ask and I'll add it.) */
+showLogin();
 
 })();
 </script>
