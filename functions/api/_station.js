@@ -211,16 +211,17 @@ export const STATION_CONFIG = {
     ],
     orderBy: "Production_Method__r.Order__r.Print_Date__c NULLS LAST, Production_Method__r.Order__r.Name",
 
-    // Pipeline order confirmed 2026-07-07. Blank Screen_Sub_Status__c = start.
-    subStatusFlow: ["Not Clean", "Needs Emulsion", "Ready for Exposure", "Needs Tape", "Ready for Print"],
+    // Screen-making flow starts at Needs Emulsion; "Not Clean" (cleaning) is a
+    // separate process handled elsewhere, so it's out of this pipeline. A blank
+    // Screen_Sub_Status__c is treated as the start (Needs Emulsion).
+    subStatusFlow: ["Needs Emulsion", "Ready for Exposure", "Needs Tape", "Ready for Print"],
 
-    // Roll-up CONFIRMED 2026-07-07 and OWNED BY A SALESFORCE FLOW. Kept here for
-    // reference/documentation only — because statusViaFlow is true, the endpoint
-    // does NOT write Status__c; the flow applies this mapping when the sub-status
-    // changes. "Ready for Print" => Ready drops the screen off the board.
+    // Roll-up is OWNED BY A SALESFORCE FLOW (statusViaFlow: true) — kept here for
+    // reference only; the endpoint does NOT write Status__c for screen. This MUST
+    // match the flow: Needs Emulsion => Not Started, the two middle => In Progress,
+    // Ready for Print => Ready (drops the screen off the board). Updated 2026-07-07.
     statusMap: {
-      "Not Clean": "Not Started",
-      "Needs Emulsion": "In Progress",
+      "Needs Emulsion": "Not Started",
       "Ready for Exposure": "In Progress",
       "Needs Tape": "In Progress",
       "Ready for Print": "Ready",
