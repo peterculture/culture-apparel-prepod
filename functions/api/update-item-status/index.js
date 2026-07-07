@@ -26,7 +26,7 @@ export async function onRequestPost({ env, request }) {
     if (!station) return jsonError("unauthorized", 401);
 
     const cfg = STATION_CONFIG[station];
-    if (!cfg) return jsonError("station_not_configured", 400);
+    if (!cfg || !cfg.subStatusFlow) return jsonError("station_not_configured", 400);
 
     let body;
     try {
