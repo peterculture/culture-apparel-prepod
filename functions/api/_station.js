@@ -145,6 +145,7 @@ export const STATION_CONFIG = {
   ink: {
     type: "Ink", // Pre_Production_Item__c.Type__c value
     subStatusField: "Ink_Sub_Status__c",
+    statusViaFlow: false, // no SF flow — the endpoint derives + writes Status__c
 
     // Fields the schedule SELECTs. Order details come up the verified two-hop
     // path: Production_Method__r (lookup) -> Order__r (master-detail, STANDARD
@@ -178,6 +179,53 @@ export const STATION_CONFIG = {
     },
 
     // Terminal Status__c; the schedule excludes items at this value.
+    doneStatus: "Ready",
+  },
+
+  // ── SCREEN STATION ("The Blue Lagoon") ──
+  // Field names + sub-status values come from the existing worker board
+  // (PP_SCREEN_SUB, Screen_Sub_Status__c, Mesh_Count__c in index.html), so
+  // they're verified-by-existing-use. TWO THINGS STILL NEED YOUR SIGN-OFF
+  // before workers use this (same care as ink):
+  //   1. the sub-status ORDER below (taken from the index.html dropdown order)
+  //   2. the statusMap roll-up (inferred from the names, NOT yet seen in data)
+  // Run the GROUP BY probe from chat to confirm 2 against live records.
+  screen: {
+    type: "Screen",
+    subStatusField: "Screen_Sub_Status__c",
+    statusViaFlow: true, // a SF flow rolls Status__c from Screen_Sub_Status__c,
+                         // so the endpoint writes ONLY the sub-status and lets
+                         // the flow cascade Status__c (confirmed 2026-07-07).
+
+    selectFields: [
+      "Id",
+      "Mesh_Count__c",
+      "Screen_Sub_Status__c",
+      "Status__c",
+      "Notes__c",
+      "Production_Method__r.Order__r.Id",
+      "Production_Method__r.Order__r.GOA_Order_Number__c",
+      "Production_Method__r.Order__r.Customer_Order_Name__c",
+      "Production_Method__r.Order__r.Name",
+      "Production_Method__r.Order__r.Print_Date__c",
+    ],
+    orderBy: "Production_Method__r.Order__r.Print_Date__c NULLS LAST, Production_Method__r.Order__r.Name",
+
+    // Pipeline order confirmed 2026-07-07. Blank Screen_Sub_Status__c = start.
+    subStatusFlow: ["Not Clean", "Needs Emulsion", "Ready for Exposure", "Needs Tape", "Ready for Print"],
+
+    // Roll-up CONFIRMED 2026-07-07 and OWNED BY A SALESFORCE FLOW. Kept here for
+    // reference/documentation only — because statusViaFlow is true, the endpoint
+    // does NOT write Status__c; the flow applies this mapping when the sub-status
+    // changes. "Ready for Print" => Ready drops the screen off the board.
+    statusMap: {
+      "Not Clean": "Not Started",
+      "Needs Emulsion": "In Progress",
+      "Ready for Exposure": "In Progress",
+      "Needs Tape": "In Progress",
+      "Ready for Print": "Ready",
+    },
+
     doneStatus: "Ready",
   },
 };
