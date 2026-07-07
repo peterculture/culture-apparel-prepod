@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Culture Apparel — Station</title>
+<style>
+/*
+  STANDALONE STATION TABLET PAGE.
+  Deliberately separate from index.html so it can't affect the main board.
+  A dedicated tablet opens this pinned to its station, e.g.
+      https://culture-apparel-preprod.pages.dev/station.html?station=ink
+  Auth is server-side: the PIN is validated by /api/station-login, which sets
+  an HttpOnly signed cookie. The schedule (/api/station-items) and each status
+  write (/api/update-item-status) read that cookie. The station is NEVER trusted
+  from the URL for data — the URL only picks which login label/theme to show;
+  what you can see and write is decided by the token the server issued.
+*/
+:root{
+  --bg:#0B0B0C;--hdr:#070708;--panel:#121214;--panel2:#0E0E10;
+  --chip:#1A1A1C;--line:#262628;--line2:#313134;
+  --ink:#ECEAE4;--ink2:#9C988F;--ink3:#6E6A62;--ink4:#5E5C56;
+  --red:#C6372B;--red-bg:#2A100D;--red-bd:#7A241C;--red-tx:#E8A89F;
+  --grn:#7FA644;--grn-bg:#18230D;--grn-bd:#3D5418;--grn-tx:#BBD382;
+  --amb:#C68A30;--amb-bg:#281C09;--amb-bd:#5E4214;--amb-tx:#E0B870;
+  --acc:#2E9CCA;              /* set per-station on load */
+  --acc-bg:#0C2733;--acc-tx:#BFE4F2;
+  --cond:'Oswald',-apple-system,'Segoe UI',sans-serif;
+  --sans:'Archivo',-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.hide{display:none!important}
+
+/* ── LOGIN ── */
+#login{position:fixed;inset:0;background:var(--hdr);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+.login-box{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:34px 34px 30px;width:100%;max-width:400px;text-align:center}
+.login-badge{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;background:var(--acc)}
+.login-badge svg{width:30px;height:30px}
+.login-station{font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--acc)}
+.login-title{font-family:var(--cond);font-size:26px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin:2px 0 4px}
+.login-sub{font-size:12px;color:var(--ink3);margin-bottom:24px}
+.pin-dots{display:flex;justify-content:center;gap:14px;margin-bottom:22px}
+.pin-dot{width:15px;height:15px;border-radius:50%;border:2px solid #46443f;transition:all .12s}
+.pin-dot.on{background:var(--acc);border-color:var(--acc)}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.key{background:var(--chip);border:1px solid var(--line);color:var(--ink);font-family:var(--cond);font-size:24px;font-weight:600;border-radius:10px;padding:20px 0;cursor:pointer;user-select:none;transition:transform .08s,background .12s}
+.key:active{transform:scale(.94);background:var(--acc);color:#000;border-color:var(--acc)}
+.key.util{font-size:15px;color:var(--ink3);background:transparent}
+.key.go{background:var(--acc);color:#000;border-color:var(--acc)}
+.login-err{min-height:18px;margin-top:14px;font-size:13px;font-weight:500;color:var(--red-tx)}
+
+/* ── BOARD ── */
+#board{min-height:100%;display:flex;flex-direction:column}
+.bar{background:var(--hdr);border-bottom:2px solid var(--acc);padding:16px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:20}
+.bar-badge{width:40px;height:40px;border-radius:9px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bar-badge svg{width:22px;height:22px}
+.bar-title{font-family:var(--cond);font-size:20px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.bar-sub{font-family:var(--cond);font-size:10px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--acc);margin-top:3px}
+.bar-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+.pill{background:var(--chip);border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.btn-ghost{background:transparent;border:1px solid var(--line2);color:var(--ink2);border-radius:8px;padding:9px 14px;font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-ghost:hover{border-color:var(--acc);color:var(--acc)}
+
+.wrap{width:100%;max-width:820px;margin:0 auto;padding:20px 18px 40px;flex:1}
+.state{text-align:center;padding:60px 20px;color:var(--ink3);font-size:14px}
+.state.empty{color:var(--grn-tx)}
+.state svg{width:44px;height:44px;display:block;margin:0 auto 12px}
+
+/* item card */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.card.busy{opacity:.55;pointer-events:none}
+.card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.swatch{width:46px;height:46px;border-radius:9px;border:1px solid var(--line2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--cond);font-size:11px;font-weight:700;color:var(--ink2);background:var(--chip);text-align:center;line-height:1.05;padding:3px;overflow:hidden}
+.card-id{flex:1;min-width:0}
+.pantone{font-family:var(--cond);font-size:20px;font-weight:700;color:var(--ink);letter-spacing:.02em;line-height:1.1}
+.ordline{font-size:12px;color:var(--ink2);margin-top:3px}
+.ordline b{color:var(--ink);font-weight:600}
+.notes{font-size:12px;color:var(--ink3);margin-top:6px;font-style:italic}
+.stagetag{font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:20px;white-space:nowrap;background:var(--acc-bg);color:var(--acc-tx);border:1px solid var(--acc)}
+
+/* stepper */
+.steps{display:flex;align-items:center;gap:0;margin:4px 0 16px}
+.step{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+.step .dot{width:16px;height:16px;border-radius:50%;background:#333;border:2px solid #333;z-index:2}
+.step.done .dot{background:var(--grn);border-color:var(--grn)}
+.step.cur .dot{background:var(--acc);border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-bg)}
+.step .lbl{font-size:9.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink4);text-align:center;line-height:1.2;max-width:74px}
+.step.done .lbl{color:var(--grn-tx)}
+.step.cur .lbl{color:var(--acc-tx)}
+.step .bar-line{position:absolute;top:7px;left:-50%;width:100%;height:2px;background:#2a2a2c;z-index:1}
+.step.done .bar-line,.step.cur .bar-line{background:var(--grn)}
+.step:first-child .bar-line{display:none}
+
+.advance{width:100%;background:var(--acc);color:#000;border:none;border-radius:10px;padding:16px;font-family:var(--cond);font-size:16px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:filter .15s}
+.advance:active{filter:brightness(.9)}
+.advance.done-btn{background:var(--grn)}
+.err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red-tx);border-radius:8px;padding:9px 12px;font-size:12px;margin-top:10px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--grn-bg);border:1px solid var(--grn-bd);color:var(--grn-tx);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:60;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login">
+  <div class="login-box">
+    <div class="login-badge" id="login-badge"></div>
+    <div class="login-station" id="login-station">Station</div>
+    <div class="login-title" id="login-title">Culture Apparel</div>
+    <div class="login-sub">Enter station PIN to continue</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="key" data-k="1">1</button><button class="key" data-k="2">2</button><button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button><button class="key" data-k="5">5</button><button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button><button class="key" data-k="8">8</button><button class="key" data-k="9">9</button>
+      <button class="key util" data-k="del">Del</button><button class="key" data-k="0">0</button><button class="key go" data-k="go">&#8594;</button>
+    </div>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ── BOARD ── -->
+<div id="board" class="hide">
+  <div class="bar">
+    <div class="bar-badge" id="bar-badge"></div>
+    <div style="min-width:0">
+      <div class="bar-title" id="bar-title">Ink Station</div>
+      <div class="bar-sub">Culture Apparel · Pre-Production</div>
+    </div>
+    <div class="bar-actions">
+      <span class="pill" id="count-pill">—</span>
+      <button class="btn-ghost" id="btn-refresh">Refresh</button>
+      <button class="btn-ghost" id="btn-lock">Lock</button>
+    </div>
+  </div>
+  <div class="wrap" id="list"><div class="state">Loading schedule…</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ── ICONS (inline so there's no font dependency) ── */
+const ICON_DROP='<svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.8 11a6 6 0 1 0 10.4 0L12 3z"/></svg>';
+const ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>';
+
+/* ── STATION CONFIG (client-side, for labels/theme only) ──
+   The SERVER's STATION_CONFIG is the source of truth for what a token can see
+   and write. This mirror only drives the UI (label, accent, the step pipeline
+   and button wording). Keep the ink pipeline in sync with _station.js.       */
+const STATIONS={
+  ink:{
+    label:'Ink Station', accent:'#2E9CCA', accentBg:'#0C2733', accentTx:'#BFE4F2',
+    icon:ICON_DROP,
+    field:'Ink_Sub_Status__c',
+    // pipeline stages in order; blank is treated as the first stage
+    stages:['Not Started','Pantone Label Printed','Mixing','Mixed'],
+    // button wording to advance FROM each stage to the next
+    action:{
+      'Not Started':'Print Pantone label',
+      'Pantone Label Printed':'Start mixing',
+      'Mixing':'Mark mixed — done'
+    },
+    doneStage:'Mixed'
+  }
+  // screen / garment / film: configured later, once their fields are verified.
+};
+
+const params=new URLSearchParams(location.search);
+const STATION=(params.get('station')||'ink').toLowerCase();
+const CFG=STATIONS[STATION]||STATIONS.ink;
+
+/* apply theme + labels */
+document.documentElement.style.setProperty('--acc',CFG.accent);
+document.documentElement.style.setProperty('--acc-bg',CFG.accentBg);
+document.documentElement.style.setProperty('--acc-tx',CFG.accentTx);
+document.getElementById('login-badge').innerHTML=CFG.icon;
+document.getElementById('bar-badge').innerHTML=CFG.icon;
+document.getElementById('login-station').textContent=CFG.label.replace(/ Station$/,'')+' Station';
+document.getElementById('login-title').textContent='Culture Apparel';
+document.getElementById('bar-title').textContent=CFG.label;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// GOA_Order_Number__c comes back from Salesforce as an <a> anchor; show the text.
+function goaText(v){ if(v==null)return''; const m=String(v).match(/>([^<]+)<\/a>/); return (m?m[1]:String(v)).trim(); }
+
+/* ── PIN ENTRY ── */
+let pin='';
+function drawPin(){ for(let i=0;i<4;i++) $('d'+i).classList.toggle('on',i<pin.length); }
+document.querySelector('.pin-grid').addEventListener('click',e=>{
+  const b=e.target.closest('[data-k]'); if(!b) return;
+  const k=b.dataset.k;
+  if(k==='del'){ pin=pin.slice(0,-1); $('login-err').textContent=''; drawPin(); return; }
+  if(k==='go'){ submitPin(); return; }
+  if(pin.length>=4) return;
+  pin+=k; drawPin();
+  if(pin.length===4) setTimeout(submitPin,140);
+});
+
+async function submitPin(){
+  if(pin.length===0) return;
+  try{
+    const r=await fetch('/api/station-login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({station:STATION,pin})
+    });
+    if(!r.ok){
+      $('login-err').textContent = r.status===401 ? 'Incorrect PIN — try again' : 'Login failed ('+r.status+')';
+      pin=''; drawPin();
+      setTimeout(()=>{ $('login-err').textContent=''; },2200);
+      return;
+    }
+    pin=''; drawPin();
+    showBoard();
+  }catch(e){
+    $('login-err').textContent='Network error — check connection';
+    pin=''; drawPin();
+  }
+}
+
+/* ── BOARD ── */
+function showLogin(){ $('board').classList.add('hide'); $('login').classList.remove('hide'); }
+function showBoard(){ $('login').classList.add('hide'); $('board').classList.remove('hide'); loadSchedule(); }
+
+$('btn-refresh').addEventListener('click',loadSchedule);
+$('btn-lock').addEventListener('click',showLogin);   // soft lock: re-prompt PIN in the UI
+
+let toastTimer=null;
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),1800);
+}
+
+async function loadSchedule(){
+  const list=$('list');
+  list.innerHTML='<div class="state">Loading schedule…</div>';
+  try{
+    const r=await fetch('/api/station-items',{headers:{Accept:'application/json'}});
+    if(r.status===401){ showLogin(); return; }         // no/expired session → PIN
+    const d=await r.json();
+    if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+    render((d.records)||[]);
+  }catch(e){
+    list.innerHTML='<div class="state" style="color:var(--red-tx)">Could not load schedule: '+esc(e.message)+'</div>';
+  }
+}
+
+function stageIndex(item){
+  const cur=(item[CFG.field]||CFG.stages[0]);
+  const i=CFG.stages.indexOf(cur);
+  return i<0?0:i;
+}
+
+function render(records){
+  const list=$('list');
+  $('count-pill').textContent=records.length+' to mix';
+  if(!records.length){
+    list.innerHTML='<div class="state empty">'+ICON_CHECK.replace('currentColor','#7FA644')+'All inks mixed — nothing waiting.</div>';
+    return;
+  }
+  list.innerHTML=records.map(cardHTML).join('');
+  list.querySelectorAll('[data-adv]').forEach(b=>b.addEventListener('click',onAdvance));
+}
+
+function cardHTML(rec){
+  const order=(rec.Production_Method__r&&rec.Production_Method__r.Order__r)||{};
+  const goa=goaText(order.GOA_Order_Number__c)||order.Name||'—';
+  const cust=order.Customer_Order_Name__c||'';
+  const pantone=(rec.Pantone_Color__c||'').trim()||'(no Pantone)';
+  const notes=(rec.Notes__c||'').trim();
+  const idx=stageIndex(rec);
+  const cur=CFG.stages[idx];
+  const nextStage=CFG.stages[idx+1];
+  const toDone=nextStage===CFG.doneStage;
+
+  const steps=CFG.stages.map((s,i)=>{
+    const cls=i<idx?'done':i===idx?'cur':'';
+    return '<div class="step '+cls+'"><div class="bar-line"></div><div class="dot"></div><div class="lbl">'+esc(s)+'</div></div>';
+  }).join('');
+
+  const btn = nextStage
+    ? '<button class="advance'+(toDone?' done-btn':'')+'" data-adv data-id="'+esc(rec.Id)+'" data-next="'+esc(nextStage)+'">'
+        +(toDone?ICON_CHECK:'')+esc(CFG.action[cur]||('Advance to '+nextStage))+'</button>'
+    : '';
+
+  return '<div class="card" id="card-'+esc(rec.Id)+'">'
+    +'<div class="card-top">'
+      +'<div class="swatch">'+esc(pantone.slice(0,10))+'</div>'
+      +'<div class="card-id">'
+        +'<div class="pantone">'+esc(pantone)+'</div>'
+        +'<div class="ordline">Order <b>#'+esc(goa)+'</b>'+(cust?' · '+esc(cust):'')+'</div>'
+        +(notes?'<div class="notes">'+esc(notes)+'</div>':'')
+      +'</div>'
+      +'<div class="stagetag">'+esc(cur)+'</div>'
+    +'</div>'
+    +'<div class="steps">'+steps+'</div>'
+    +btn
+    +'</div>';
+}
+
+async function onAdvance(e){
+  const b=e.currentTarget;
+  const itemId=b.dataset.id, next=b.dataset.next;
+  const card=$('card-'+itemId);
+  if(card) card.classList.add('busy');
+  try{
+    const r=await fetch('/api/update-item-status',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({itemId,subStatus:next})
+    });
+    if(r.status===401){ showLogin(); return; }
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.ok) throw new Error((d&&d.error)||('Save failed '+r.status));
+    // d.status is the rolled-up Status__c the server wrote (e.g. "Ready" when Mixed)
+    toast(next===CFG.doneStage ? 'Mixed — moved off the board' : 'Updated: '+next);
+    loadSchedule();   // re-pull; a "Mixed" item is now Ready and drops off
+  }catch(err){
+    if(card){
+      card.classList.remove('busy');
+      let e2=card.querySelector('.err'); if(!e2){ e2=document.createElement('div'); e2.className='err'; card.appendChild(e2); }
+      e2.textContent=err.message;
+    }
+  }
+}
+
+/* ── INIT ──
+   Try the schedule first: a dedicated tablet with a live session skips the PIN.
+   A 401 drops to the PIN pad. */
+(async function init(){
+  try{
+    const r=await fetch('/api/station-items',{headers:{Accept:'application/json'}});
+    if(r.ok){ const d=await r.json(); $('login').classList.add('hide'); $('board').classList.remove('hide'); render((d.records)||[]); return; }
+  }catch(_){}
+  showLogin();
+})();
+
+})();
+</script>
+</body>
+</html>
