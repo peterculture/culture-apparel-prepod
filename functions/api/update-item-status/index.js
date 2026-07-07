@@ -41,13 +41,20 @@ export async function onRequestPost({ env, request }) {
     if (!cfg.subStatusFlow.includes(subStatus)) {
       return jsonError("invalid_sub_status", 400);
     }
-    const rolledStatus = cfg.statusMap[subStatus];
-    if (!rolledStatus) return jsonError("unmapped_sub_status", 400);
 
-    const payload = {
-      [cfg.subStatusField]: subStatus,
-      Status__c: rolledStatus,
-    };
+    // Always write the sub-status the worker set.
+    const payload = { [cfg.subStatusField]: subStatus };
+
+    // Status__c: if a Salesforce flow rolls it up from the sub-status
+    // (cfg.statusViaFlow), DON'T write it here -- writing the sub-status
+    // triggers the flow, and letting the flow own Status keeps a single source
+    // of truth. Otherwise (e.g. ink, no flow) derive and write it ourselves.
+    let rolledStatus = null;
+    if (!cfg.statusViaFlow) {
+      rolledStatus = cfg.statusMap[subStatus];
+      if (!rolledStatus) return jsonError("unmapped_sub_status", 400);
+      payload.Status__c = rolledStatus;
+    }
 
     // HELPER-CONVENTION NOTE: order-sizes only ever calls sfFetch(env, path)
     // for GETs, so this assumes sfFetch forwards a 3rd options arg (method /
