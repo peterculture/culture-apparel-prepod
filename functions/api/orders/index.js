@@ -12,7 +12,6 @@
  * (e.g. a lookup like Account.Name, or a custom field).
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
-
 const FIELDS = [
   "Id",
   "GOA_Order_Number__c",
@@ -23,6 +22,7 @@ const FIELDS = [
   "Account.Name",
   "Printer__r.Name", // <-- printer account drives the print method
   "Receiving_Status__c",
+  "Partial_Check_in_Missing_Items__c", // <-- garment count-in board: missing note
   // Screen Print
   "Films_Printed__c",
   "Screens_Completed__c",
@@ -34,24 +34,19 @@ const FIELDS = [
   "Transfers_Received__c",
   "Transfers_Ready__c",
 ];
-
 export async function onRequestGet({ env }) {
   try {
     const soql =
       `SELECT ${FIELDS.join(", ")} FROM Order ` +
       `WHERE Status = 'Pre-Production' ORDER BY Print_Date__c ASC`;
-
     const path =
       `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
-
     const resp = await sfFetch(env, path);
     const data = await resp.json();
-
     if (!resp.ok) {
       console.error("Salesforce query failed", resp.status, JSON.stringify(data));
       return jsonError("query_failed", resp.status);
     }
-
     return Response.json(data, {
       headers: { "Cache-Control": "no-store" },
     });
