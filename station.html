@@ -226,16 +226,16 @@ const STATIONS={
     idField:'Mesh_Count__c', idFallback:'(no mesh)', idSuffix:' mesh',
     countWord:'to prep', emptyMsg:'All screens ready — nothing waiting.',
     doneMsg:'Ready for print — moved off the board',
-    // Pipeline order from index.html's PP_SCREEN_SUB — CONFIRM it's the real order.
-    stages:['Not Clean','Needs Emulsion','Ready for Exposure','Needs Tape','Ready for Print'],
+    // Screen-making flow starts at Needs Emulsion. Cleaning ("Not Clean") is a
+    // separate process handled elsewhere, so it's not a stage here.
+    stages:['Needs Emulsion','Ready for Exposure','Needs Tape','Ready for Print'],
     action:{
-      'Not Clean':'Screen cleaned',
       'Needs Emulsion':'Emulsion applied',
       'Ready for Exposure':'Exposed',
       'Needs Tape':'Taped — ready to print'
     },
     doneStage:'Ready for Print',
-    errorLabel:'Screen Error', errorTo:'Not Clean'
+    errorLabel:'Screen Error', errorTo:'Needs Emulsion'
   }
   // garment / film: configured later, once their fields are verified.
 };
