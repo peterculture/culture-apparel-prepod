@@ -86,7 +86,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 .stagetag{font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:20px;white-space:nowrap;background:var(--acc-bg);color:var(--acc-tx);border:1px solid var(--acc)}
 
 /* stepper */
-.steps{display:flex;align-items:center;gap:0;margin:4px 0 16px}
+.steps{display:flex;align-items:flex-start;gap:0;margin:4px 0 16px}
 .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
 .step .dot{width:16px;height:16px;border-radius:50%;background:#333;border:2px solid #333;z-index:2}
 .step.done .dot{background:var(--grn);border-color:var(--grn)}
@@ -123,7 +123,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 /* ── FULL-SCREEN ITEM MODAL ── */
 body.modal-open{overflow:hidden}
 .modal{position:fixed;inset:0;z-index:80;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
-.modal.busy{pointer-events:none;opacity:.55}
+.modal.busy{pointer-events:none}
+.modal.busy .advance,.modal.busy .errbtn{opacity:.45}
 .m-card{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;min-height:100%}
 .m-head{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--hdr);z-index:2}
 .m-back{background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:8px;padding:10px 15px;font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .15s}
