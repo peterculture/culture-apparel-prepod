@@ -108,6 +108,20 @@ input[type=week]{color-scheme:dark}
 .chev.on{transform:rotate(180deg)}
 .today-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;box-shadow:0 0 6px var(--red)}
 .vw{display:none}.vw.on{display:block}
+/* thread inventory */
+.tinv-wrap{max-width:560px}
+.tinv-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin:2px 0 12px}
+.tinv-count{font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--ink3);background:var(--chip);border:1px solid var(--line);border-radius:20px;padding:3px 10px}
+.tinv-count.hot{color:#000;background:var(--red);border-color:var(--red)}
+.tinv-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--rad-md);padding:9px 14px;margin-bottom:7px}
+.tinv-row.reorder{border-color:var(--red-bd)}
+.tinv-name{flex:1;min-width:0;font-family:var(--cond);font-size:16px;font-weight:600;color:var(--ink)}
+.tinv-row.reorder .tinv-name{color:var(--red-tx)}
+.tstat{flex-shrink:0;font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:20px;padding:7px 14px;cursor:pointer;border:1px solid transparent;transition:all .12s;white-space:nowrap}
+.tstat.stock{background:var(--grn-bg);color:var(--grn-tx);border-color:var(--grn-bd)}
+.tstat.reorder{background:var(--red-bg);color:var(--red-tx);border-color:var(--red-bd)}
+.tstat:active{transform:scale(.96)}
+.tinv-msg{padding:30px 10px;text-align:center;color:var(--ink3);font-size:14px}
 .pbar{height:4px;background:rgba(0,0,0,.45);border-radius:2px;flex:1;overflow:hidden}
 .pfill{height:100%;border-radius:2px;transition:width .3s}
 .empty{font-size:13px;color:var(--ink4);padding:10px 4px}
@@ -441,6 +455,7 @@ input[type=week]{color-scheme:dark}
       <button class="snav" id="em-nav-o" style="background:#C6372B;color:#000000" onclick="emView('o')"><i class="ti ti-list" style="font-size:15px" aria-hidden="true"></i> All orders</button>
       <button class="snav" id="em-nav-design" onclick="emView('design')" style="background:#D4611A;color:#000000"><i class="ti ti-file" style="font-size:15px" aria-hidden="true"></i> Design file</button>
       <button class="snav" id="em-nav-threads" onclick="emView('threads')" style="background:#B0A090;color:#000000"><i class="ti ti-needle-thread" style="font-size:15px" aria-hidden="true"></i> Thread colors</button>
+      <button class="snav" id="em-nav-threadinv" onclick="emView('threadinv')" style="background:#8C7B62;color:#000000"><i class="ti ti-packages" style="font-size:15px" aria-hidden="true"></i> Thread inventory</button>
       <button class="snav" id="em-nav-garments" onclick="emView('garments')" style="background:#3D8B3D;color:#000000"><i class="ti ti-shirt" style="font-size:15px" aria-hidden="true"></i> Garment count-in</button>
     </div>
     <div id="em-fbar"></div>
@@ -448,6 +463,7 @@ input[type=week]{color-scheme:dark}
     <div id="em-vo" class="vw"></div>
     <div id="em-vdesign" class="vw"></div>
     <div id="em-vthreads" class="vw"></div>
+    <div id="em-vthreadinv" class="vw"></div>
     <div id="em-vgarments" class="vw"></div>
   </div>
 
@@ -1268,6 +1284,7 @@ function renderEM(){
     {bg:'#1E2D0E',vc:'#E7F2D2',lc:'#BBD382',l:'All done',v:a=>a.filter(o=>o.thDone).length},
     {bg:'#7A241C',vc:'#F6DAD5',lc:'#E8A89F',l:'Still needed',v:a=>a.filter(o=>!o.thDone).length},
   ],((o,i)=>stepTabCard(o,i,o.thDone,'thDone','Thread_Color_Materials__c','Thread colors','Thread colors pulled and materials verified','Waiting — threads not yet pulled','#231608','#D4935A')),o=>!o.thDone);
+  if(curV.em==='threadinv') renderThreadInventory('em-vthreadinv');
   if(curV.em==='garments') renderStepTab('em','em-vgarments',DB.em,[
     {bg:'#1A1A1C',vc:'#ECEAE4',lc:'#9C988F',l:'Total orders',v:a=>a.length},
     {bg:'#1A2C2C',vc:'#ECEAE4',lc:'#9C988F',l:'Received',v:a=>a.filter(o=>o.recv!=='Not Received').length},
@@ -1275,6 +1292,62 @@ function renderEM(){
     {bg:'#7A241C',vc:'#F6DAD5',lc:'#E8A89F',l:'Not staged yet',v:a=>a.filter(o=>o.recv!=='Staged').length},
   ],((o,i)=>garmentTabCard(o,i)),o=>o.recv!=='Staged');
 }
+
+/* ── THREAD INVENTORY (manual stock, stored in Cloudflare KV via /api/inventory) ──
+   Two-state status the user taps to toggle: "In-Stock (8+)" / "REORDER (7-)".
+   The 7-or-fewer reorder threshold lives in the label — no counts. Threads are
+   keyed by name; rows stay in sheet order, REORDER ones highlighted. Same store
+   the ink/screen station lists use. */
+let threadInv=null;
+async function renderThreadInventory(elId){
+  const el=document.getElementById(elId); if(!el) return;
+  if(threadInv===null){
+    el.innerHTML='<div class="tinv-msg">Loading thread inventory…</div>';
+    try{
+      const r=await fetch('/api/inventory?type=thread',{headers:{Accept:'application/json'}});
+      const d=await r.json();
+      if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+      threadInv=(d.items)||[];
+    }catch(e){
+      el.innerHTML='<div class="tinv-msg" style="color:var(--red-tx)">Couldn\'t load thread inventory: '+String(e.message)+'</div>';
+      return;
+    }
+  }
+  el.innerHTML=threadInvHTML(threadInv);
+}
+const THREAD_STOCK='In-Stock (8+)', THREAD_REORDER='REORDER (7-)';
+function threadInvHTML(items){
+  const e=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const reorder=items.filter(it=>it.status===THREAD_REORDER).length;
+  const body=items.map(function(it,i){
+    const ro=it.status===THREAD_REORDER;
+    return '<div class="tinv-row'+(ro?' reorder':'')+'">'
+      +'<div class="tinv-name">'+e(it.name)+'</div>'
+      +'<button class="tstat '+(ro?'reorder':'stock')+'" data-tstatus data-i="'+i+'">'+(ro?THREAD_REORDER:THREAD_STOCK)+'</button>'
+    +'</div>';
+  }).join('');
+  return '<div class="tinv-wrap"><div class="tinv-head">Thread stock — tap a status to change it'
+    +'<span class="tinv-count'+(reorder?' hot':'')+'">'+reorder+' to reorder</span></div>'
+    +body+'</div>';
+}
+function tinvToggle(i){
+  if(!threadInv||!threadInv[i])return;
+  threadInv[i].status = (threadInv[i].status===THREAD_REORDER) ? THREAD_STOCK : THREAD_REORDER;
+  renderThreadInventory('em-vthreadinv'); tinvSave();
+}
+async function tinvSave(){
+  try{
+    const r=await fetch('/api/inventory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'thread',items:threadInv})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.ok) throw new Error((d&&d.error)||('Save failed '+r.status));
+    if(d.items) threadInv=d.items;
+  }catch(e){ console.error('thread inventory save failed',e); }
+}
+// Scoped handler: tapping a thread's status pill flips it.
+document.addEventListener('click',function(ev){
+  const b=ev.target.closest('[data-tstatus]'); if(b) tinvToggle(+b.dataset.i);
+});
+
 function renderHP(){
   document.getElementById('hp-fbar').innerHTML=fbarHTML('hp');
   renderMaster('hp',DB.hp,hpRdy,hpPct,hpIss,hpDet,'#C68A30',[
@@ -1475,7 +1548,7 @@ window.spView=function(v){
 };
 window.emView=function(v){
   curV.em=v;
-  ['m','o','design','threads','garments'].forEach(x=>{
+  ['m','o','design','threads','threadinv','garments'].forEach(x=>{
     document.getElementById('em-v'+x).classList.toggle('on',x===v);
     const btn=document.getElementById('em-nav-'+x);
     if(btn){
