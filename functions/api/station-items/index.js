@@ -1,25 +1,20 @@
 /**
- * GET /api/station-items
+ * GET /api/station-items?station=<name>
  *
- * Returns the schedule for the CALLER'S station: every Pre-Production Item of
+ * Returns the schedule for the requested station: every Pre-Production Item of
  * that station's Type__c that isn't done yet, each with its Order details for
  * the worker to read. Read-only: one SELECT, nothing else.
  *
- * The station is NOT a client parameter -- it comes from the verified, signed
- * station token (cookie). A worker holding an ink token can only ever pull the
- * ink schedule; the browser has no way to request another station's rows. That
- * is the "restricted data never reaches the browser" guarantee.
- *
- * Type__c and the field list come entirely from server-side STATION_CONFIG, so
- * unlike a client param there's nothing here to inject into.
+ * The station name selects a fixed server-side config (Type + field list); the
+ * browser can't inject SOQL. Access is open (no login) — the real perimeter is
+ * Cloudflare Access in front of /api/*.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
-import { verifyStationToken, STATION_CONFIG } from "../_station.js";
+import { STATION_CONFIG } from "../_station.js";
 
 export async function onRequestGet({ env, request }) {
   try {
-    const station = await verifyStationToken(env, request);
-    if (!station) return jsonError("unauthorized", 401);
+    const station = (new URL(request.url).searchParams.get("station") || "").toLowerCase();
 
     const cfg = STATION_CONFIG[station];
     if (!cfg || !cfg.selectFields) return jsonError("station_not_configured", 400);
