@@ -13,24 +13,23 @@
  * be one the station config allows.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
-import { verifyStationToken, STATION_CONFIG } from "../_station.js";
+import { STATION_CONFIG } from "../_station.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
 export async function onRequestPost({ env, request }) {
   try {
-    const station = await verifyStationToken(env, request);
-    if (!station) return jsonError("unauthorized", 401);
-
-    const cfg = STATION_CONFIG[station];
-    if (!cfg || cfg.source !== "order") return jsonError("station_not_configured", 400);
-
     let body;
     try {
       body = await request.json();
     } catch {
       return jsonError("invalid_body", 400);
     }
+
+    const station = String(body.station || "").toLowerCase();
+    const cfg = STATION_CONFIG[station];
+    if (!cfg || cfg.source !== "order") return jsonError("station_not_configured", 400);
+
     const orderId = String(body.orderId || "");
     const status = String(body.status || "");
     const missing = body.missing == null ? "" : String(body.missing);
