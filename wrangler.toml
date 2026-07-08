@@ -3,11 +3,10 @@
 #
 # Do NOT put SF_CLIENT_SECRET here. Real secrets go in the Pages dashboard
 # (Settings -> Variables and Secrets) or a local, git-ignored .dev.vars file.
+name = "culture-apparel-preprod"
+compatibility_date = "2026-06-30"
+pages_build_output_dir = "."
 
 [[kv_namespaces]]
 binding = "INVENTORY"
 id = "979cf86276b64807a266a20a09adf7b5"
-
-name = "culture-apparel-preprod"
-compatibility_date = "2026-06-30"
-pages_build_output_dir = "."
