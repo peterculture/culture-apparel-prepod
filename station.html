@@ -10,11 +10,12 @@
   Deliberately separate from index.html so it can't affect the main board.
   A dedicated tablet opens this pinned to its station, e.g.
       https://culture-apparel-preprod.pages.dev/station.html?station=ink
-  Auth is server-side: the PIN is validated by /api/station-login, which sets
-  an HttpOnly signed cookie. The schedule (/api/station-items) and each status
-  write (/api/update-item-status) read that cookie. The station is NEVER trusted
-  from the URL for data — the URL only picks which login label/theme to show;
-  what you can see and write is decided by the token the server issued.
+  OPEN ACCESS: no PIN / login — the tablet loads straight to its board. The
+  station is read from the ?station= URL param and sent with each request
+  (/api/station-items?station=…, and station in the write bodies). The endpoints
+  use it only to select a fixed server-side config, so there's nothing to inject.
+  The real perimeter is Cloudflare Access in front of /api/* (still to be added).
+  (Some login-only CSS below is now unused/inert; harmless dead styles.)
 */
 :root{
   --bg:#0B0B0C;--hdr:#070708;--panel:#121214;--panel2:#0E0E10;
@@ -180,29 +181,8 @@ body.modal-open{overflow:hidden}
 </head>
 <body>
 
-<!-- ── LOGIN ── -->
-<div id="login">
-  <div class="login-box">
-    <div class="login-badge" id="login-badge"></div>
-    <div class="login-station" id="login-station">Station</div>
-    <div class="login-title" id="login-title">Culture Apparel</div>
-    <div class="login-sub">Enter station PIN to continue</div>
-    <div class="pin-dots">
-      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
-      <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
-    </div>
-    <div class="pin-grid">
-      <button class="key" data-k="1">1</button><button class="key" data-k="2">2</button><button class="key" data-k="3">3</button>
-      <button class="key" data-k="4">4</button><button class="key" data-k="5">5</button><button class="key" data-k="6">6</button>
-      <button class="key" data-k="7">7</button><button class="key" data-k="8">8</button><button class="key" data-k="9">9</button>
-      <button class="key util" data-k="del">Del</button><button class="key" data-k="0">0</button><button class="key go" data-k="go">&#8594;</button>
-    </div>
-    <div class="login-err" id="login-err"></div>
-  </div>
-</div>
-
 <!-- ── BOARD ── -->
-<div id="board" class="hide">
+<div id="board">
   <div class="bar">
     <div class="bar-badge" id="bar-badge"></div>
     <div style="min-width:0">
@@ -212,7 +192,6 @@ body.modal-open{overflow:hidden}
     <div class="bar-actions">
       <span class="pill" id="count-pill">—</span>
       <button class="btn-ghost" id="btn-refresh">Refresh</button>
-      <button class="btn-ghost" id="btn-lock">Lock</button>
     </div>
   </div>
   <div class="subnav hide" id="subnav"></div>
@@ -326,10 +305,7 @@ const CFG=STATIONS[STATION]||STATIONS.ink;
 document.documentElement.style.setProperty('--acc',CFG.accent);
 document.documentElement.style.setProperty('--acc-bg',CFG.accentBg);
 document.documentElement.style.setProperty('--acc-tx',CFG.accentTx);
-document.getElementById('login-badge').innerHTML=ICON_TSHIRT;
 document.getElementById('bar-badge').innerHTML=CFG.icon;
-document.getElementById('login-station').textContent=CFG.label;
-document.getElementById('login-title').textContent='Culture Apparel';
 document.getElementById('bar-title').textContent=CFG.label;
 
 const $=id=>document.getElementById(id);
@@ -351,47 +327,10 @@ function dueChip(iso){
   return '<div class="duetag '+cls+'">'+ICON_CAL+esc(lead+fmtDate(iso))+'</div>';
 }
 
-/* ── PIN ENTRY ── */
-let pin='';
-function drawPin(){ for(let i=0;i<4;i++) $('d'+i).classList.toggle('on',i<pin.length); }
-document.querySelector('.pin-grid').addEventListener('click',e=>{
-  const b=e.target.closest('[data-k]'); if(!b) return;
-  const k=b.dataset.k;
-  if(k==='del'){ pin=pin.slice(0,-1); $('login-err').textContent=''; drawPin(); return; }
-  if(k==='go'){ submitPin(); return; }
-  if(pin.length>=4) return;
-  pin+=k; drawPin();
-  if(pin.length===4) setTimeout(submitPin,140);
-});
-
-async function submitPin(){
-  if(pin.length===0) return;
-  try{
-    const r=await fetch('/api/station-login',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({station:STATION,pin})
-    });
-    if(!r.ok){
-      $('login-err').textContent = r.status===401 ? 'Incorrect PIN — try again' : 'Login failed ('+r.status+')';
-      pin=''; drawPin();
-      setTimeout(()=>{ $('login-err').textContent=''; },2200);
-      return;
-    }
-    pin=''; drawPin();
-    showBoard();
-  }catch(e){
-    $('login-err').textContent='Network error — check connection';
-    pin=''; drawPin();
-  }
-}
-
 /* ── BOARD ── */
-function showLogin(){ closeModal(); $('board').classList.add('hide'); $('login').classList.remove('hide'); }
-function showBoard(){ $('login').classList.add('hide'); $('board').classList.remove('hide'); loadSchedule(); }
+function showBoard(){ $('board').classList.remove('hide'); loadSchedule(); }
 
 $('btn-refresh').addEventListener('click',loadSchedule);
-$('btn-lock').addEventListener('click',showLogin);   // soft lock: re-prompt PIN in the UI
 
 // Tap a compact card -> open the full-screen item modal (delegated, since the
 // cards are re-rendered on every refresh).
@@ -435,9 +374,8 @@ async function loadSchedule(opts){
   const keepY = opts.keepScroll ? window.scrollY : null;   // remember where we are
   if(!opts.keepScroll) list.innerHTML='<div class="state">Loading schedule…</div>';
   try{
-    const url = CFG.source==='order' ? '/api/orders' : '/api/station-items';
+    const url = CFG.source==='order' ? '/api/orders' : ('/api/station-items?station='+encodeURIComponent(STATION));
     const r=await fetch(url,{headers:{Accept:'application/json'}});
-    if(r.status===401){ showLogin(); return; }         // no/expired session → PIN
     const d=await r.json();
     if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
     let records=(d.records)||[];
@@ -863,14 +801,13 @@ async function writeStatus(itemId, value, okMsg, extra){
     const isOrder = CFG.source==='order';
     const url = isOrder ? '/api/update-order-receiving' : '/api/update-item-status';
     const body = isOrder
-      ? { orderId:itemId, status:value, missing: extra && extra.missing }
-      : { itemId, subStatus:value };
+      ? { station:STATION, orderId:itemId, status:value, missing: extra && extra.missing }
+      : { station:STATION, itemId, subStatus:value };
     const r=await fetch(url,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(body)
     });
-    if(r.status===401){ showLogin(); return; }
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.ok) throw new Error((d&&d.error)||('Save failed '+r.status));
     toast(okMsg);
@@ -884,13 +821,8 @@ async function writeStatus(itemId, value, okMsg, extra){
   }
 }
 
-/* ── INIT ──
-   Always start at the PIN pad. A page refresh should require re-entering the
-   PIN rather than auto-resuming into the board. (Note: the signed session cookie
-   can still be valid server-side until it expires — this is a UI gate. If you
-   want a refresh to fully end the session server-side, that's a small
-   station-logout endpoint; ask and I'll add it.) */
-showLogin();
+/* ── INIT ── Open access: the tablet loads straight to its station board. */
+showBoard();
 
 })();
 </script>
