@@ -1662,8 +1662,15 @@ async function loadMgrInbox(){
       acct:(rec.Account&&rec.Account.Name)||'—',
       orderName:rec.Name||'',
       customer:(rec.Account&&rec.Account.Name)||rec.Name||'—',
+      // ── Order info fields from SF (shown before setup begins) ──
+      deadline:rec.Customer_Facing_Delivery_Date__c||null,
+      mockup:rec.Mockup__c||null,
+      printSpecs:rec.Specifications_for_Printing__c||null,
+      specialNotes:rec.Special_Notes__c||null,
+      products:(rec.OrderItems&&rec.OrderItems.records)||[],
+      printer:(rec.Printer__r&&rec.Printer__r.Name)||null,
       method:null,                    // manager picks the type as a step
-      details:null,                   // account-manager detail fields aren't in SF yet
+      details:null,                   // legacy — superseded by inline SF fields above
       // Method-level fields the manager must set before Send unlocks:
       vendorId:null, vendorName:'',    // Account (Vendor__c)
       status:'',                       // Production_Method__c.Status__c (manager-picked)
@@ -1674,6 +1681,7 @@ async function loadMgrInbox(){
                 stitchCount:'',transferType:'Screen Transfer',
                 trRecvConfirmed:false,trReadyConfirmed:false,garmentsConfirmed:false,recvStatus:'Not Received'},
       sent:false,open:false,formOpen:false,
+      setupOpen:false,                 // true after "Begin Set-up" clicked — reveals method picker + form
     }));
     renderMgrInbox();
   }catch(e){ el.innerHTML='<p class="empty" style="color:#E8A89F">Inbox load failed: '+e.message+'</p>'; }
@@ -1736,42 +1744,117 @@ function renderMgrCard(o){
     +'</div>';
 }
 
+// Helper: format a SF Date string (YYYY-MM-DD) to a readable label
+function fmtDate(d){
+  if(!d) return 'None';
+  const [y,m,dy]=d.split('-');
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[+m-1]+' '+parseInt(dy,10)+', '+y;
+}
+
+function renderOrderInfoPanel(o){
+  const none='<span style="color:#6E6A62;font-style:italic">None</span>';
+  const val=v=>v?escAttr(v):none;
+
+  // Deadline — highlight red if overdue, amber if within 3 days
+  let deadlineHtml;
+  if(!o.deadline){
+    deadlineHtml=none;
+  } else {
+    const today=new Date(); today.setHours(0,0,0,0);
+    const due=new Date(o.deadline+'T00:00:00');
+    const diff=Math.round((due-today)/(1000*60*60*24));
+    const color=diff<0?'#E8A89F':diff<=3?'#E8A800':'#ECEAE4';
+    const tag=diff<0?' <span style="font-size:10px;font-weight:700;color:#E8A89F;background:#2A100D;padding:1px 6px;border-radius:3px;margin-left:6px">OVERDUE</span>'
+              :diff===0?' <span style="font-size:10px;font-weight:700;color:#E8A800;background:#1E1500;padding:1px 6px;border-radius:3px;margin-left:6px">TODAY</span>':'';
+    deadlineHtml='<span style="color:'+color+'">'+fmtDate(o.deadline)+'</span>'+tag;
+  }
+
+  // Mockup — render as link if it looks like a URL
+  let mockupHtml;
+  if(!o.mockup){
+    mockupHtml=none;
+  } else if(/^https?:\/\//i.test(o.mockup)){
+    mockupHtml='<a href="'+escAttr(o.mockup)+'" target="_blank" rel="noopener" style="color:#2E9CCA;text-decoration:underline;font-size:13px">View mockup <i class="ti ti-external-link" style="font-size:11px" aria-hidden="true"></i></a>';
+  } else {
+    mockupHtml='<span style="color:#ECEAE4;font-size:13px">'+escAttr(o.mockup)+'</span>';
+  }
+
+  // Products table
+  let productsHtml;
+  if(!o.products||!o.products.length){
+    productsHtml=none;
+  } else {
+    productsHtml='<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px">'
+      +'<thead><tr>'
+      +'<th style="text-align:left;color:#6E6A62;font-weight:600;padding:4px 8px 4px 0;border-bottom:1px solid #262628">Product</th>'
+      +'<th style="text-align:right;color:#6E6A62;font-weight:600;padding:4px 0 4px 8px;border-bottom:1px solid #262628">Qty</th>'
+      +'</tr></thead><tbody>'
+      +o.products.map(p=>'<tr>'
+        +'<td style="color:#ECEAE4;padding:5px 8px 5px 0;border-bottom:1px solid #1A1A1C">'+escAttr((p.Product2&&p.Product2.Name)||p.Name||'—')+'</td>'
+        +'<td style="color:#ECEAE4;text-align:right;padding:5px 0 5px 8px;border-bottom:1px solid #1A1A1C;font-weight:600">'+escAttr(String(p.Quantity||'—'))+'</td>'
+        +'</tr>').join('')
+      +'</tbody></table>';
+  }
+
+  return '<div style="background:#0A0A0C;border:1px solid #262628;border-radius:8px;padding:14px;margin-bottom:16px">'
+    +'<div style="font-size:11px;font-weight:700;color:#6E6A62;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Order information</div>'
+
+    // Deadline
+    +'<div style="display:grid;grid-template-columns:110px 1fr;gap:6px 12px;align-items:start">'
+    +'<div style="font-size:12px;color:#6E6A62;font-weight:600;padding-top:1px">Client Deadline</div>'
+    +'<div style="font-size:13px">'+deadlineHtml+'</div>'
+
+    // Mockup
+    +'<div style="font-size:12px;color:#6E6A62;font-weight:600;padding-top:1px">Mockup</div>'
+    +'<div style="font-size:13px">'+mockupHtml+'</div>'
+
+    // Print specs
+    +'<div style="font-size:12px;color:#6E6A62;font-weight:600;padding-top:1px">Print Specs</div>'
+    +'<div style="font-size:13px;color:#ECEAE4;white-space:pre-wrap">'+val(o.printSpecs)+'</div>'
+
+    // Special notes
+    +'<div style="font-size:12px;color:#6E6A62;font-weight:600;padding-top:1px">Special Notes</div>'
+    +'<div style="font-size:13px;color:#ECEAE4;white-space:pre-wrap">'+val(o.specialNotes)+'</div>'
+
+    // Printer
+    +'<div style="font-size:12px;color:#6E6A62;font-weight:600;padding-top:1px">Printer</div>'
+    +'<div style="font-size:13px;color:#ECEAE4">'+val(o.printer)+'</div>'
+    +'</div>'
+
+    // Products
+    +'<div style="margin-top:12px">'
+    +'<div style="font-size:12px;color:#6E6A62;font-weight:600;margin-bottom:4px">Product Breakdown</div>'
+    +productsHtml
+    +'</div>'
+
+    +'</div>';
+}
+
 function renderMgrCardBody(o){
   let html='';
-  // Safe detail accessor — live inbox orders have no detail fields yet (details:null)
+  // Safe detail accessor — legacy path (details:null for all live orders)
   const d = o.details || {
     pantones:[], design:'—', transfers:'—',
     garments:'Garment breakdown not loaded yet', notes:'—'
   };
-  // Order details section (only when real detail data exists)
-  if(o.details){
-    html+='<div style="background:#0A0A0C;border:1px solid #1A1A1C;border-radius:8px;padding:14px;margin-bottom:16px">'
-      +'<div class="form-sec-title"><i class="ti ti-file-description" aria-hidden="true"></i> Order details from account manager</div>';
-    if(o.method==='sp'){
-      html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Pantone colors</div>'
-        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
-        +d.pantones.map(p=>'<span style="background:#1A1A1C;border:1px solid #262628;border-radius:4px;padding:3px 10px;font-size:12px;color:#ECEAE4">'+p+'</span>').join('')
-        +'</div>';
-    } else if(o.method==='em'){
-      html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Design</div>'
-        +'<div style="font-size:13px;color:#ECEAE4;margin-bottom:10px">'+d.design+'</div>';
-    } else if(o.method==='hp'){
-      html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Transfers</div>'
-        +'<div style="font-size:13px;color:#ECEAE4;margin-bottom:10px">'+d.transfers+'</div>';
-    }
-    html+='<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Garments</div>'
-      +'<div style="font-size:13px;color:#ECEAE4;margin-bottom:10px">'+d.garments+'</div>'
-      +'<div style="font-size:12px;color:#9C988F;margin-bottom:4px">Notes</div>'
-      +'<div style="font-size:13px;color:#9C988F;font-style:italic">'+d.notes+'</div>'
-      +'</div>';
-  }
 
   if(o.sent){
     html+='<div style="text-align:center;padding:16px 0;color:#3D8B3D;font-size:13px;font-weight:500"><i class="ti ti-circle-check" style="font-size:20px;display:block;margin-bottom:4px" aria-hidden="true"></i>Pre-production elements sent to shop floor</div>';
     return html;
   }
 
+  // Always show the order info panel when card is open
+  html+=renderOrderInfoPanel(o);
+
   if(!o.method){
+    // If setup hasn't started yet, show "Begin Set-up" button
+    if(!o.setupOpen){
+      html+='<button class="add-item-btn" style="width:100%;justify-content:center;padding:12px;border-style:solid;border-color:#C6372B;color:#C6372B;font-size:13px;font-weight:700" data-mgr="begin-setup" data-id="'+o.id+'">'
+        +'<i class="ti ti-tool" aria-hidden="true"></i> Begin Set-up</button>';
+      return html;
+    }
+    // Setup started — show print type picker
     html+='<div class="form-sec"><div class="form-sec-title"><i class="ti ti-category" aria-hidden="true"></i> Print type</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
       +[['sp','Screen Print','#C6372B'],['em','Embroidery','#2C6B6A'],['hp','Heat Press','#C68A30']]
@@ -2004,6 +2087,7 @@ function handleMgrClick(e){
   const o=getMgrOrder(id);if(!o)return;
 
   if(action==='toggle'){o.open=!o.open;renderMgrInbox();return;}
+  if(action==='begin-setup'){o.setupOpen=true;renderMgrInbox();return;}
   if(action==='pick-method'){o.method=t.dataset.method;o.formOpen=true;renderMgrInbox();return;}
   if(action==='open-form'){o.formOpen=true;o.open=true;renderMgrInbox();return;}
   if(action==='toggle-films'){o.elements.filmsCreated=!o.elements.filmsCreated;renderMgrInbox();return;}
