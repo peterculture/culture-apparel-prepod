@@ -473,14 +473,14 @@ function render(records){
 
 const statusOf=(o)=> o[CFG.field]||CFG.stages[0];
 function filterByView(records, view){
-  if(view==='master') return records.filter(o=>statusOf(o)!==CFG.doneStatus);
+  if(view==='master') return records.filter(o=>statusOf(o)!==CFG.doneStage);
   return records.filter(o=>statusOf(o)===view);
 }
 function subnavHTML(){
-  // Master + each non-done status. Staged (doneStatus) has no tab — a staged
+  // Master + each non-done status. Staged (doneStage) has no tab — a staged
   // order leaves the board — but Staged stays a pickable status in the modal.
   const views=[['master','Master']].concat(
-    CFG.stages.filter(s=>s!==CFG.doneStatus).map(s=>[s,s]));
+    CFG.stages.filter(s=>s!==CFG.doneStage).map(s=>[s,s]));
   return views.map(function(pair){
     const v=pair[0], label=pair[1];
     const n=filterByView(CURRENT,v).length;
@@ -560,7 +560,7 @@ function syncModal(){
   const rec=CURRENT.find(x=>x.Id===modalId);
   if(!rec){ closeModal(); return; }
   // Garment: a staged order drops off every list, so close the modal too.
-  if(CFG.source==='order' && statusOf(rec)===CFG.doneStatus){ closeModal(); return; }
+  if(CFG.source==='order' && statusOf(rec)===CFG.doneStage){ closeModal(); return; }
   renderModal(rec);
 }
 
