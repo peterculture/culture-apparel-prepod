@@ -12,7 +12,6 @@
  * /api/orders — the browser can't run arbitrary queries.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
-
 const FIELDS = [
   "Id",
   "OrderNumber",
@@ -20,8 +19,13 @@ const FIELDS = [
   "Customer_Order_Name__c",
   "Print_Date__c",
   "Account.Name",
+  "Customer_Facing_Delivery_Date__c",
+  "Mockup__c",
+  "Specifications_for_Printing__c",
+  "Special_Notes__c",
+  "Printer__r.Name",
+  "(SELECT Product2.Name, Quantity FROM OrderItems)",
 ];
-
 export async function onRequestGet({ env }) {
   try {
     const soql =
