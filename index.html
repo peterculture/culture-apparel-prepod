@@ -175,6 +175,16 @@ input[type=week]{color-scheme:dark}
 .send-btn:disabled{opacity:.4;cursor:default}
 .sent-badge{background:#3D8B3D;color:#000;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:.07em}
 
+/* ── STATION LINK (opens dedicated tablet station board) ── */
+.station-link{display:flex;align-items:center;gap:14px;text-decoration:none;background:#0E0E10;border:1px solid var(--sa);border-left:4px solid var(--sa);border-radius:var(--rad-md);padding:14px 16px;margin-bottom:16px;transition:background .15s,transform .1s}
+.station-link:hover{background:#141416;transform:translateY(-1px)}
+.station-link:active{transform:translateY(0)}
+.station-link-ic{width:40px;height:40px;border-radius:var(--rad-sm);background:var(--sa);color:#000;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
+.station-link-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.station-link-title{font-family:var(--cond);font-size:15px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#ECEAE4}
+.station-link-sub{font-size:11px;color:#6E6A62}
+.station-link-arrow{margin-left:auto;font-size:18px;color:var(--sa);flex-shrink:0}
+
 </style>
 </head>
 <body>
@@ -395,6 +405,14 @@ input[type=week]{color-scheme:dark}
       <p style="font-size:13px;font-weight:600;color:#ECEAE4;margin-bottom:12px"><i class="ti ti-alert-circle" style="color:#E24B4A;vertical-align:-2px" aria-hidden="true"></i> Shop-wide issues</p>
       <div id="ov-issues"><p class="empty">Connect to Salesforce to see live issues.</p></div>
     </div>
+    <a href="/station.html?station=garment" target="_blank" rel="noopener" class="station-link" style="--sa:#3D8B3D;margin-top:22px">
+      <span class="station-link-ic"><i class="ti ti-shirt" aria-hidden="true"></i></span>
+      <span class="station-link-tx">
+        <span class="station-link-title">Inspect Garment Status</span>
+        <span class="station-link-sub">Open the Garment Count-In station board · opens in a new tab · PIN required</span>
+      </span>
+      <i class="ti ti-external-link station-link-arrow" aria-hidden="true"></i>
+    </a>
   </div>
 
   <!-- SCREEN PRINT -->
@@ -1155,12 +1173,31 @@ function garmentTabCard(o,oi){
 }
 
 /* ── STEP TAB WRAPPER ── */
-function renderStepTab(prefix,elId,orders,headerMetrics,cardFn,stepFilterFn){
+/* ── STATION BOARD LINKS ──
+   Buttons that open the dedicated PIN-gated tablet station boards
+   (station.html?station=…) in a new tab. Keys must match STATION_PINS exactly. */
+function stationBtnHTML(station,label,sub,accent,icon){
+  return '<a href="/station.html?station='+station+'" target="_blank" rel="noopener" class="station-link" style="--sa:'+accent+'">'
+    +'<span class="station-link-ic"><i class="ti '+icon+'" aria-hidden="true"></i></span>'
+    +'<span class="station-link-tx">'
+    +'<span class="station-link-title">'+label+'</span>'
+    +'<span class="station-link-sub">'+sub+'</span>'
+    +'</span>'
+    +'<i class="ti ti-external-link station-link-arrow" aria-hidden="true"></i>'
+    +'</a>';
+}
+const STATION_BTN={
+  screen:  stationBtnHTML('screen','Inspect Screen Status','Open the Screen Prep station board · new tab · PIN required','#D44C8A','ti-grid-dots'),
+  ink:     stationBtnHTML('ink','Inspect Ink Status','Open the Ink Mixing station board · new tab · PIN required','#2E9CCA','ti-droplet'),
+  transfer:stationBtnHTML('transfer','Inspect Transfer Status','Open the Transfers station board · new tab · PIN required','#7B4FBF','ti-transfer-in'),
+};
+
+function renderStepTab(prefix,elId,orders,headerMetrics,cardFn,stepFilterFn,stationBtn){
   const el=document.getElementById(elId);if(!el)return;
   const allFiltered=filtered(prefix);
   // Apply step filter: only show orders where this step still needs doing
   const fArr=stepFilterFn?allFiltered.filter(stepFilterFn):allFiltered;
-  let html='<div class="met-grid">'+headerMetrics.map(m=>'<div class="met" style="background:'+m.bg+'"><div class="met-v" style="color:'+m.vc+'">'+m.v(allFiltered)+'</div><div class="met-l" style="color:'+m.lc+'">'+m.l+'</div></div>').join('')+'</div>';
+  let html=(stationBtn||'')+'<div class="met-grid">'+headerMetrics.map(m=>'<div class="met" style="background:'+m.bg+'"><div class="met-v" style="color:'+m.vc+'">'+m.v(allFiltered)+'</div><div class="met-l" style="color:'+m.lc+'">'+m.l+'</div></div>').join('')+'</div>';
   if(!SF.loaded){html+='<p class="empty">Loading orders…</p>';el.innerHTML=html;return;}
   if(fArr.length===0){
     html+='<div style="padding:30px 0;text-align:center"><i class="ti ti-circle-check" style="font-size:36px;color:#639922;display:block;margin-bottom:8px"></i><p style="font-size:14px;font-weight:600;color:#639922">All orders complete for this step</p><p style="font-size:12px;color:#6E6A62;margin-top:4px">Nothing left to do here</p></div>';
@@ -1196,13 +1233,13 @@ function renderSP(){
     {bg:'#5A211B',vc:'#ECEAE4',lc:'#B98C86',l:'Screens done',v:a=>a.filter(o=>o.scDone).length},
     {bg:'#1E2D0E',vc:'#E7F2D2',lc:'#BBD382',l:'All done',v:a=>a.filter(o=>o.scDone).length},
     {bg:'#7A241C',vc:'#F6DAD5',lc:'#E8A89F',l:'Still needed',v:a=>a.filter(o=>!o.scDone).length},
-  ],((o,i)=>stepTabCard(o,i,o.scDone,'scDone','Screens_Completed__c','Screen prep','Screens cleaned, emulsion applied and exposed','Waiting — screen prep not complete','#0C2340','#8BBCE8')),o=>!o.scDone);
+  ],((o,i)=>stepTabCard(o,i,o.scDone,'scDone','Screens_Completed__c','Screen prep','Screens cleaned, emulsion applied and exposed','Waiting — screen prep not complete','#0C2340','#8BBCE8')),o=>!o.scDone,STATION_BTN.screen);
   if(curV.sp==='inks') renderStepTab('sp','sp-vinks',DB.sp,[
     {bg:'#1A1A1C',vc:'#ECEAE4',lc:'#9C988F',l:'Total orders',v:a=>a.length},
     {bg:'#5A211B',vc:'#ECEAE4',lc:'#B98C86',l:'Inks mixed',v:a=>a.filter(o=>o.inkDone).length},
     {bg:'#1E2D0E',vc:'#E7F2D2',lc:'#BBD382',l:'All done',v:a=>a.filter(o=>o.inkDone).length},
     {bg:'#7A241C',vc:'#F6DAD5',lc:'#E8A89F',l:'Still needed',v:a=>a.filter(o=>!o.inkDone).length},
-  ],((o,i)=>stepTabCard(o,i,o.inkDone,'inkDone','Mix_Inks__c','Ink mixing','Inks sorted, labeled and mixed','Waiting — inks not yet mixed','#231608','#D4935A')),o=>!o.inkDone);
+  ],((o,i)=>stepTabCard(o,i,o.inkDone,'inkDone','Mix_Inks__c','Ink mixing','Inks sorted, labeled and mixed','Waiting — inks not yet mixed','#231608','#D4935A')),o=>!o.inkDone,STATION_BTN.ink);
   if(curV.sp==='garments') renderStepTab('sp','sp-vgarments',DB.sp,[
     {bg:'#1A1A1C',vc:'#ECEAE4',lc:'#9C988F',l:'Total orders',v:a=>a.length},
     {bg:'#5A211B',vc:'#ECEAE4',lc:'#B98C86',l:'Received',v:a=>a.filter(o=>o.recv!=='Not Received').length},
@@ -1287,7 +1324,7 @@ function renderHP(){
       +'</div>'
       +'<div class="sync-row"><div class="sync-dot"></div><span>Changes sync to Salesforce #'+o.num+' instantly</span></div>'
       +'</div></div>';
-  },o=>!o.trRdy);
+  },o=>!o.trRdy,STATION_BTN.transfer);
   if(curV.hp==='garments') renderStepTab('hp','hp-vgarments',DB.hp,[
     {bg:'#1A1A1C',vc:'#ECEAE4',lc:'#9C988F',l:'Total orders',v:a=>a.length},
     {bg:'#4A360F',vc:'#E6D5BC',lc:'#E0B870',l:'Received',v:a=>a.filter(o=>o.recv!=='Not Received').length},
