@@ -177,6 +177,22 @@ body.modal-open{overflow:hidden}
 .printbtn{width:100%;margin-top:14px;background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:13px;font-family:var(--cond);font-size:14px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .15s}
 .printbtn:active{border-color:var(--acc);color:var(--acc)}
 .printbtn svg{width:17px;height:17px;flex-shrink:0}
+
+/* ── INVENTORY ── */
+.invwrap{width:100%;max-width:820px;margin:0 auto}
+.invrow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px;margin-bottom:9px}
+.invrow.low{border-color:var(--red-bd);background:var(--red-bg)}
+.invname{flex:1;min-width:0;font-family:var(--cond);font-size:17px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.invrow.low .invname{color:var(--red-tx)}
+.invflag{font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:var(--red);border-radius:20px;padding:3px 9px;white-space:nowrap}
+.invqty{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.invbtn{width:42px;height:42px;border-radius:9px;background:var(--chip);border:1px solid var(--line2);color:var(--ink);font-family:var(--cond);font-size:24px;font-weight:600;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.invbtn:active{background:var(--acc);border-color:var(--acc);color:#04140A}
+.invnum{width:58px;height:42px;text-align:center;background:var(--panel2,#0E0E10);border:1px solid var(--line2);color:var(--ink);border-radius:9px;font-family:var(--cond);font-size:20px;font-weight:700;outline:none;-moz-appearance:textfield}
+.invnum::-webkit-outer-spin-button,.invnum::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.invnum:focus{border-color:var(--acc)}
+.invtotal{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:14px 16px;background:var(--chip);border:1px solid var(--line);border-radius:11px;font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+.invtotal span{font-size:26px;color:var(--ink);letter-spacing:0}
 </style>
 </head>
 <body>
@@ -223,6 +239,7 @@ const ICON_PRINT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const STATIONS={
   ink:{
     label:'Ink Station', accent:'#2E9CCA', accentBg:'#0C2733', accentTx:'#BFE4F2',
+    inventory:'ink',
     icon:ICON_DROP,
     field:'Ink_Sub_Status__c',
     // record field shown as the card's headline + swatch, and its wording
@@ -244,6 +261,7 @@ const STATIONS={
   },
   screen:{
     label:'The Blue Lagoon', accent:'#1FB2A6', accentBg:'#06282A', accentTx:'#A7E8E0',
+    inventory:'screen',
     icon:ICON_SCREEN,
     field:'Screen_Sub_Status__c',
     idField:'Mesh_Count__c', idFallback:'(no mesh)', idSuffix:' mesh',
@@ -330,13 +348,23 @@ function dueChip(iso){
 /* ── BOARD ── */
 function showBoard(){ $('board').classList.remove('hide'); loadSchedule(); }
 
-$('btn-refresh').addEventListener('click',loadSchedule);
+$('btn-refresh').addEventListener('click',()=>{
+  if(CFG.inventory && garmentView==='inventory'){ invCache=null; renderInventory(); }
+  else loadSchedule();
+});
 
 // Tap a compact card -> open the full-screen item modal (delegated, since the
 // cards are re-rendered on every refresh).
 $('list').addEventListener('click',e=>{
+  const adj=e.target.closest('[data-invadj]');
+  if(adj){ invAdjust(Number(adj.dataset.i), Number(adj.dataset.invadj)); return; }
   const c=e.target.closest('[data-open]');
   if(c) openModal(c.dataset.id);
+});
+// Inventory quantity typed directly (fires on blur / Enter).
+$('list').addEventListener('change',e=>{
+  const inp=e.target.closest('.invnum');
+  if(inp) invSet(Number(inp.dataset.i), inp.value);
 });
 // Garment tab strip (Master / per-status) — re-filter in place, no refetch.
 $('subnav').addEventListener('click',e=>{
@@ -419,12 +447,17 @@ function subnavHTML(){
   // order leaves the board — but Staged stays a pickable status in the modal.
   const views=[['master','Master']].concat(
     CFG.stages.filter(s=>s!==CFG.doneStage).map(s=>[s,s]));
-  return views.map(function(pair){
+  let html=views.map(function(pair){
     const v=pair[0], label=pair[1];
     const n=filterByView(CURRENT,v).length;
     return '<button class="subtab'+(garmentView===v?' on':'')+'" data-view="'+esc(v)+'">'
       +esc(label)+'<span class="tab-ct">'+n+'</span></button>';
   }).join('');
+  // Manual stock inventory (ink / screen stations only).
+  if(CFG.inventory){
+    html+='<button class="subtab'+(garmentView==='inventory'?' on':'')+'" data-view="inventory">Inventory</button>';
+  }
+  return html;
 }
 function displayList(){
   const list=$('list');
@@ -436,6 +469,13 @@ function displayList(){
   $('subnav').classList.remove('hide');
   $('subnav').innerHTML=subnavHTML();
 
+  // Inventory tab: a manual stock list instead of the schedule.
+  if(CFG.inventory && garmentView==='inventory'){
+    $('count-pill').textContent='Inventory';
+    renderInventory();
+    return;
+  }
+
   const recs = filterByView(CURRENT, garmentView);
   $('count-pill').textContent = recs.length+' '+(garmentView==='master' ? CFG.countWord : (isOrder?'orders':'items'));
 
@@ -445,6 +485,77 @@ function displayList(){
     return;
   }
   list.innerHTML=recs.map(isOrder?orderCardHTML:cardHTML).join('');
+}
+
+/* ── MANUAL INVENTORY (ink / screen) ──
+   Stored server-side in Cloudflare KV via /api/inventory. Quantities are
+   editable; an ink at 1 or fewer buckets is flagged "Need new order" and sorts
+   to the top. The stored list order is canonical — the flag/sort is display-only. */
+let invCache=null;   // array from /api/inventory, or null if not loaded
+async function renderInventory(){
+  const list=$('list');
+  if(invCache===null){
+    list.innerHTML='<div class="state">Loading inventory…</div>';
+    try{
+      const r=await fetch('/api/inventory?type='+encodeURIComponent(CFG.inventory),{headers:{Accept:'application/json'}});
+      const d=await r.json();
+      if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+      invCache=(d.items)||[];
+    }catch(e){
+      list.innerHTML='<div class="state" style="color:var(--red-tx)">Couldn\'t load inventory: '+esc(e.message)+'</div>';
+      return;
+    }
+  }
+  list.innerHTML=inventoryHTML(invCache);
+}
+function inventoryHTML(items){
+  const isInk = CFG.inventory==='ink';
+  // display order: low-stock inks first, otherwise canonical order
+  const rows = items.map((it,i)=>({it,i}));
+  if(isInk){
+    rows.sort((a,b)=>{
+      const fa=(Number(a.it.qty)||0)<=1?0:1, fb=(Number(b.it.qty)||0)<=1?0:1;
+      return fa-fb || a.i-b.i;
+    });
+  }
+  const total = items.reduce((s,it)=>s+(Number(it.qty)||0),0);
+  const body = rows.map(function(row){
+    const it=row.it, i=row.i, qty=Number(it.qty)||0;
+    const label = isInk ? it.name : (it.mesh+' mesh');
+    const low = isInk && qty<=1;
+    return '<div class="invrow'+(low?' low':'')+'">'
+      +'<div class="invname">'+esc(label)+(low?'<span class="invflag">Need new order</span>':'')+'</div>'
+      +'<div class="invqty">'
+        +'<button class="invbtn" data-invadj="-1" data-i="'+i+'">&minus;</button>'
+        +'<input class="invnum" type="number" inputmode="numeric" min="0" value="'+qty+'" data-i="'+i+'">'
+        +'<button class="invbtn" data-invadj="1" data-i="'+i+'">+</button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+  return '<div class="invwrap">'+body
+    +'<div class="invtotal">Total '+(isInk?'buckets':'screens')+'<span>'+total+'</span></div></div>';
+}
+function invAdjust(i, delta){
+  if(!invCache||!invCache[i]) return;
+  invCache[i].qty=Math.max(0,(Number(invCache[i].qty)||0)+delta);
+  renderInventory(); invSave();
+}
+function invSet(i, val){
+  if(!invCache||!invCache[i]) return;
+  invCache[i].qty=Math.max(0,Math.floor(Number(val)||0));
+  renderInventory(); invSave();
+}
+async function invSave(){
+  try{
+    const r=await fetch('/api/inventory',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:CFG.inventory, items:invCache})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.ok) throw new Error((d&&d.error)||('Save failed '+r.status));
+    if(d.items) invCache=d.items;   // server-sanitized copy
+  }catch(e){ toast('Couldn\'t save inventory — '+e.message, true); }
 }
 
 // Compact summary card — vital info only; tap to open the working modal.
