@@ -491,15 +491,18 @@ function subnavHTML(){
 function displayList(){
   const list=$('list');
   const isOrder=CFG.source==='order';
-  const sub=$('subnav');
-  if(isOrder){ sub.classList.remove('hide'); sub.innerHTML=subnavHTML(); }
-  else { sub.classList.add('hide'); }
+  // Tabs now apply to every station: Master + each non-done sub-status. The
+  // terminal stage (Mixed / Ready for Print / Transfers Cut/Ready / Staged) has
+  // no tab and its items don't stay on the board, but it's still reachable from
+  // the item's own controls.
+  $('subnav').classList.remove('hide');
+  $('subnav').innerHTML=subnavHTML();
 
-  const recs = isOrder ? filterByView(CURRENT, garmentView) : CURRENT;
-  $('count-pill').textContent = recs.length+' '+(isOrder && garmentView!=='master' ? 'orders' : CFG.countWord);
+  const recs = filterByView(CURRENT, garmentView);
+  $('count-pill').textContent = recs.length+' '+(garmentView==='master' ? CFG.countWord : (isOrder?'orders':'items'));
 
   if(!recs.length){
-    const msg = isOrder && garmentView!=='master' ? 'Nothing in the '+garmentView+' list.' : CFG.emptyMsg;
+    const msg = garmentView==='master' ? CFG.emptyMsg : ('Nothing in the '+garmentView+' list.');
     list.innerHTML='<div class="state empty">'+ICON_CHECK.replace('currentColor','#7FA644')+esc(msg)+'</div>';
     return;
   }
