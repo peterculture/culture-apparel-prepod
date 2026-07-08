@@ -1,39 +1,35 @@
 /**
  * POST /api/update-item-status
- * Body: { "itemId": "<15/18-char SF Id>", "subStatus": "<value>" }
+ * Body: { "station": "<name>", "itemId": "<15/18-char SF Id>", "subStatus": "<value>" }
  *
- * Advances one Pre-Production Item's sub-status for the caller's station, and
- * sets the rolled-up Status__c in the SAME write. No Salesforce flow maintains
- * Status__c (confirmed 2026-07-07), so this endpoint owns the roll-up: e.g.
- * ink "Mixed" => Status__c "Ready", which drops the item off the schedule.
+ * Advances one Pre-Production Item's sub-status for the given station, and
+ * sets the rolled-up Status__c in the SAME write when the station has no flow.
  *
- * WRITE endpoint -- the one that must sit behind the Cloudflare Access lockdown
- * before it goes live. Layers of protection here:
- *   - gated on the signed station token (401 otherwise)
+ * WRITE endpoint -- open (no login); the real perimeter is Cloudflare Access in
+ * front of /api/*. Still validated:
+ *   - station must map to a known config (else rejected)
  *   - itemId shape-validated against the strict SF Id pattern
- *   - subStatus must be a value the caller's station config allows, so an ink
- *     token can only ever write ink sub-statuses
+ *   - subStatus must be a value that station's config allows
  *   - Status__c is derived server-side, never accepted from the client
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
-import { verifyStationToken, STATION_CONFIG } from "../_station.js";
+import { STATION_CONFIG } from "../_station.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
 export async function onRequestPost({ env, request }) {
   try {
-    const station = await verifyStationToken(env, request);
-    if (!station) return jsonError("unauthorized", 401);
-
-    const cfg = STATION_CONFIG[station];
-    if (!cfg || !cfg.subStatusFlow) return jsonError("station_not_configured", 400);
-
     let body;
     try {
       body = await request.json();
     } catch {
       return jsonError("invalid_body", 400);
     }
+
+    const station = String(body.station || "").toLowerCase();
+    const cfg = STATION_CONFIG[station];
+    if (!cfg || !cfg.subStatusFlow) return jsonError("station_not_configured", 400);
+
     const itemId = String(body.itemId || "");
     const subStatus = String(body.subStatus || "");
 
