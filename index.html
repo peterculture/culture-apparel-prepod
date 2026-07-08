@@ -632,6 +632,8 @@ const hpPct=o=>{let n=0;if(o.recv==='Staged')n++;else if(o.recv==='Counted In')n
 const hpIss=o=>o.recv==='Partial';
 const avgPct=(arr,fn)=>arr.length?Math.round(arr.reduce((a,o)=>a+fn(o),0)/arr.length):0;
 const isOD=o=>o.due&&toD(o.due)<toD(TODAY);
+// Prep-Priority: prints within the next 3 days (0–3) and not yet overdue
+const isPP=o=>{if(!o.due||isOD(o))return false;const diff=(toD(o.due)-toD(TODAY))/(864e5);return diff>=0&&diff<=3;};
 
 /* ── FILTER ── */
 function snapToMonday(dateISO){
@@ -851,10 +853,10 @@ function openOrderSheet(o){
  
  /* ── ORDER CARD ── */
 function ocHTML(o,oi,rdyFn,pctFn,issFn,detFn,pfx,ac){
-  const col=OC[oi%OC.length];const pct=pctFn(o);const rdy=rdyFn(o);const iss=issFn(o);const od=isOD(o);
+  const col=OC[oi%OC.length];const pct=pctFn(o);const rdy=rdyFn(o);const iss=issFn(o);const od=isOD(o);const pp=isPP(o)&&!rdy;
   const op=!!(openO[pfx]&&openO[pfx][o.id]);
   const dt=o.due?toD(o.due).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-  return'<div class="ocard" style="background:'+col.bg+';'+(od?'border:2px solid #7A241C':'')+'">'
+  return'<div class="ocard" style="background:'+col.bg+';'+(od?'border:2px solid #7A241C':pp?'border:2px solid #8B6700':'')+'">'
     +'<div class="ohdr" style="background:'+col.hdr+'" data-a="to" data-p="'+pfx+'" data-id="'+o.id+'">'
     +'<div style="flex:1;min-width:0">'
     +'<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:5px">'
@@ -863,6 +865,7 @@ function ocHTML(o,oi,rdyFn,pctFn,issFn,detFn,pfx,ac){
     +(rdy?'<span class="badge" style="background:#1E2D0E;color:#E7F2D2"><i class="ti ti-check" aria-hidden="true"></i> Ready for print</span>':'')
     +(iss?'<span class="badge" style="background:#4A360F;color:#E6D5BC"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Partial</span>':'')
     +(od?'<span class="badge" style="background:#7A241C;color:#F6DAD5"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Overdue</span>':'')
+    +(pp?'<span class="badge" style="background:#3A2800;color:#FFC107"><i class="ti ti-clock-hour-4" aria-hidden="true"></i> Prep-Priority</span>':'')
     +'</div>'
     +'<div style="font-size:11px;color:'+col.sub+';margin-top:-3px;margin-bottom:5px">'+escAttr(o.acct)+'</div>'
     +'<div style="display:flex;align-items:center;gap:10px">'
@@ -1135,18 +1138,19 @@ function recvStepHTML(o){
 /* ── STEP TAB: single checkbox step ── */
 function stepTabCard(o,oi,fieldVal,savKey,fieldApi,label,descDone,descPending,accentBg,accentText){
   const col=OC[oi%OC.length];
-  const done=fieldVal;const saving=!!o.sav[savKey];
-  return '<div class="ocard" style="background:'+col.bg+';'+(isOD(o)?'border:2px solid #791F1F':'')+'">'
+  const done=fieldVal;const saving=!!o.sav[savKey];const od=isOD(o);const pp=isPP(o)&&!done;
+  return '<div class="ocard" style="background:'+col.bg+';'+(od?'border:2px solid #791F1F':pp?'border:2px solid #8B6700':'')+'">'
     +'<div class="ohdr" style="background:'+col.hdr+';cursor:default">'
     +'<div style="flex:1;min-width:0">'
     +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
     +'<span style="font-size:14px;font-weight:600;color:'+col.text+'">#'+o.num+'</span>'
     +'<span style="font-size:12px;color:'+col.sub+'">'+o.name+'</span>'
-    +(isOD(o)?'<span class="badge" style="background:#791F1F;color:#FCEBEB"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Overdue</span>':'')
+    +(od?'<span class="badge" style="background:#791F1F;color:#FCEBEB"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Overdue</span>':'')
+    +(pp?'<span class="badge" style="background:#3A2800;color:#FFC107"><i class="ti ti-clock-hour-4" aria-hidden="true"></i> Prep-Priority</span>':'')
     +(done?'<span class="badge" style="background:#27500A;color:#EAF3DE;margin-left:auto"><i class="ti ti-check" aria-hidden="true"></i> Done</span>':'<span class="badge" style="background:'+accentBg+';color:'+accentText+';margin-left:auto">Pending</span>')
     +'</div>'
     +'<div style="display:flex;align-items:center;gap:8px">'
-    +(o.due?'<span style="font-size:10px;color:'+(isOD(o)?'#F7C1C1':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> '+toD(o.due).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>':'')
+    +(o.due?'<span style="font-size:10px;color:'+(od?'#F7C1C1':pp?'#FFC107':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> '+toD(o.due).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>':'')
     +'</div>'
     +'</div>'
     +'<div class="cktog'+(saving?' sv':done?' ck':'')+'" style="width:26px;height:26px" data-a="ck" data-sid="'+o.id+'" data-f="'+fieldApi+'" data-k="'+savKey+'" data-v="'+done+'">'
@@ -1162,19 +1166,20 @@ function stepTabCard(o,oi,fieldVal,savKey,fieldApi,label,descDone,descPending,ac
 /* ── STEP TAB: garment count-in (receiving status) ── */
 function garmentTabCard(o,oi){
   const col=OC[oi%OC.length];
-  const done=o.recv==='Staged';const partial=o.recv==='Partial';
-  return '<div class="ocard" style="background:'+col.bg+';'+(isOD(o)?'border:2px solid #791F1F':'')+'">'
+  const done=o.recv==='Staged';const partial=o.recv==='Partial';const od=isOD(o);const pp=isPP(o)&&!done;
+  return '<div class="ocard" style="background:'+col.bg+';'+(od?'border:2px solid #791F1F':pp?'border:2px solid #8B6700':'')+'">'
     +'<div class="ohdr" style="background:'+col.hdr+'" data-a="to" data-p="garm_'+o.id+'" data-id="garm_'+o.id+'">'
     +'<div style="flex:1;min-width:0">'
     +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
     +'<span style="font-size:14px;font-weight:600;color:'+col.text+'">#'+o.num+'</span>'
     +'<span style="font-size:12px;color:'+col.sub+'">'+o.name+'</span>'
-    +(isOD(o)?'<span class="badge" style="background:#791F1F;color:#FCEBEB"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Overdue</span>':'')
+    +(od?'<span class="badge" style="background:#791F1F;color:#FCEBEB"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Overdue</span>':'')
+    +(pp?'<span class="badge" style="background:#3A2800;color:#FFC107"><i class="ti ti-clock-hour-4" aria-hidden="true"></i> Prep-Priority</span>':'')
     +(done?'<span class="badge" style="background:#27500A;color:#EAF3DE;margin-left:auto"><i class="ti ti-check" aria-hidden="true"></i> Staged</span>'
       :partial?'<span class="badge" style="background:#854F0B;color:#FAEEDA;margin-left:auto"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Partial</span>'
       :'<span class="badge" style="background:#1A1A2E;color:#6E6A62;margin-left:auto">'+o.recv+'</span>')
     +'</div>'
-    +(o.due?'<span style="font-size:10px;color:'+(isOD(o)?'#F7C1C1':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> '+toD(o.due).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>':'')
+    +(o.due?'<span style="font-size:10px;color:'+(od?'#F7C1C1':pp?'#FFC107':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> '+toD(o.due).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>':'')
     +'</div>'
     +'<i class="ti ti-chevron-down chev'+(openO['garm_'+o.id]?' on':'')+'" style="color:'+col.sub+'" aria-hidden="true"></i>'
     +'</div>'
@@ -1363,20 +1368,21 @@ function renderHP(){
     {bg:'#1E2D0E',vc:'#E7F2D2',lc:'#BBD382',l:'Transfers ready',v:a=>a.filter(o=>o.trRdy).length},
     {bg:'#7A241C',vc:'#F6DAD5',lc:'#E8A89F',l:'Still needed',v:a=>a.filter(o=>!o.trRdy).length},
   ],(o,i)=>{
-    const col=OC[i%OC.length];const od=isOD(o);
+    const col=OC[i%OC.length];const od=isOD(o);const pp=isPP(o)&&!o.trRdy;
     const dt=o.due?toD(o.due).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    return '<div class="ocard" style="background:'+col.bg+';'+(od?'border:2px solid #791F1F':'')+'">'
+    return '<div class="ocard" style="background:'+col.bg+';'+(od?'border:2px solid #791F1F':pp?'border:2px solid #8B6700':'')+'">'
       +'<div class="ohdr" style="background:'+col.hdr+'" data-a="to" data-p="tr_'+o.id+'" data-id="tr_'+o.id+'">'
       +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
       +'<span style="font-size:14px;font-weight:600;color:'+col.text+'">#'+o.num+'</span>'
       +'<span style="font-size:12px;color:'+col.sub+'">'+o.name+'</span>'
       +(od?'<span class="badge" style="background:#791F1F;color:#FCEBEB"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Overdue</span>':'')
+      +(pp?'<span class="badge" style="background:#3A2800;color:#FFC107"><i class="ti ti-clock-hour-4" aria-hidden="true"></i> Prep-Priority</span>':'')
       +(o.trRdy?'<span class="badge" style="background:#27500A;color:#EAF3DE;margin-left:auto"><i class="ti ti-check" aria-hidden="true"></i> Ready</span>'
         :o.trRecv?'<span class="badge" style="background:#854F0B;color:#FAEEDA;margin-left:auto">Received — not cut</span>'
         :'<span class="badge" style="background:#1A1A2E;color:#6E6A62;margin-left:auto">Not received</span>')
       +'</div>'
-      +(dt?'<span style="font-size:10px;color:'+(od?'#F7C1C1':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> '+dt+'</span>':'')
+      +(dt?'<span style="font-size:10px;color:'+(od?'#F7C1C1':pp?'#FFC107':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> '+dt+'</span>':'')
       +'</div>'
       +'<i class="ti ti-chevron-down chev'+(openO['tr_'+o.id]?' on':'')+'" style="color:'+col.sub+'" aria-hidden="true"></i>'
       +'</div>'
