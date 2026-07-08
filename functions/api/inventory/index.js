@@ -54,17 +54,38 @@ const SEED = {
     { mesh: "230", qty: 28 },
     { mesh: "305", qty: 7 },
   ],
+  // MOCK / TEMPLATE DATA — placeholder thread colors so there's a working list
+  // to see. Replace with real stock when available. Fields: name, code (thread
+  // number), qty (cones on hand). Low-stock (<=1) flags "Need new order".
+  thread: [
+    { name: "Silky White", code: "0010", qty: 8 },
+    { name: "Black", code: "0020", qty: 12 },
+    { name: "Navy", code: "3611", qty: 5 },
+    { name: "Royal Blue", code: "3335", qty: 4 },
+    { name: "Poinsettia Red", code: "1902", qty: 1 },
+    { name: "Kelly Green", code: "5515", qty: 3 },
+    { name: "Sunbeam Gold", code: "0700", qty: 2 },
+    { name: "Wild Iris Purple", code: "2900", qty: 1 },
+    { name: "Steel Grey", code: "0131", qty: 6 },
+    { name: "Heather Pink", code: "2153", qty: 4 },
+  ],
 };
 
 const clampQty = (v) => Math.max(0, Math.floor(Number(v) || 0));
 
 function sanitize(type, items) {
   if (!Array.isArray(items)) return null;
-  return items.map((it) =>
-    type === "ink"
-      ? { name: String(it.name || "").slice(0, 120), qty: clampQty(it.qty) }
-      : { mesh: String(it.mesh || "").slice(0, 20), qty: clampQty(it.qty) },
-  );
+  return items.map((it) => {
+    const qty = clampQty(it.qty);
+    if (type === "ink") return { name: String(it.name || "").slice(0, 120), qty };
+    if (type === "thread")
+      return {
+        name: String(it.name || "").slice(0, 120),
+        code: String(it.code || "").slice(0, 40),
+        qty,
+      };
+    return { mesh: String(it.mesh || "").slice(0, 20), qty }; // screen
+  });
 }
 
 export async function onRequestGet({ env, request }) {
