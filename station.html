@@ -340,9 +340,10 @@ function fmtDate(iso){
 }
 function dueChip(iso){
   if(!iso) return '<div class="duetag none">'+ICON_CAL+'No print date</div>';
-  const cls = iso<TODAY_ISO ? 'over' : iso===TODAY_ISO ? 'today' : '';
-  const lead = cls==='over' ? 'Overdue · ' : cls==='today' ? 'Today · ' : 'Prints ';
-  return '<div class="duetag '+cls+'">'+ICON_CAL+esc(lead+fmtDate(iso))+'</div>';
+  const ppDue=subtractWorkDays(iso,3);
+  const cls = ppDue<TODAY_ISO ? 'over' : ppDue===TODAY_ISO ? 'today' : '';
+  const lead = cls==='over' ? 'Pre-prod overdue · ' : cls==='today' ? 'Pre-prod due today · ' : 'Pre-prod due ';
+  return '<div class="duetag '+cls+'">'+ICON_CAL+esc(lead+fmtDate(ppDue||iso))+'</div>';
 }
 
 /* ── BOARD ── */
@@ -561,11 +562,13 @@ async function invSave(){
 }
 
 // Compact summary card — vital info only; tap to open the working modal.
+function subtractWorkDays(dateISO,days){if(!dateISO)return null;let d=new Date(dateISO+'T12:00:00');let rem=days;while(rem>0){d.setDate(d.getDate()-1);const dow=d.getDay();if(dow!==0&&dow!==6)rem--;}return d.toISOString().slice(0,10);}
 function cardHTML(rec){
   const order=(rec.Production_Method__r&&rec.Production_Method__r.Order__r)||{};
   const goa=goaText(order.GOA_Order_Number__c)||order.Name||'—';
   const cust=order.Customer_Order_Name__c||'';
   const printDate=(order.Print_Date__c||'').slice(0,10);
+  const preProdDue=subtractWorkDays(printDate,3);
   const idRaw=(rec[CFG.idField]!=null?String(rec[CFG.idField]):'').trim();
   const headline=idRaw ? idRaw+(CFG.idSuffix||'') : CFG.idFallback;
   const swatchTxt=idRaw ? idRaw.slice(0,10) : '—';
