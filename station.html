@@ -860,7 +860,8 @@ async function openSheet(orderId){
       goa:  goaText(rec.GOA_Order_Number__c)||rec.OrderNumber||'—',
       name: rec.Customer_Order_Name__c||'',
       account:(rec.Account&&rec.Account.Name)||'',
-      printDate:(rec.Print_Date__c||'').slice(0,10)
+      printDate:(rec.Print_Date__c||'').slice(0,10),
+      mockup: rec.DesignMockupUrl||null
     };
     const html=sheetHTML(order,(d&&d.records)||[]);
     w.document.open(); w.document.write(html); w.document.close();
@@ -881,6 +882,9 @@ function sheetHTML(order, rows){
       +'<tbody><tr><td class="rl">Ordered</td>'+cells+'<td class="tt">'+g.total+'</td></tr></tbody></table></div>';
   }).join('');
   const dateStr = order.printDate ? new Date(order.printDate+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}) : '—';
+  const mockupHTML=order.mockup
+    ? '<div class="mockup"><img src="'+e(order.mockup)+'" alt="Order mockup" onerror="this.parentElement.style.display=\'none\'"></div>'
+    : '';
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Count-In '+e(order.goa)+'</title><style>'
     +'*{box-sizing:border-box;margin:0;padding:0}'
     +'body{font-family:"Helvetica Neue",Arial,sans-serif;color:#141210;background:#e9e6e0;padding:24px}'
@@ -891,6 +895,8 @@ function sheetHTML(order, rows){
     +'.brand{font:800 22px/1 Arial;letter-spacing:.14em;text-transform:uppercase}'
     +'.brand small{display:block;font:600 10px/1.4 Arial;letter-spacing:.3em;color:#6b645c;margin-top:6px}'
     +'.tag{text-align:right}.tag .k{font:700 10px/1 Arial;letter-spacing:.26em;text-transform:uppercase;color:#6b645c}.tag .goa{font:800 26px/1 Arial;margin-top:6px}'
+    +'.mockup{margin-bottom:20px;text-align:center}'
+    +'.mockup img{max-width:100%;max-height:280px;border:1px solid #d8d2c8;border-radius:4px}'
     +'.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;margin-bottom:24px}'
     +'.meta .row{display:flex;justify-content:space-between;border-bottom:1px dotted #cfc7bd;padding:6px 0}'
     +'.meta .l{font:700 10px/1.4 Arial;letter-spacing:.14em;text-transform:uppercase;color:#6b645c}.meta .v{font:600 14px/1.3 Arial;text-align:right}'
@@ -911,6 +917,7 @@ function sheetHTML(order, rows){
     +'<div class="sheet">'
       +'<div class="mast"><div class="brand">Culture Apparel<small>Garment Count-In Sheet</small></div>'
         +'<div class="tag"><div class="k">GOA Order</div><div class="goa">'+e(order.goa)+'</div></div></div>'
+      +mockupHTML
       +'<div class="meta">'
         +'<div class="row"><span class="l">Order</span><span class="v">'+e(order.name||'—')+'</span></div>'
         +'<div class="row"><span class="l">Account</span><span class="v">'+e(order.account||'—')+'</span></div>'
