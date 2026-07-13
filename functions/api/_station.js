@@ -180,6 +180,12 @@ export const STATION_CONFIG = {
 
     // Terminal Status__c; the schedule excludes items at this value.
     doneStatus: "Ready",
+
+    // AUTO ROLL-UP: when all Ink items on an order reach "Mixed", the Order's
+    // Mix_Inks__c checkbox is set true automatically (same pattern as Transfer).
+    orderRollup: [
+      { field: "Mix_Inks__c", atOrAfter: "Mixed" },
+    ],
   },
 
   // ── SCREEN STATION ("The Blue Lagoon") ──
@@ -228,6 +234,12 @@ export const STATION_CONFIG = {
     },
 
     doneStatus: "Ready",
+
+    // AUTO ROLL-UP: when all Screen items on an order reach "Ready for Print",
+    // the Order's Screens_Completed__c checkbox is set true automatically.
+    orderRollup: [
+      { field: "Screens_Completed__c", atOrAfter: "Ready for Print" },
+    ],
   },
 
   // ── TRANSFER STATION (heat-press transfers) ──
