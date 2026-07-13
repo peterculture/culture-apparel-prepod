@@ -33,6 +33,7 @@ const FIELDS = [
   // Heat Press
   "Transfers_Received__c",
   "Transfers_Ready__c",
+  "(SELECT Product2.Name, Color__c, Quantity FROM OrderItems)",
 ];
 export async function onRequestGet({ env }) {
   try {
