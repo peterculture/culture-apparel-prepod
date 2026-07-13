@@ -513,6 +513,7 @@ function weekDays(anchor){
 const iso=d=>d.toISOString().slice(0,10);
 const toD=s=>{const d=new Date(s+'T00:00:00');d.setHours(0,0,0,0);return d;};
 const TODAY=iso(new Date());
+function subtractWorkDays(dateISO,days){if(!dateISO)return null;let d=new Date(dateISO+'T12:00:00');let rem=days;while(rem>0){d.setDate(d.getDate()-1);const dow=d.getDay();if(dow!==0&&dow!==6)rem--;}return d.toISOString().slice(0,10);}
 const WK=weekDays().map(iso);
 const WDN=['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const nStamp=()=>new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -592,6 +593,7 @@ function mapRec(r){
   return{
     id:r.Id,num:goaText(r.GOA_Order_Number__c)||'—',name:r.Customer_Order_Name__c||'',acct:(r.Account&&r.Account.Name)||'—',quoteId:(r.Opportunity&&r.Opportunity.SyncedQuoteId)||'',
     due:r.Print_Date__c?r.Print_Date__c.slice(0,10):null,
+    preProdDue:r.Print_Date__c?subtractWorkDays(r.Print_Date__c,3):null,
     recv:r.Receiving_Status__c||'Not Received',
     filmsPrinted:!!r.Films_Printed__c,
     scDone:!!r.Screens_Completed__c,inkDone:!!r.Mix_Inks__c,
@@ -634,6 +636,8 @@ const avgPct=(arr,fn)=>arr.length?Math.round(arr.reduce((a,o)=>a+fn(o),0)/arr.le
 const isOD=o=>o.due&&toD(o.due)<toD(TODAY);
 // Prep-Priority: prints within the next 3 days (0–3) and not yet overdue
 const isPP=o=>{if(!o.due||isOD(o))return false;const diff=(toD(o.due)-toD(TODAY))/(864e5);return diff>=0&&diff<=3;};
+const isPPDueOD=o=>!isOD(o)&&o.preProdDue&&toD(o.preProdDue)<toD(TODAY);
+const isPPDueToday=o=>o.preProdDue&&o.preProdDue===TODAY;
 
 /* ── FILTER ── */
 function snapToMonday(dateISO){
@@ -1150,7 +1154,7 @@ function stepTabCard(o,oi,fieldVal,savKey,fieldApi,label,descDone,descPending,ac
     +(done?'<span class="badge" style="background:#27500A;color:#EAF3DE;margin-left:auto"><i class="ti ti-check" aria-hidden="true"></i> Done</span>':'<span class="badge" style="background:'+accentBg+';color:'+accentText+';margin-left:auto">Pending</span>')
     +'</div>'
     +'<div style="display:flex;align-items:center;gap:8px">'
-    +(o.due?'<span style="font-size:10px;color:'+(od?'#F7C1C1':pp?'#FFC107':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> '+toD(o.due).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>':'')
+    +(o.preProdDue?'<span style="font-size:10px;color:'+(isPPDueOD(o)?'#F7C1C1':isPPDueToday(o)?'#FFC107':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> Pre-prod due '+toD(o.preProdDue).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>':'')
     +'</div>'
     +'</div>'
     +'<div class="cktog'+(saving?' sv':done?' ck':'')+'" style="width:26px;height:26px" data-a="ck" data-sid="'+o.id+'" data-f="'+fieldApi+'" data-k="'+savKey+'" data-v="'+done+'">'
@@ -1179,7 +1183,7 @@ function garmentTabCard(o,oi){
       :partial?'<span class="badge" style="background:#854F0B;color:#FAEEDA;margin-left:auto"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Partial</span>'
       :'<span class="badge" style="background:#1A1A2E;color:#6E6A62;margin-left:auto">'+o.recv+'</span>')
     +'</div>'
-    +(o.due?'<span style="font-size:10px;color:'+(od?'#F7C1C1':pp?'#FFC107':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> '+toD(o.due).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>':'')
+    +(o.preProdDue?'<span style="font-size:10px;color:'+(isPPDueOD(o)?'#F7C1C1':isPPDueToday(o)?'#FFC107':'#555570')+'"><i class="ti ti-calendar" style="font-size:10px;vertical-align:-1px" aria-hidden="true"></i> Pre-prod due '+toD(o.preProdDue).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>':'')
     +'</div>'
     +'<i class="ti ti-chevron-down chev'+(openO['garm_'+o.id]?' on':'')+'" style="color:'+col.sub+'" aria-hidden="true"></i>'
     +'</div>'
