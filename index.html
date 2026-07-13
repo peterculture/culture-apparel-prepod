@@ -704,7 +704,7 @@ function fbarHTML(prefix){
 }
 
 /* ── DETAIL HTML ── */
-function blanksHTML(o){if(!o.blanks||!o.blanks.length)return '';return '<div style="margin-bottom:10px"><p style="font-size:11px;font-weight:500;color:#9C988F;margin-bottom:6px">Blank Garments · GOA #'+o.num+'</p>'+o.blanks.map(b=>'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1A1A1C"><span style="font-size:13px;color:#C9C6BF">'+esc(b.name)+(b.color?' <span style="color:#6E6A62">'+esc(b.color)+'</span>':'')+'</span><span style="font-size:12px;font-weight:600;color:#9C988F">'+b.qty+' units</span></div>').join('')+'</div>';}
+function blanksHTML(o){const e=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');if(!o.blanks||!o.blanks.length)return '';return '<div style="margin-bottom:10px"><p style="font-size:11px;font-weight:500;color:#9C988F;margin-bottom:6px">Blank Garments · GOA #'+o.num+'</p>'+o.blanks.map(b=>'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1A1A1C"><span style="font-size:13px;color:#C9C6BF">'+e(b.name)+(b.color?' <span style="color:#6E6A62">'+e(b.color)+'</span>':'')+'</span><span style="font-size:12px;font-weight:600;color:#9C988F">'+b.qty+' units</span></div>').join('')+'</div>';}
 function recvHTML(o){
   return '<div style="margin-bottom:10px"><p style="font-size:11px;font-weight:500;color:#9C988F;margin-bottom:6px">Receiving Status</p><div class="recv-row">'
     +RECV.map(rs=>'<div class="ropt'+(o.recv===rs.val?' on':'')+'" style="background:'+rs.bg+';color:'+rs.text+';border-color:'+(o.recv===rs.val?rs.bdr:'transparent')+'" data-a="recv" data-sid="'+o.id+'" data-v="'+rs.val+'">'+rs.val+'</div>').join('')
