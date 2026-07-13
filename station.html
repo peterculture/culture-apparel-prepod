@@ -347,6 +347,14 @@ function dueChip(iso){
 }
 
 /* ── BOARD ── */
+function mockupHTML(url){
+  if(!url) return '';
+  return '<a href="'+esc(url)+'" target="_blank" rel="noopener" style="display:block;margin-bottom:10px">'
+    +'<img src="'+esc(url)+'" alt="Order mockup" loading="lazy" '
+    +'style="display:block;max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--line);object-fit:contain;background:#0A0A0C" '
+    +'onerror="this.parentElement.style.display=\'none\'">'
+    +'</a>';
+}
 function showBoard(){ $('board').classList.remove('hide'); loadSchedule(); startAutoRefresh(); }
 
 /* ── AUTO-REFRESH ──
@@ -687,6 +695,7 @@ function detailInner(rec){
           +'<div class="ordline">Order <b>#'+esc(goa)+'</b>'+(cust?' · '+esc(cust):'')+'</div>'
         +'</div>'
       +'</div>'
+      +mockupHTML(order.DesignMockupUrl)
       +dueChip(printDate)
       +(notes?'<div class="notes">'+esc(notes)+'</div>':'')
       +'<div class="m-stage">Current status<span>'+esc(cur)+'</span></div>'
@@ -770,6 +779,7 @@ function orderDetailInner(rec){
           +'<div class="ordline">Order <b>#'+esc(f.goa)+'</b></div>'
         +'</div>'
       +'</div>'
+      +mockupHTML(rec.DesignMockupUrl)
       +dueChip(f.printDate)
       +'<div class="m-stage">Current status<span>'+esc(cur)+'</span></div>'
       +picker
