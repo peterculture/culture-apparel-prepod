@@ -11,6 +11,7 @@
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 import { STATION_CONFIG } from "../_station.js";
+import { fetchMockupsByOpportunity } from "../_mockup.js";
 
 export async function onRequestGet({ env, request }) {
   try {
@@ -34,6 +35,18 @@ export async function onRequestGet({ env, request }) {
       console.error("station-items query failed", resp.status, JSON.stringify(data));
       return jsonError("query_failed", resp.status);
     }
+
+    const oppIds = (data.records || [])
+      .map((r) => r.Production_Method__r && r.Production_Method__r.Order__r && r.Production_Method__r.Order__r.OpportunityId)
+      .filter(Boolean);
+    if (oppIds.length) {
+      const mockups = await fetchMockupsByOpportunity(env, oppIds);
+      (data.records || []).forEach((r) => {
+        const order = r.Production_Method__r && r.Production_Method__r.Order__r;
+        if (order) order.DesignMockupUrl = mockups.get(order.OpportunityId) || null;
+      });
+    }
+
     return Response.json(data, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error(err);
