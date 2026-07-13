@@ -513,7 +513,7 @@ function weekDays(anchor){
 const iso=d=>d.toISOString().slice(0,10);
 const toD=s=>{const d=new Date(s+'T00:00:00');d.setHours(0,0,0,0);return d;};
 const TODAY=iso(new Date());
-function subtractWorkDays(dateISO,days){if(!dateISO)return null;let d=new Date(dateISO+'T12:00:00');let rem=days;while(rem>0){d.setDate(d.getDate()-1);const dow=d.getDay();if(dow!==0&&dow!==6)rem--;}return d.toISOString().slice(0,10);}
+function subtractWorkDays(dateISO,days){if(!dateISO)return null;const clean=String(dateISO).slice(0,10);let d=new Date(clean+'T12:00:00');let rem=days;while(rem>0){d.setDate(d.getDate()-1);const dow=d.getDay();if(dow!==0&&dow!==6)rem--;}return d.toISOString().slice(0,10);}
 const WK=weekDays().map(iso);
 const WDN=['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const nStamp=()=>new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -593,7 +593,7 @@ function mapRec(r){
   return{
     id:r.Id,num:goaText(r.GOA_Order_Number__c)||'—',name:r.Customer_Order_Name__c||'',acct:(r.Account&&r.Account.Name)||'—',quoteId:(r.Opportunity&&r.Opportunity.SyncedQuoteId)||'',
     due:r.Print_Date__c?r.Print_Date__c.slice(0,10):null,
-    preProdDue:r.Print_Date__c?subtractWorkDays(r.Print_Date__c,3):null,
+    preProdDue:r.Print_Date__c?subtractWorkDays(r.Print_Date__c.slice(0,10),3):null,
     recv:r.Receiving_Status__c||'Not Received',
     filmsPrinted:!!r.Films_Printed__c,
     scDone:!!r.Screens_Completed__c,inkDone:!!r.Mix_Inks__c,
