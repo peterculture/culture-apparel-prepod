@@ -619,6 +619,7 @@ function mapRec(r){
     due:r.Print_Date__c?r.Print_Date__c.slice(0,10):null,
     preProdDue:r.Print_Date__c?subtractWorkDays(r.Print_Date__c.slice(0,10),3):null,
     blanks:(()=>{const rows=(r.OrderItems&&r.OrderItems.records)||[];const m={};rows.forEach(it=>{if(!it.Product2)return;const k=it.Product2.Name+'|'+(it.Color__c||'');if(!m[k])m[k]={name:it.Product2.Name,color:it.Color__c||'',qty:0};m[k].qty+=(it.Quantity||0);});return Object.values(m);})(),
+    mockupUrl:r.DesignMockupUrl||null,
     recv:r.Receiving_Status__c||'Not Received',
     filmsPrinted:!!r.Films_Printed__c,
     scDone:!!r.Screens_Completed__c,inkDone:!!r.Mix_Inks__c,
@@ -818,10 +819,15 @@ function renderSheetHTML(order, rows){
       +'</div>'
     : '';
 
+  const mockupHTML=order.mockup
+    ? '<div class="mockup"><img src="'+escAttr(order.mockup)+'" alt="Order mockup" onerror="this.parentElement.style.display=\'none\'"></div>'
+    : '';
+
   const body='<header class="masthead">'
       +'<div class="brand">Culture Apparel<small>Pre-Production Order Sheet</small></div>'
       +'<div class="tag"><div class="k">GOA Order</div><div class="goa">'+escAttr(order.goa||'—')+'</div></div>'
     +'</header>'
+    +mockupHTML
     +'<div class="meta">'
       +'<div class="row"><span class="lbl">Order</span><span class="val name">'+escAttr(order.name||'—')+'</span></div>'
       +'<div class="row"><span class="lbl">Account</span><span class="val">'+escAttr(order.account||'—')+'</span></div>'
@@ -843,6 +849,8 @@ function renderSheetHTML(order, rows){
     +'.brand small{display:block;font:600 10px/1.4 Arial;letter-spacing:.32em;color:#6b645c;margin-top:6px}'
     +'.tag{text-align:right}.tag .k{font:700 10px/1 Arial;letter-spacing:.28em;text-transform:uppercase;color:#6b645c}'
     +'.tag .goa{font:800 26px/1 Arial;margin-top:6px}'
+    +'.mockup{margin-bottom:22px;text-align:center}'
+    +'.mockup img{max-width:100%;max-height:320px;border:1px solid #d8d2c8;border-radius:4px}'
     +'.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;margin-bottom:26px}'
     +'.meta .row{display:flex;justify-content:space-between;border-bottom:1px dotted #cfc7bd;padding:6px 0}'
     +'.meta .lbl{font:700 10px/1.4 Arial;letter-spacing:.16em;text-transform:uppercase;color:#6b645c}'
@@ -883,7 +891,7 @@ function openOrderSheet(o){
     .then(r=>r.json())
     .then(d=>{
       const rows=(d&&d.records)||[];
-      const html=renderSheetHTML({goa:o.num,name:o.name,account:o.acct}, rows);
+      const html=renderSheetHTML({goa:o.num,name:o.name,account:o.acct,mockup:o.mockupUrl}, rows);
       w.document.open(); w.document.write(html); w.document.close();
     })
     .catch(e=>{
