@@ -347,7 +347,27 @@ function dueChip(iso){
 }
 
 /* ── BOARD ── */
-function showBoard(){ $('board').classList.remove('hide'); loadSchedule(); }
+function showBoard(){ $('board').classList.remove('hide'); loadSchedule(); startAutoRefresh(); }
+
+/* ── AUTO-REFRESH ──
+   Polls this station's schedule every 15s so it — and any open item modal,
+   via syncModal — stays current without a manual reload (e.g. picks up a
+   manager edit or another worker's update automatically). Skipped while a
+   field has focus so it can't clobber in-progress typing, and paused while
+   the tab is backgrounded — refreshing immediately when it regains focus. */
+let autoRefreshTimer=null;
+function startAutoRefresh(){
+  if(autoRefreshTimer) return;
+  autoRefreshTimer=setInterval(()=>{
+    if(document.hidden) return;
+    const a=document.activeElement;
+    if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT')) return;
+    loadSchedule({keepScroll:true});
+  },15000);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden) loadSchedule({keepScroll:true});
+});
 
 $('btn-refresh').addEventListener('click',()=>{
   if(CFG.inventory && garmentView==='inventory'){ invCache=null; renderInventory(); }
@@ -397,8 +417,11 @@ function toast(msg,isErr){
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),isErr?2600:1800);
 }
 
+let scheduleInFlight=false;
 async function loadSchedule(opts){
   opts=opts||{};
+  if(scheduleInFlight) return;   // don't stack overlapping polls/writes
+  scheduleInFlight=true;
   const list=$('list');
   const keepY = opts.keepScroll ? window.scrollY : null;   // remember where we are
   if(!opts.keepScroll) list.innerHTML='<div class="state">Loading schedule…</div>';
@@ -422,6 +445,7 @@ async function loadSchedule(opts){
       list.innerHTML='<div class="state" style="color:var(--red-tx)">Could not load schedule: '+esc(e.message)+'</div>';
     }
   }
+  finally{scheduleInFlight=false;}
 }
 
 function stageIndex(item){
