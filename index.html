@@ -565,7 +565,10 @@ function sfMsg(m,t){document.getElementById('sf-msg').innerHTML=m?'<div class="m
    Calls the Cloudflare Pages Function at /api/orders (same origin, no CORS).
    The function authenticates to Salesforce server-side and runs the fixed
    Pre-Production query, returning the raw SF payload: { records: [...] }. */
+let loadInFlight=false;
 async function doLoad(){
+  if(loadInFlight) return;   // don't stack overlapping polls
+  loadInFlight=true;
   sfSt('load','Loading...');
   sfMsg('','');
   try{
@@ -585,8 +588,29 @@ else { DB.sp.push(o); console.warn('Unmapped printer:', (rec.Printer__r&&rec.Pri
     sfSt('on','Live · '+(d.records||[]).length+' pre-production orders');
     renderAll();
   }catch(e){sfSt('err','Load failed');sfMsg('Load error: '+e.message,'err');}
+  finally{loadInFlight=false;}
 }
 window.doLoad=doLoad;
+
+/* ── AUTO-REFRESH ──
+   Polls /api/orders every 20s so the dashboard picks up changes made from a
+   station tablet (e.g. screens marked complete) without a manual reload.
+   Skipped while a field has focus so it can't clobber in-progress typing,
+   and paused while the tab is backgrounded — refreshing immediately when it
+   regains focus so the view is never more than a moment stale. */
+let autoRefreshTimer=null;
+function startAutoRefresh(){
+  if(autoRefreshTimer) return;
+  autoRefreshTimer=setInterval(()=>{
+    if(document.hidden) return;
+    const a=document.activeElement;
+    if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT')) return;
+    doLoad();
+  },20000);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&SF.loaded) doLoad();
+});
 
 
 function mapRec(r){
@@ -1638,6 +1662,7 @@ function updatePinDots(){
 function initApp(){
   renderAll();      // paint the loading state immediately
   doLoad();         // fetch live orders from /api/orders (re-renders on success)
+  startAutoRefresh();
 }
 window.doLogout=function(){
   // Reset role and PIN
