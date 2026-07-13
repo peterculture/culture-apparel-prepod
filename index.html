@@ -594,6 +594,7 @@ function mapRec(r){
     id:r.Id,num:goaText(r.GOA_Order_Number__c)||'—',name:r.Customer_Order_Name__c||'',acct:(r.Account&&r.Account.Name)||'—',quoteId:(r.Opportunity&&r.Opportunity.SyncedQuoteId)||'',
     due:r.Print_Date__c?r.Print_Date__c.slice(0,10):null,
     preProdDue:r.Print_Date__c?subtractWorkDays(r.Print_Date__c.slice(0,10),3):null,
+    blanks:(()=>{const rows=(r.OrderItems&&r.OrderItems.records)||[];const m={};rows.forEach(it=>{if(!it.Product2)return;const k=it.Product2.Name+'|'+(it.Color__c||'');if(!m[k])m[k]={name:it.Product2.Name,color:it.Color__c||'',qty:0};m[k].qty+=(it.Quantity||0);});return Object.values(m);})(),
     recv:r.Receiving_Status__c||'Not Received',
     filmsPrinted:!!r.Films_Printed__c,
     scDone:!!r.Screens_Completed__c,inkDone:!!r.Mix_Inks__c,
@@ -703,6 +704,7 @@ function fbarHTML(prefix){
 }
 
 /* ── DETAIL HTML ── */
+function blanksHTML(o){if(!o.blanks||!o.blanks.length)return '';return '<div style="margin-bottom:10px"><p style="font-size:11px;font-weight:500;color:#9C988F;margin-bottom:6px">Blank Garments · GOA #'+o.num+'</p>'+o.blanks.map(b=>'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1A1A1C"><span style="font-size:13px;color:#C9C6BF">'+esc(b.name)+(b.color?' <span style="color:#6E6A62">'+esc(b.color)+'</span>':'')+'</span><span style="font-size:12px;font-weight:600;color:#9C988F">'+b.qty+' units</span></div>').join('')+'</div>';}
 function recvHTML(o){
   return '<div style="margin-bottom:10px"><p style="font-size:11px;font-weight:500;color:#9C988F;margin-bottom:6px">Receiving Status</p><div class="recv-row">'
     +RECV.map(rs=>'<div class="ropt'+(o.recv===rs.val?' on':'')+'" style="background:'+rs.bg+';color:'+rs.text+';border-color:'+(o.recv===rs.val?rs.bdr:'transparent')+'" data-a="recv" data-sid="'+o.id+'" data-v="'+rs.val+'">'+rs.val+'</div>').join('')
@@ -713,9 +715,9 @@ function ckHTML(lbl,val,sav,sid,field,key){
   const ic=sav?'<i class="ti ti-loader" style="font-size:12px"></i>':val?'<i class="ti ti-check" style="font-size:12px"></i>':'';
   return'<div class="ckitem"><div class="ckleft"><div class="cktog '+cls+'" data-a="ck" data-sid="'+sid+'" data-f="'+field+'" data-k="'+key+'" data-v="'+val+'">'+ic+'</div><div style="font-size:13px;font-weight:500;color:#C9C6BF">'+lbl+'</div></div><span class="badge" style="background:'+(val?'#1E2D0E':'#1A1A1C')+';color:'+(val?'#E7F2D2':'#6E6A62')+'">'+(val?'✓ Done':'Pending')+'</span></div>';
 }
-function spDet(o){return recvHTML(o)+'<div class="cklist">'+ckHTML('Films printed',o.filmsPrinted,!!o.sav.filmsPrinted,o.id,'Films_Printed__c','filmsPrinted')+ckHTML('Screens completed',o.scDone,!!o.sav.scDone,o.id,'Screens_Completed__c','scDone')+ckHTML('Mix inks',o.inkDone,!!o.sav.inkDone,o.id,'Mix_Inks__c','inkDone')+'</div>';}
-function emDet(o){return recvHTML(o)+'<div class="cklist">'+ckHTML('Digitize File',o.dfDone,!!o.sav.dfDone,o.id,'Digitize_File__c','dfDone')+ckHTML('Thread Color / Materials',o.thDone,!!o.sav.thDone,o.id,'Thread_Color_Materials__c','thDone')+'</div>';}
-function hpDet(o){return recvHTML(o)+'<div class="cklist">'+ckHTML('Transfers Received',o.trRecv,!!o.sav.trRecv,o.id,'Transfers_Received__c','trRecv')+ckHTML('Transfers Ready',o.trRdy,!!o.sav.trRdy,o.id,'Transfers_Ready__c','trRdy')+'</div>';}
+function spDet(o){return blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Films printed',o.filmsPrinted,!!o.sav.filmsPrinted,o.id,'Films_Printed__c','filmsPrinted')+ckHTML('Screens completed',o.scDone,!!o.sav.scDone,o.id,'Screens_Completed__c','scDone')+ckHTML('Mix inks',o.inkDone,!!o.sav.inkDone,o.id,'Mix_Inks__c','inkDone')+'</div>';}
+function emDet(o){return blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Digitize File',o.dfDone,!!o.sav.dfDone,o.id,'Digitize_File__c','dfDone')+ckHTML('Thread Color / Materials',o.thDone,!!o.sav.thDone,o.id,'Thread_Color_Materials__c','thDone')+'</div>';}
+function hpDet(o){return blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Transfers Received',o.trRecv,!!o.sav.trRecv,o.id,'Transfers_Received__c','trRecv')+ckHTML('Transfers Ready',o.trRdy,!!o.sav.trRdy,o.id,'Transfers_Ready__c','trRdy')+'</div>';}
 
 /* ══════════════════════════════════════
    ORDER SHEET — SIZE BREAKDOWN (printable)
