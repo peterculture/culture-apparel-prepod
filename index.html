@@ -728,6 +728,16 @@ function fbarHTML(prefix){
 }
 
 /* ── DETAIL HTML ── */
+function mockupHTML(o){
+  if(!o.mockupUrl) return '';
+  const e=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return '<div style="margin-bottom:10px"><p style="font-size:11px;font-weight:500;color:#9C988F;margin-bottom:6px">Mockup</p>'
+    +'<a href="'+e(o.mockupUrl)+'" target="_blank" rel="noopener">'
+    +'<img src="'+e(o.mockupUrl)+'" alt="Order mockup" loading="lazy" '
+    +'style="display:block;max-width:100%;max-height:240px;border-radius:8px;border:1px solid #262628;object-fit:contain;background:#0A0A0C" '
+    +'onerror="this.closest(\'div\').style.display=\'none\'">'
+    +'</a></div>';
+}
 function blanksHTML(o){const e=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');if(!o.blanks||!o.blanks.length)return '';return '<div style="margin-bottom:10px"><p style="font-size:11px;font-weight:500;color:#9C988F;margin-bottom:6px">Blank Garments · GOA #'+o.num+'</p>'+o.blanks.map(b=>'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1A1A1C"><span style="font-size:13px;color:#C9C6BF">'+e(b.name)+(b.color?' <span style="color:#6E6A62">'+e(b.color)+'</span>':'')+'</span><span style="font-size:12px;font-weight:600;color:#9C988F">'+b.qty+' units</span></div>').join('')+'</div>';}
 function recvHTML(o){
   return '<div style="margin-bottom:10px"><p style="font-size:11px;font-weight:500;color:#9C988F;margin-bottom:6px">Receiving Status</p><div class="recv-row">'
@@ -739,9 +749,9 @@ function ckHTML(lbl,val,sav,sid,field,key){
   const ic=sav?'<i class="ti ti-loader" style="font-size:12px"></i>':val?'<i class="ti ti-check" style="font-size:12px"></i>':'';
   return'<div class="ckitem"><div class="ckleft"><div class="cktog '+cls+'" data-a="ck" data-sid="'+sid+'" data-f="'+field+'" data-k="'+key+'" data-v="'+val+'">'+ic+'</div><div style="font-size:13px;font-weight:500;color:#C9C6BF">'+lbl+'</div></div><span class="badge" style="background:'+(val?'#1E2D0E':'#1A1A1C')+';color:'+(val?'#E7F2D2':'#6E6A62')+'">'+(val?'✓ Done':'Pending')+'</span></div>';
 }
-function spDet(o){return blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Films printed',o.filmsPrinted,!!o.sav.filmsPrinted,o.id,'Films_Printed__c','filmsPrinted')+ckHTML('Screens completed',o.scDone,!!o.sav.scDone,o.id,'Screens_Completed__c','scDone')+ckHTML('Mix inks',o.inkDone,!!o.sav.inkDone,o.id,'Mix_Inks__c','inkDone')+'</div>';}
-function emDet(o){return blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Digitize File',o.dfDone,!!o.sav.dfDone,o.id,'Digitize_File__c','dfDone')+ckHTML('Thread Color / Materials',o.thDone,!!o.sav.thDone,o.id,'Thread_Color_Materials__c','thDone')+'</div>';}
-function hpDet(o){return blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Transfers Received',o.trRecv,!!o.sav.trRecv,o.id,'Transfers_Received__c','trRecv')+ckHTML('Transfers Ready',o.trRdy,!!o.sav.trRdy,o.id,'Transfers_Ready__c','trRdy')+'</div>';}
+function spDet(o){return mockupHTML(o)+blanksHTML(o)+recvHTML(o)+...'<div class="cklist">'+ckHTML('Films printed',o.filmsPrinted,!!o.sav.filmsPrinted,o.id,'Films_Printed__c','filmsPrinted')+ckHTML('Screens completed',o.scDone,!!o.sav.scDone,o.id,'Screens_Completed__c','scDone')+ckHTML('Mix inks',o.inkDone,!!o.sav.inkDone,o.id,'Mix_Inks__c','inkDone')+'</div>';}
+function emDet(o){return mockupHTML(o)+blanksHTML(o)+recvHTML(o)+...'<div class="cklist">'+ckHTML('Digitize File',o.dfDone,!!o.sav.dfDone,o.id,'Digitize_File__c','dfDone')+ckHTML('Thread Color / Materials',o.thDone,!!o.sav.thDone,o.id,'Thread_Color_Materials__c','thDone')+'</div>';}
+function hpDet(o){return mockupHTML(o)+blanksHTML(o)+recvHTML(o)+...'<div class="cklist">'+ckHTML('Transfers Received',o.trRecv,!!o.sav.trRecv,o.id,'Transfers_Received__c','trRecv')+ckHTML('Transfers Ready',o.trRdy,!!o.sav.trRdy,o.id,'Transfers_Ready__c','trRdy')+'</div>';}
 
 /* ══════════════════════════════════════
    ORDER SHEET — SIZE BREAKDOWN (printable)
@@ -1696,6 +1706,7 @@ async function loadMgrInbox(){
       id:'mgr-'+rec.Id,
       orderId:rec.Id,                 // real SF Order Id the master-detail attaches to
       num:goaText(rec.GOA_Order_Number__c)||rec.OrderNumber||'—',
+      mockup:rec.Mockup__c||null,: designMockupUrl:rec.DesignMockupUrl||null,
       acct:(rec.Account&&rec.Account.Name)||'—',
       orderName:rec.Name||'',
       customer:(rec.Account&&rec.Account.Name)||rec.Name||'—',
@@ -1807,9 +1818,16 @@ function renderOrderInfoPanel(o){
     deadlineHtml='<span style="color:'+color+'">'+fmtDate(o.deadline)+'</span>'+tag;
   }
 
-  // Mockup — render as link if it looks like a URL
+  // Mockup — prefer the real Design__c mockup image; fall back to the legacy
+  // free-text/URL Order.Mockup__c field if that's all there is.
   let mockupHtml;
-  if(!o.mockup){
+  if(o.designMockupUrl){
+    mockupHtml='<a href="'+escAttr(o.designMockupUrl)+'" target="_blank" rel="noopener">'
+      +'<img src="'+escAttr(o.designMockupUrl)+'" alt="Order mockup" loading="lazy" '
+      +'style="display:block;max-width:220px;max-height:220px;border-radius:8px;border:1px solid #262628;object-fit:contain;background:#0A0A0C" '
+      +'onerror="this.style.display=\'none\'">'
+      +'</a>';
+  } else if(!o.mockup){
     mockupHtml=none;
   } else if(/^https?:\/\//i.test(o.mockup)){
     mockupHtml='<a href="'+escAttr(o.mockup)+'" target="_blank" rel="noopener" style="color:#2E9CCA;text-decoration:underline;font-size:13px">View mockup <i class="ti ti-external-link" style="font-size:11px" aria-hidden="true"></i></a>';
