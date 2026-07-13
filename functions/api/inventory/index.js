@@ -21,40 +21,42 @@ const SEED = {
   // Order below is the canonical list order. Low items sort to the top in the
   // UI, but the stored order stays as-is. qty is "buckets on hand".
   ink: [
-    { name: "Rio Mix White Ink", qty: 4 },
-    { name: "Rio Deep Black Ink", qty: 4 },
-    { name: "Rio Sunshine Yellow Ink", qty: 1 },
-    { name: "Rio Blaze Orange Ink", qty: 3 },
-    { name: "Rio Mix Red Ink", qty: 2 },
-    { name: "Rio Golden Yellow Ink", qty: 2 },
-    { name: "Rio Barberry Maroon Ink", qty: 1 },
-    { name: "Rio Forest Green Ink", qty: 3 },
-    { name: "Rio Aquamarine Ink", qty: 3 },
-    { name: "Rio Deep Violet Ink", qty: 1 },
-    { name: "Rio Majestic Magenta Ink", qty: 2 },
-    { name: "Rio Indigo Blue Ink", qty: 3 },
-    { name: "Rio Midnight Blue Ink", qty: 1 },
-    { name: "Rio Electric Red Ink", qty: 2 },
-    { name: "Rio Electric Pink Ink", qty: 2 },
-    { name: "Rio Electric Purple Ink", qty: 2 },
-    { name: "Rio Electric Blue Ink", qty: 2 },
-    { name: "Rio Electric Purple Ink", qty: 2 },
-    { name: "Rio Electric Yellow Ink", qty: 2 },
-    { name: "7506 C LC 50/50 White Mix", qty: 4 },
-    { name: "Rival Sport LC Defender", qty: 3 },
-    { name: "5 Gallon LC Black Ink", qty: 2 },
-    { name: "Fashion Soft Base", qty: 3 },
-    { name: "Puff Additive", qty: 3 },
-    { name: "5 Gallon Bolt White", qty: 2 },
+    // reorderAt = threshold at which the LOW flag triggers.
+    // High-volume inks (white, black, bases) have higher thresholds.
+    { name: "Rio Mix White Ink",          qty: 4,  reorderAt: 3 },
+    { name: "Rio Deep Black Ink",         qty: 4,  reorderAt: 3 },
+    { name: "Rio Sunshine Yellow Ink",    qty: 1,  reorderAt: 1 },
+    { name: "Rio Blaze Orange Ink",       qty: 3,  reorderAt: 1 },
+    { name: "Rio Mix Red Ink",            qty: 2,  reorderAt: 1 },
+    { name: "Rio Golden Yellow Ink",      qty: 2,  reorderAt: 1 },
+    { name: "Rio Barberry Maroon Ink",    qty: 1,  reorderAt: 1 },
+    { name: "Rio Forest Green Ink",       qty: 3,  reorderAt: 1 },
+    { name: "Rio Aquamarine Ink",         qty: 3,  reorderAt: 1 },
+    { name: "Rio Deep Violet Ink",        qty: 1,  reorderAt: 1 },
+    { name: "Rio Majestic Magenta Ink",   qty: 2,  reorderAt: 1 },
+    { name: "Rio Indigo Blue Ink",        qty: 3,  reorderAt: 1 },
+    { name: "Rio Midnight Blue Ink",      qty: 1,  reorderAt: 1 },
+    { name: "Rio Electric Red Ink",       qty: 2,  reorderAt: 1 },
+    { name: "Rio Electric Pink Ink",      qty: 2,  reorderAt: 1 },
+    { name: "Rio Electric Purple Ink",    qty: 2,  reorderAt: 1 },
+    { name: "Rio Electric Blue Ink",      qty: 2,  reorderAt: 1 },
+    { name: "Rio Electric Yellow Ink",    qty: 2,  reorderAt: 1 },
+    { name: "7506 C LC 50/50 White Mix",  qty: 4,  reorderAt: 3 },
+    { name: "Rival Sport LC Defender",    qty: 3,  reorderAt: 2 },
+    { name: "5 Gallon LC Black Ink",      qty: 2,  reorderAt: 2 },
+    { name: "Fashion Soft Base",          qty: 3,  reorderAt: 2 },
+    { name: "Puff Additive",              qty: 3,  reorderAt: 1 },
+    { name: "5 Gallon Bolt White",        qty: 2,  reorderAt: 2 },
   ],
   screen: [
-    { mesh: "110", qty: 6 },
-    { mesh: "125", qty: 23 },
-    { mesh: "156", qty: 60 },
-    { mesh: "180", qty: 14 },
-    { mesh: "196", qty: 9 },
-    { mesh: "230", qty: 28 },
-    { mesh: "305", qty: 7 },
+    // reorderAt = minimum count before flagging as low.
+    { mesh: "110", qty: 6,  reorderAt: 3 },
+    { mesh: "125", qty: 23, reorderAt: 8 },
+    { mesh: "156", qty: 60, reorderAt: 15 },
+    { mesh: "180", qty: 14, reorderAt: 5 },
+    { mesh: "196", qty: 9,  reorderAt: 4 },
+    { mesh: "230", qty: 28, reorderAt: 8 },
+    { mesh: "305", qty: 7,  reorderAt: 3 },
   ],
   // REAL DATA from the Thread Inventory sheet (2026-07-08), duplicates merged to
   // one row per thread number (110 unique). Two-state status the user toggles --
@@ -180,13 +182,22 @@ function sanitize(type, items) {
   if (!Array.isArray(items)) return null;
   return items.map((it) => {
     const qty = clampQty(it.qty);
-    if (type === "ink") return { name: String(it.name || "").slice(0, 120), qty };
+    // reorderAt is optional but preserved if present (must be a non-negative integer).
+    const reorderAt = it.reorderAt != null ? Math.max(0, Math.floor(Number(it.reorderAt) || 0)) : undefined;
+    if (type === "ink") {
+      const out = { name: String(it.name || "").slice(0, 120), qty };
+      if (reorderAt !== undefined) out.reorderAt = reorderAt;
+      return out;
+    }
     if (type === "thread")
       return {
         name: String(it.name || "").slice(0, 120),
         status: THREAD_STATUS.includes(it.status) ? it.status : THREAD_STATUS[0],
       };
-    return { mesh: String(it.mesh || "").slice(0, 20), qty }; // screen
+    // screen
+    const out = { mesh: String(it.mesh || "").slice(0, 20), qty };
+    if (reorderAt !== undefined) out.reorderAt = reorderAt;
+    return out;
   });
 }
 
