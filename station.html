@@ -514,7 +514,8 @@ function inventoryHTML(items){
   const rows = items.map((it,i)=>({it,i}));
   if(isInk){
     rows.sort((a,b)=>{
-      const fa=(Number(a.it.qty)||0)<=1?0:1, fb=(Number(b.it.qty)||0)<=1?0:1;
+      const tA=(a.it.reorderAt!=null)?a.it.reorderAt:1, tB=(b.it.reorderAt!=null)?b.it.reorderAt:1;
+      const fa=(Number(a.it.qty)||0)<=tA?0:1, fb=(Number(b.it.qty)||0)<=tB?0:1;
       return fa-fb || a.i-b.i;
     });
   }
@@ -522,7 +523,8 @@ function inventoryHTML(items){
   const body = rows.map(function(row){
     const it=row.it, i=row.i, qty=Number(it.qty)||0;
     const label = isInk ? it.name : (it.mesh+' mesh');
-    const low = isInk && qty<=1;
+    const threshold = (it.reorderAt != null) ? it.reorderAt : 1;
+    const low = qty <= threshold;
     return '<div class="invrow'+(low?' low':'')+'">'
       +'<div class="invname">'+esc(label)+(low?'<span class="invflag">Need new order</span>':'')+'</div>'
       +'<div class="invqty">'
