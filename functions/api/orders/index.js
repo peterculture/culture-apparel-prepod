@@ -12,9 +12,11 @@
  * (e.g. a lookup like Account.Name, or a custom field).
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { fetchMockupsByOpportunity } from "../_mockup.js";
 const FIELDS = [
   "Id",
   "GOA_Order_Number__c",
+  "OpportunityId", // <-- used server-side to look up the Design__c mockup image
   "Opportunity.SyncedQuoteId",
   "OrderNumber",
   "Customer_Order_Name__c",
@@ -48,6 +50,15 @@ export async function onRequestGet({ env }) {
       console.error("Salesforce query failed", resp.status, JSON.stringify(data));
       return jsonError("query_failed", resp.status);
     }
+
+    const mockups = await fetchMockupsByOpportunity(
+      env,
+      (data.records || []).map((r) => r.OpportunityId),
+    );
+    (data.records || []).forEach((r) => {
+      r.DesignMockupUrl = mockups.get(r.OpportunityId) || null;
+    });
+
     return Response.json(data, {
       headers: { "Cache-Control": "no-store" },
     });
