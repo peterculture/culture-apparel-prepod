@@ -216,6 +216,16 @@ window.doLogout=function(){
 ══════════════════════════════════════ */
 const STAGE_KEY={'Ready for Print':'rfp','In Production':'ip','Post-Production':'pp','Completed':'done'};
 const STAGES=['rfp','ip','pp','done'];
+// Order_Substatus__c's "In Production" picklist entry has a display label that
+// no longer matches its actual stored API value -- Salesforce shows "In
+// Production" but the real value is "Production" (relabeled by Peter Larson,
+// 7/12/2026, without updating the underlying API name). Writing the literal
+// label fails with INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST. Every other stage's
+// label already matches its value. Route all reads/writes through these maps
+// so the UI keeps showing "In Production" everywhere while the real API value
+// gets sent/parsed correctly. Confirmed via ui-api/object-info, 2026-07-14.
+const SUBSTATUS_VALUE={'Pre-Production':'Pre-Production','Ready for Print':'Ready for Print','In Production':'Production','Post-Production':'Post-Production','Completed':'Completed'};
+const SUBSTATUS_LABEL=Object.fromEntries(Object.entries(SUBSTATUS_VALUE).map(([label,val])=>[val,label]));
 const METH_COLOR={sp:'#C6372B',em:'#5E8B8A',hp:'#C68A30'};
 const METH_LABEL={sp:'Screen Print',em:'Embroidery',hp:'Heat Press'};
 let ALL=[];
@@ -240,8 +250,8 @@ function mapRec(r){
     acct:(r.Account&&r.Account.Name)||'—',
     due:r.Print_Date__c?r.Print_Date__c.slice(0,10):null,
     method:methodOf(r.Printer__r&&r.Printer__r.Name),
-    stageKey:STAGE_KEY[r.Order_Substatus__c]||null,
-    substatus:r.Order_Substatus__c||'Pre-Production',
+    stageKey:STAGE_KEY[SUBSTATUS_LABEL[r.Order_Substatus__c]||r.Order_Substatus__c]||null,
+    substatus:SUBSTATUS_LABEL[r.Order_Substatus__c]||r.Order_Substatus__c||'Pre-Production',
     timer:r.Production_Timer__c==null?'':r.Production_Timer__c,
     misprint:!!r.Misprint__c,
     misprintDetails:r.Misprint_Details__c||'',
@@ -322,7 +332,7 @@ async function patchField(sid,field,val,o,key){
 async function advanceStage(o,newSubstatus){
   o.sav.substatus=true;renderCur();
   try{
-    const body={Order_Substatus__c:newSubstatus};
+    const body={Order_Substatus__c:SUBSTATUS_VALUE[newSubstatus]||newSubstatus};
     // Moving back to Pre-Production must also clear the checklist fields.
     // Salesforce's "RECORDTRIGGER ORDER Production Status" flow auto-promotes
     // Order_Substatus__c back to "Ready for Print" the instant it sees the
