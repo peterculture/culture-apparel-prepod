@@ -672,6 +672,39 @@ async function sfPatch(sfId,field,val,order,key){
   finally{order.sav[key]=false;renderCur();renderOverview();}
 }
 
+// Moving an order's Production Status back to Pre-Production must also clear
+// its checklist fields in the SAME request. Salesforce's "RECORDTRIGGER ORDER
+// Production Status" flow auto-promotes Order_Substatus__c back to "Ready for
+// Print" the instant it sees the checklist fields (Films Printed / Screens
+// Completed / Mix Inks, Digitize File / Thread & Materials, Transfers
+// Received / Ready) still marked complete -- so a plain single-field sfPatch
+// here gets silently overwritten by Salesforce within the same save. Reset
+// all of them (not just this order's method) since an order can have
+// multiple production tracks. Confirmed via OrderHistory + Flow Builder,
+// 2026-07-14.
+async function revertToPreProduction(o){
+  o.sav.substatus=true;renderCur();
+  const body={
+    Order_Substatus__c:'Pre-Production',
+    Films_Printed__c:false,Screens_Completed__c:false,Mix_Inks__c:false,
+    Digitize_File__c:false,Thread_Color_Materials__c:false,
+    Transfers_Received__c:false,Transfers_Ready__c:false,
+  };
+  try{
+    const r=await fetch('/api/orders/'+encodeURIComponent(o.id),{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body),
+    });
+    if(!r.ok&&r.status!==204){let m='Update failed';try{const e=await r.json();m=(e&&e.error)||(e&&e[0]&&e[0].message)||m;}catch(_){}throw new Error(m);}
+    o.substatus='Pre-Production';
+    o.filmsPrinted=false;o.scDone=false;o.inkDone=false;
+    o.dfDone=false;o.thDone=false;
+    o.trRecv=false;o.trRdy=false;
+  }catch(e){alert('Sync error: '+e.message);}
+  finally{o.sav.substatus=false;renderCur();renderOverview();}
+}
+
 /* ── COMPUTED ── */
 const spRdy=o=>o.recv==='Staged'&&o.filmsPrinted&&o.scDone&&o.inkDone;
 const spPct=o=>{let n=0;if(o.recv==='Staged')n++;else if(o.recv==='Counted In')n+=0.5;if(o.filmsPrinted)n++;if(o.scDone)n++;if(o.inkDone)n++;return Math.round(n/4*100);};
@@ -1577,6 +1610,7 @@ document.body.addEventListener('click',function(e){
   if(a==='advance'){
     const o=[...DB.sp,...DB.em,...DB.hp].find(x=>x.id===sid);
     if(!o||o.sav.substatus||o.substatus===v)return;
+    if(v==='Pre-Production'){ revertToPreProduction(o); return; }
     sfPatch(sid,'Order_Substatus__c',v,o,'substatus');return;
   }
   if(a==='fset'){
