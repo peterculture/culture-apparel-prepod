@@ -20,6 +20,15 @@ const ALLOWED_FIELDS = new Set([
   // Heat Press
   "Transfers_Received__c",
   "Transfers_Ready__c",
+  // Order-level production stage ("Production Status" path in Salesforce UI)
+  "Order_Substatus__c",
+]);
+
+// Order_Substatus__c picklist values, confirmed against Setup 2026-07-14.
+// Dependent on standard Status (controlling field); Status stays 'Pre-Production'
+// for shop orders throughout this whole pipeline, so it isn't written here.
+const ALLOWED_SUBSTATUSES = new Set([
+  "Pre-Production", "Ready for Print", "In Production", "Post-Production", "Completed",
 ]);
 
 // Salesforce IDs are 15 or 18 chars, alphanumeric. Validate before using in a URL.
@@ -45,6 +54,12 @@ export async function onRequestPatch({ params, request, env }) {
     }
     if (Object.keys(payload).length === 0) {
       return jsonError("no_allowed_fields", 400);
+    }
+    if (
+      "Order_Substatus__c" in payload &&
+      !ALLOWED_SUBSTATUSES.has(payload.Order_Substatus__c)
+    ) {
+      return jsonError("bad_substatus", 400);
     }
 
     const path = `/services/data/${apiVersion(env)}/sobjects/Order/${id}`;
