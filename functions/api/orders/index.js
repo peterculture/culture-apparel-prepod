@@ -46,7 +46,9 @@ const FIELDS = [
   "Shipping_Delivery__c", // <-- "Delivery Method" picklist
   "Shipping_Label_Printed__c",
   "ShippingAddress", // <-- compound address field, returns as a nested object
-  "(SELECT Product2.Name, Color__c, Quantity FROM OrderItems)",
+  "Special_Notes__c", // <-- Ready for Print card: Special Notes
+  "Specifications_for_Printing__c", // <-- Ready for Print card: Specifications for Printing
+  "(SELECT Product2.Name, Color__c, Size__c, Quantity FROM OrderItems)",
 ];
 export async function onRequestGet({ env }) {
   try {
