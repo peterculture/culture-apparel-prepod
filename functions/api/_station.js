@@ -191,10 +191,10 @@ export const STATION_CONFIG = {
 
   // ── SCREEN STATION ("The Blue Lagoon") ──
   // Field names + sub-status values come from the existing worker board
-  // (PP_SCREEN_SUB, Screen_Sub_Status__c, Mesh_Count__c in index.html), so
+  // (PP_SCREEN_SUB, Screen_Sub_Status__c, Mesh_Count__c in pre-production.html), so
   // they're verified-by-existing-use. TWO THINGS STILL NEED YOUR SIGN-OFF
   // before workers use this (same care as ink):
-  //   1. the sub-status ORDER below (taken from the index.html dropdown order)
+  //   1. the sub-status ORDER below (taken from the pre-production.html dropdown order)
   //   2. the statusMap roll-up (inferred from the names, NOT yet seen in data)
   // Run the GROUP BY probe from chat to confirm 2 against live records.
   screen: {
@@ -246,7 +246,7 @@ export const STATION_CONFIG = {
 
   // ── TRANSFER STATION (heat-press transfers) ──
   // Field names + sub-status values come from the existing worker board
-  // (PP_TRANSFER_SUB, Transfers_Sub_Status__c, Transfer_Type__c in index.html),
+  // (PP_TRANSFER_SUB, Transfers_Sub_Status__c, Transfer_Type__c in pre-production.html),
   // so they're verified-by-existing-use. STILL NEEDS YOUR SIGN-OFF (same as ink
   // and screen did):
   //   1. the sub-status ORDER below
@@ -296,7 +296,7 @@ export const STATION_CONFIG = {
     // the endpoint recomputes these Order checkboxes (the ones the MAIN dashboard
     // heat-press checklist shows). Each is true iff EVERY transfer item on that
     // order has reached the given stage or later; recomputed both ways, so a
-    // "Transfer Error" reset unchecks it again. Fields verified via index.html.
+    // "Transfer Error" reset unchecks it again. Fields verified via pre-production.html.
     orderRollup: [
       { field: "Transfers_Received__c", atOrAfter: "Transfers Received" },
       { field: "Transfers_Ready__c",    atOrAfter: "Transfers Cut/Ready" },
