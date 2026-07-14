@@ -211,13 +211,6 @@ window.doLogout=function(){
   document.getElementById('login-screen').style.display='flex';
 };
 
-// Auto-login if a role is already stored from logging into the other dashboard.
-(function(){
-  let saved=null;
-  try{saved=localStorage.getItem(CA_ROLE_KEY);}catch(_){}
-  if(saved==='worker'||saved==='manager') enterApp();
-})();
-
 /* ══════════════════════════════════════
    DATA
 ══════════════════════════════════════ */
@@ -583,6 +576,17 @@ document.body.addEventListener('change',function(e){
   if(t.type==='number') val=val===''?null:Number(val);
   patchField(oid,field,val,o,key);
 });
+
+// Auto-login if a role is already stored from logging into the other dashboard.
+// Must run after every let/const above it is initialized (curStage, ALL, etc.)
+// -- this used to sit up near the login functions and threw a TDZ
+// ReferenceError on curStage, which silently killed init before doLoad() ever
+// ran, leaving the header stuck on its static "Loading…" text.
+(function(){
+  let saved=null;
+  try{saved=localStorage.getItem(CA_ROLE_KEY);}catch(_){}
+  if(saved==='worker'||saved==='manager') enterApp();
+})();
 
 })();
 </script>
