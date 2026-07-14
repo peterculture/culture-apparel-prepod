@@ -37,6 +37,15 @@ const FIELDS = [
   // Heat Press
   "Transfers_Received__c",
   "Transfers_Ready__c",
+  // Production Dashboard (In Production / Post-Production / shipping)
+  "Production_Timer__c",
+  "Misprint__c",
+  "Misprint_Details__c",
+  "Packaging_Count__c",
+  "Production_Notes__c",
+  "Shipping_Delivery__c", // <-- "Delivery Method" picklist
+  "Shipping_Label_Printed__c",
+  "ShippingAddress", // <-- compound address field, returns as a nested object
   "(SELECT Product2.Name, Color__c, Quantity FROM OrderItems)",
 ];
 export async function onRequestGet({ env }) {
