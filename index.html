@@ -228,11 +228,21 @@ const SUBSTATUS_VALUE={'Pre-Production':'Pre-Production','Ready for Print':'Read
 const SUBSTATUS_LABEL=Object.fromEntries(Object.entries(SUBSTATUS_VALUE).map(([label,val])=>[val,label]));
 const METH_COLOR={sp:'#C6372B',em:'#5E8B8A',hp:'#C68A30'};
 const METH_LABEL={sp:'Screen Print',em:'Embroidery',hp:'Heat Press'};
+// Canonical size column order for the garment size-breakdown table; any size
+// value not in this list (or blank) falls into "Other".
+const SIZE_ORDER=['XS','S','M','L','XL','2XL','3XL','4XL','5XL'];
 let ALL=[];
 let curStage='rfp';
 let openO={};
 let ppItems={};
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+/* ── Overdue ── mirrors the Pre-Production Dashboard's priority marker:
+   an order is overdue once its print date has passed. */
+const iso=d=>d.toISOString().slice(0,10);
+const toD=s=>{const d=new Date(s+'T00:00:00');d.setHours(0,0,0,0);return d;};
+const TODAY=iso(new Date());
+const isOD=o=>o.due&&toD(o.due)<toD(TODAY);
 
 function methodOf(printerName){
   const p=(printerName||'').toLowerCase();
@@ -260,8 +270,13 @@ function mapRec(r){
     delivery:r.Shipping_Delivery__c||'',
     labelPrinted:!!r.Shipping_Label_Printed__c,
     addr:{street:addr.street||'',city:addr.city||'',state:addr.state||'',postalCode:addr.postalCode||'',country:addr.country||''},
-    blanks:(()=>{const rows=(r.OrderItems&&r.OrderItems.records)||[];const m={};rows.forEach(it=>{if(!it.Product2)return;const k=it.Product2.Name+'|'+(it.Color__c||'');if(!m[k])m[k]={name:it.Product2.Name,color:it.Color__c||'',qty:0};m[k].qty+=(it.Quantity||0);});return Object.values(m);})(),
+    // Each blank row also carries a per-size quantity map (e.g. {S:20,M:20,L:20})
+    // so the Ready for Print card can render a full size breakdown, while
+    // existing callers that only use name/color/qty are unaffected.
+    blanks:(()=>{const rows=(r.OrderItems&&r.OrderItems.records)||[];const m={};rows.forEach(it=>{if(!it.Product2)return;const k=it.Product2.Name+'|'+(it.Color__c||'');if(!m[k])m[k]={name:it.Product2.Name,color:it.Color__c||'',qty:0,sizes:{}};const sz=(it.Size__c||'').trim()||'Other';m[k].qty+=(it.Quantity||0);m[k].sizes[sz]=(m[k].sizes[sz]||0)+(it.Quantity||0);});return Object.values(m);})(),
     mockupUrl:r.DesignMockupUrl||null,
+    printSpecs:r.Specifications_for_Printing__c||'',
+    specialNotes:r.Special_Notes__c||'',
     sav:{},
   };
 }
@@ -380,15 +395,27 @@ function updateCounts(){
   });
 }
 
+// Overdue orders first (earliest print date first), then everyone else by
+// print date ascending (no date last) — mirrors the Pre-Production Dashboard.
+function sortByPriority(arr){
+  const od=arr.filter(isOD).sort((a,b)=>a.due<b.due?-1:1);
+  const rest=arr.filter(o=>!isOD(o)).sort((a,b)=>{
+    if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return -1;
+    return a.due<b.due?-1:a.due>b.due?1:0;
+  });
+  return [...od,...rest];
+}
+
 function renderCur(){
   const el=document.getElementById('sec-'+curStage);
   const orders=ALL.filter(o=>o.stageKey===curStage);
   if(!orders.length){ el.innerHTML='<p class="empty">No orders currently at this stage.</p>'; return; }
   let h='';
   ['sp','em','hp'].forEach(m=>{
-    const grp=orders.filter(o=>o.method===m);
+    const grp=sortByPriority(orders.filter(o=>o.method===m));
     if(!grp.length) return;
-    h+='<div class="meth-hdr"><div class="meth-dot" style="background:'+METH_COLOR[m]+'"></div>'+METH_LABEL[m]+' <span style="color:var(--ink4);font-weight:400">· '+grp.length+'</span></div>';
+    const odCnt=grp.filter(isOD).length;
+    h+='<div class="meth-hdr"><div class="meth-dot" style="background:'+METH_COLOR[m]+'"></div>'+METH_LABEL[m]+' <span style="color:var(--ink4);font-weight:400">· '+grp.length+(odCnt>0?' &nbsp;·&nbsp; <span style="color:#E8A89F">'+odCnt+' overdue</span>':'')+'</span></div>';
     grp.forEach(o=>{ h+=orderCard(o); });
   });
   el.innerHTML=h;
@@ -402,14 +429,16 @@ function stageBadge(s){
 
 function orderCard(o){
   const open=!!openO[o.id];
+  const od=isOD(o);
   const dt=o.due?new Date(o.due+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
   return '<div class="ocard">'
-    +'<div class="ohdr" data-a="toggle" data-sid="'+o.id+'" style="border-left:3px solid '+METH_COLOR[o.method]+'">'
+    +'<div class="ohdr" data-a="toggle" data-sid="'+o.id+'" style="border-left:3px solid '+(od?'#E8A89F':METH_COLOR[o.method])+'">'
     +'<span style="font-size:14px;font-weight:600;color:#ECEAE4">#'+esc(o.num)+'</span>'
     +(o.name?'<span style="font-size:13px;color:#C9C6BF">'+esc(o.name)+'</span>':'')
     +stageBadge(o.substatus)
+    +(od?'<span class="badge" style="background:#791F1F;color:#FCEBEB"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Overdue</span>':'')
     +(o.misprint?'<span class="badge" style="background:var(--red-bg);color:var(--red-tx)"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Misprint</span>':'')
-    +(dt?'<span style="font-size:11px;color:#6E6A62;margin-left:auto">'+dt+'</span>':'<span style="margin-left:auto"></span>')
+    +(dt?'<span style="font-size:11px;color:'+(od?'#E8A89F':'#6E6A62')+';font-weight:'+(od?'700':'400')+';margin-left:auto">'+dt+'</span>':'<span style="margin-left:auto"></span>')
     +'<i class="ti ti-chevron-down chev'+(open?' on':'')+'" aria-hidden="true"></i>'
     +'</div>'
     +'<div class="odet'+(open?' on':'')+'">'
@@ -452,10 +481,111 @@ function blanksHTML(o){
     +'</div>';
 }
 
+function mockupHTML(o){
+  if(!o.mockupUrl) return '';
+  return '<div class="fieldwrap"><span class="fieldlbl">Mockup</span>'
+    +'<a href="'+esc(o.mockupUrl)+'" target="_blank" rel="noopener">'
+    +'<img src="'+esc(o.mockupUrl)+'" alt="Order mockup" loading="lazy" '
+    +'style="display:block;max-width:100%;max-height:260px;border-radius:8px;border:1px solid #262628;object-fit:contain;background:#0A0A0C" '
+    +'onerror="this.closest(\'div\').style.display=\'none\'">'
+    +'</a></div>';
+}
+
+function notesHTML(o){
+  let h='';
+  if(o.printSpecs) h+='<div class="fieldwrap"><span class="fieldlbl">Specifications for Printing</span><p style="font-size:13px;color:#C9C6BF;white-space:pre-wrap;line-height:1.5;margin:0">'+esc(o.printSpecs)+'</p></div>';
+  if(o.specialNotes) h+='<div class="fieldwrap"><span class="fieldlbl">Special Notes</span><p style="font-size:13px;color:#E0B870;white-space:pre-wrap;line-height:1.5;margin:0">'+esc(o.specialNotes)+'</p></div>';
+  return h;
+}
+
+// Which size columns to show for this order: canonical S/M/L/... order, plus
+// an "Other" bucket for anything that doesn't match (or has no size set).
+function sizeColumns(o){
+  const present=new Set();
+  o.blanks.forEach(b=>Object.keys(b.sizes||{}).forEach(s=>present.add(s)));
+  const cols=SIZE_ORDER.filter(s=>present.has(s));
+  if(present.has('Other')) cols.push('Other');
+  return cols.length?cols:['Other'];
+}
+
+// Full garment size breakdown — every blank line item broken out by size,
+// with per-size and grand totals, plus a button to open a printable order
+// sheet version of the same table.
+function sizeTableHTML(o){
+  if(!o.blanks.length) return '';
+  const cols=sizeColumns(o);
+  const colTotals={};cols.forEach(c=>colTotals[c]=0);
+  let grand=0;
+  const rows=o.blanks.map(b=>{
+    const cells=cols.map(c=>{const v=(b.sizes||{})[c]||0;colTotals[c]+=v;return '<td style="text-align:center;padding:6px 4px;font-size:12px;color:'+(v?'#C9C6BF':'#3A3A3D')+'">'+(v||'–')+'</td>';}).join('');
+    grand+=b.qty;
+    return '<tr style="border-bottom:1px solid #1A1A1C"><td style="padding:6px 8px 6px 0;font-size:13px;color:#C9C6BF;white-space:nowrap">'+esc(b.name)+(b.color?' <span style="color:#6E6A62">'+esc(b.color)+'</span>':'')+'</td>'+cells+'<td style="text-align:center;padding:6px 4px;font-size:12px;font-weight:700;color:#9C988F">'+b.qty+'</td></tr>';
+  }).join('');
+  const footCells=cols.map(c=>'<td style="text-align:center;padding:6px 4px;font-size:12px;font-weight:700;color:#E0B870">'+(colTotals[c]||'–')+'</td>').join('');
+  return '<div class="fieldwrap"><span class="fieldlbl">Garment Size Breakdown</span>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="border-bottom:1px solid #262628">'
+    +'<th style="text-align:left;padding:0 8px 6px 0;font-size:10px;font-weight:600;color:#6E6A62;text-transform:uppercase;letter-spacing:.04em">Item</th>'
+    +cols.map(c=>'<th style="text-align:center;padding:0 4px 6px;font-size:10px;font-weight:600;color:#6E6A62;text-transform:uppercase">'+esc(c)+'</th>').join('')
+    +'<th style="text-align:center;padding:0 4px 6px;font-size:10px;font-weight:600;color:#6E6A62;text-transform:uppercase">Total</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody>'
+    +'<tfoot><tr><td style="padding:8px 8px 0 0;font-size:11px;font-weight:700;color:#E0B870">Total</td>'+footCells+'<td style="text-align:center;padding:8px 4px 0;font-size:12px;font-weight:700;color:#E0B870">'+grand+'</td></tr></tfoot>'
+    +'</table></div></div>'
+    +'<button class="actbtn ghost" data-a="ordersheet" data-sid="'+o.id+'" style="margin-bottom:14px"><i class="ti ti-printer" aria-hidden="true"></i> Open Order Sheet</button>';
+}
+
+// Printable order sheet: mockup, size breakdown, specs and notes in one
+// page — same window.open + print pattern as the shipping label.
+function openOrderSheet(o){
+  const w=window.open('','_blank');
+  if(!w) return;
+  const cols=sizeColumns(o);
+  const colTotals={};cols.forEach(c=>colTotals[c]=0);
+  let grand=0;
+  const bodyRows=o.blanks.map(b=>{
+    const cells=cols.map(c=>{const v=(b.sizes||{})[c]||0;colTotals[c]+=v;return '<td>'+(v||'–')+'</td>';}).join('');
+    grand+=b.qty;
+    return '<tr><td class="item">'+esc(b.name)+(b.color?' <span class="muted">'+esc(b.color)+'</span>':'')+'</td>'+cells+'<td class="tot">'+b.qty+'</td></tr>';
+  }).join('');
+  const footCells=cols.map(c=>'<td>'+(colTotals[c]||'–')+'</td>').join('');
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Order Sheet — '+esc(o.num)+'</title><style>'
+    +'body{font-family:Arial,sans-serif;padding:40px;color:#111;max-width:720px}'
+    +'h1{font-size:20px;margin:0 0 4px}'
+    +'.sub{font-size:13px;color:#666;margin-bottom:18px}'
+    +(o.mockupUrl?'.mockup{max-width:100%;max-height:320px;border:1px solid #ccc;border-radius:8px;margin-bottom:20px;display:block}':'')
+    +'table{width:100%;border-collapse:collapse;margin-bottom:20px}'
+    +'th,td{border:1px solid #ccc;padding:6px 8px;font-size:13px;text-align:center}'
+    +'th{background:#f2f2f2;font-size:11px;text-transform:uppercase;color:#555}'
+    +'.item{text-align:left}'
+    +'.muted{color:#888}'
+    +'.tot{font-weight:700}'
+    +'tfoot td{font-weight:700;background:#fafafa}'
+    +'.sec{margin-bottom:18px}'
+    +'.sec-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:4px}'
+    +'.sec-body{font-size:14px;white-space:pre-wrap;line-height:1.5}'
+    +'.bar{margin-top:10px}'
+    +'</style></head><body>'
+    +'<h1>Order #'+esc(o.num)+(o.name?' — '+esc(o.name):'')+'</h1>'
+    +'<div class="sub">'+esc(o.acct)+(o.due?' · Print date '+esc(o.due):'')+'</div>'
+    +(o.mockupUrl?'<img class="mockup" src="'+esc(o.mockupUrl)+'" alt="Mockup">':'')
+    +'<table><thead><tr><th class="item">Item</th>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'<th>Total</th></tr></thead>'
+    +'<tbody>'+bodyRows+'</tbody>'
+    +'<tfoot><tr><td class="item">Total</td>'+footCells+'<td>'+grand+'</td></tr></tfoot>'
+    +'</table>'
+    +(o.printSpecs?'<div class="sec"><div class="sec-lbl">Specifications for Printing</div><div class="sec-body">'+esc(o.printSpecs)+'</div></div>':'')
+    +(o.specialNotes?'<div class="sec"><div class="sec-lbl">Special Notes</div><div class="sec-body">'+esc(o.specialNotes)+'</div></div>':'')
+    +'<div class="bar"><button onclick="window.print()" style="padding:10px 18px;font-size:13px;cursor:pointer">Print / Save PDF</button></div>'
+    +'</body></html>';
+  w.document.write(html);
+  w.document.close();
+}
+
 /* ── Ready for Print ── */
 function rfpPanel(o){
   return stepperHTML(o)
-    +blanksHTML(o)
+    +mockupHTML(o)
+    +notesHTML(o)
+    +sizeTableHTML(o)
     +'<p style="font-size:12px;color:#6E6A62;margin-bottom:14px">Pre-production requirements are complete for this order. Click below once the press operator begins the job.</p>'
     +'<button class="actbtn" data-a="advance" data-sid="'+o.id+'" data-v="In Production"'+(o.sav.substatus?' disabled':'')+'><i class="ti ti-player-play" aria-hidden="true"></i> '+(o.sav.substatus?'Starting…':'Start Production')+'</button>';
 }
@@ -589,6 +719,10 @@ document.body.addEventListener('click',function(e){
     // Printing the label marks it printed and completes the order.
     if(!o.labelPrinted) patchField(sid,'Shipping_Label_Printed__c',true,o,'labelPrinted');
     if(o.substatus!=='Completed') advanceStage(o,'Completed');
+    return;
+  }
+  if(a==='ordersheet'){
+    openOrderSheet(o);
     return;
   }
 });
