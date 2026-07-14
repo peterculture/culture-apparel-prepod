@@ -23,6 +23,8 @@ const FIELDS = [
   "Print_Date__c",
   "Account.Name",
   "Printer__r.Name", // <-- printer account drives the print method
+  "Status", // <-- standard field; controlling field for Order_Substatus__c
+  "Order_Substatus__c", // <-- "Production Status" path: Pre-Production, Ready for Print, In Production, Post-Production, Completed
   "Receiving_Status__c",
   "Partial_Check_in_Missing_Items__c", // <-- garment count-in board: missing note
   // Screen Print
