@@ -626,7 +626,7 @@ function mapRec(r){
     scDone:!!r.Screens_Completed__c,inkDone:!!r.Mix_Inks__c,
     dfDone:!!r.Digitize_File__c,thDone:!!r.Thread_Color_Materials__c,
     trRecv:!!r.Transfers_Received__c,trRdy:!!r.Transfers_Ready__c,
-    substatus:r.Order_Substatus__c||'Pre-Production',
+    substatus:SUBSTATUS_LABEL[r.Order_Substatus__c]||r.Order_Substatus__c||'Pre-Production',
     sav:{},
   };
 }
@@ -637,6 +637,17 @@ function mapRec(r){
    In Production / Post-Production / Completed are operator-driven (clicking a
    stage advances the order — same click-any-stage UX as the Salesforce Path). */
 const STATUS_STAGES=['Pre-Production','Ready for Print','In Production','Post-Production','Completed'];
+// Order_Substatus__c's "In Production" picklist entry has a display label that
+// no longer matches its actual stored API value -- Salesforce shows "In
+// Production" but the real value is "Production" (relabeled by Peter Larson,
+// 7/12/2026, without updating the underlying API name). Writing the literal
+// label fails with INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST. Every other
+// stage's label already matches its value. Route all reads/writes through
+// these maps so the UI keeps showing "In Production" everywhere while the
+// real API value gets sent/parsed correctly. Confirmed via ui-api/object-info,
+// 2026-07-14.
+const SUBSTATUS_VALUE={'Pre-Production':'Pre-Production','Ready for Print':'Ready for Print','In Production':'Production','Post-Production':'Post-Production','Completed':'Completed'};
+const SUBSTATUS_LABEL=Object.fromEntries(Object.entries(SUBSTATUS_VALUE).map(([label,val])=>[val,label]));
 function statusStepperHTML(o){
   const cur=STATUS_STAGES.includes(o.substatus)?o.substatus:'Pre-Production';
   const curIdx=STATUS_STAGES.indexOf(cur);
@@ -701,6 +712,24 @@ async function revertToPreProduction(o){
     o.filmsPrinted=false;o.scDone=false;o.inkDone=false;
     o.dfDone=false;o.thDone=false;
     o.trRecv=false;o.trRdy=false;
+  }catch(e){alert('Sync error: '+e.message);}
+  finally{o.sav.substatus=false;renderCur();renderOverview();}
+}
+
+// Forward moves (Ready for Print -> In Production -> Post-Production ->
+// Completed) go through here instead of the generic sfPatch so the
+// label->API-value translation above (SUBSTATUS_VALUE) applies -- otherwise
+// "In Production" gets written literally and Salesforce rejects it.
+async function advanceSubstatus(o,label){
+  o.sav.substatus=true;renderCur();
+  try{
+    const r=await fetch('/api/orders/'+encodeURIComponent(o.id),{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({Order_Substatus__c:SUBSTATUS_VALUE[label]||label}),
+    });
+    if(!r.ok&&r.status!==204){let m='Update failed';try{const e=await r.json();m=(e&&e.error)||(e&&e[0]&&e[0].message)||m;}catch(_){}throw new Error(m);}
+    o.substatus=label;
   }catch(e){alert('Sync error: '+e.message);}
   finally{o.sav.substatus=false;renderCur();renderOverview();}
 }
@@ -1611,7 +1640,7 @@ document.body.addEventListener('click',function(e){
     const o=[...DB.sp,...DB.em,...DB.hp].find(x=>x.id===sid);
     if(!o||o.sav.substatus||o.substatus===v)return;
     if(v==='Pre-Production'){ revertToPreProduction(o); return; }
-    sfPatch(sid,'Order_Substatus__c',v,o,'substatus');return;
+    advanceSubstatus(o,v);return;
   }
   if(a==='fset'){
     F[p].mode=m;
