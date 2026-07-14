@@ -252,7 +252,7 @@ input[type=week]{color-scheme:dark}
   <button class="ttab" id="tab-em" onclick="goSec('em')"><div class="tdot" style="background:#5E8B8A"></div> Embroidery</button>
   <button class="ttab" id="tab-hp" onclick="goSec('hp')"><div class="tdot" style="background:#C68A30"></div> Heat Press</button>
   <button class="ttab" id="tab-mgr" onclick="goSec('mgr')" style="margin-left:auto"><i class="ti ti-settings" aria-hidden="true"></i> Pre-Production Mgmt <span class="mgr-badge">MGR</span></button>
-  <a class="ttab" href="production.html" style="text-decoration:none"><i class="ti ti-arrow-right" aria-hidden="true"></i> Production Dashboard</a>
+  <a class="ttab" href="index.html" style="text-decoration:none"><i class="ti ti-arrow-right" aria-hidden="true"></i> Production Dashboard</a>
 </nav>
 
 <div class="page" style="flex:1">
@@ -1664,11 +1664,15 @@ document.getElementById('hp-fbar').innerHTML=fbarHTML('hp');
 
 /* ══════════════════════════════════════
    LOGIN & ROLE SYSTEM
+   Shared across this dashboard and the Production Dashboard: logging into
+   either one stores the role in localStorage (same origin, so both pages see
+   it), so staff only enter a PIN once per shift instead of once per page.
 ══════════════════════════════════════ */
 let currentRole=null; // 'worker' | 'manager'
 let pinBuffer='';
 const WORKER_PIN='1234';
 const MANAGER_PIN='6767';
+const CA_ROLE_KEY='caShopRole';
 
 window.pinPress=function(d){
   if(pinBuffer.length>=4) return;
@@ -1683,18 +1687,11 @@ window.pinClear=function(){
 };
 window.pinSubmit=function(){
   if(pinBuffer===WORKER_PIN){
-    currentRole='worker';
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app-shell').style.display='flex';
-    document.getElementById('tab-mgr').style.display='none';
-    initApp();
+    try{localStorage.setItem(CA_ROLE_KEY,'worker');}catch(_){}
+    enterApp('worker');
   } else if(pinBuffer===MANAGER_PIN){
-    currentRole='manager';
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app-shell').style.display='flex';
-    document.getElementById('tab-mgr').style.display='inline-flex';
-    initApp();
-    loadMgrInbox();
+    try{localStorage.setItem(CA_ROLE_KEY,'manager');}catch(_){}
+    enterApp('manager');
   } else {
     document.getElementById('login-err').textContent='Incorrect PIN — try again';
     pinBuffer='';
@@ -1702,6 +1699,14 @@ window.pinSubmit=function(){
     setTimeout(()=>document.getElementById('login-err').textContent='',2000);
   }
 };
+function enterApp(role){
+  currentRole=role;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-shell').style.display='flex';
+  document.getElementById('tab-mgr').style.display=(role==='manager')?'inline-flex':'none';
+  initApp();
+  if(role==='manager') loadMgrInbox();
+}
 function updatePinDots(){
   for(let i=0;i<4;i++){
     document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);
@@ -1715,6 +1720,7 @@ function initApp(){
 window.doLogout=function(){
   // Reset role and PIN
   currentRole=null;pinBuffer='';
+  try{localStorage.removeItem(CA_ROLE_KEY);}catch(_){}
   updatePinDots();
   document.getElementById('login-err').textContent='';
   // Hide app, show login
@@ -1725,6 +1731,13 @@ window.doLogout=function(){
   // Reset to overview tab
   goSec('ov');
 };
+
+// Auto-login if a role is already stored from logging into the other dashboard.
+(function(){
+  let saved=null;
+  try{saved=localStorage.getItem(CA_ROLE_KEY);}catch(_){}
+  if(saved==='worker'||saved==='manager') enterApp(saved);
+})();
 
 /* ══════════════════════════════════════
    MANAGER INBOX ORDERS
