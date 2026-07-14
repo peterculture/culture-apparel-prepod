@@ -534,50 +534,148 @@ function sizeTableHTML(o){
     +'<button class="actbtn ghost" data-a="ordersheet" data-sid="'+o.id+'" style="margin-bottom:14px"><i class="ti ti-printer" aria-hidden="true"></i> Open Order Sheet</button>';
 }
 
-// Printable order sheet: mockup, size breakdown, specs and notes in one
-// page — same window.open + print pattern as the shipping label.
+/* ── Printable order sheet ──
+   Same look as the Pre-Production Dashboard's order sheet: cream/white
+   "sheet" card, bold black-bordered garment size grids, GOA tag, mockup,
+   grand-total banner. Pulls its rows from the same /api/order-sizes
+   endpoint (OrderItem-based) rather than the card's own blanks data, so
+   both dashboards render from an identical source. */
+
+// Canonical size ordering; unknown sizes fall to the end, then A–Z.
+const SIZE_RANK={YXS:0,YS:1,YM:2,YL:3,YXL:4,XS:5,S:6,M:7,L:8,XL:9,
+                 '2XL':10,XXL:10,'3XL':11,XXXL:11,'4XL':12,'5XL':13};
+
+// Group OrderItem rows into a size grid.
+// Rows with a blank Size__c are non-garment lines (fees/upcharges) and are
+// kept out of the grid — surfaced separately as fees.
+function buildSizeSheet(items){
+  const groups={}, fees=[], seen=new Set();
+  (items||[]).forEach(li=>{
+    const size=(li.Size__c||'').trim();
+    const qty=Number(li.Quantity)||0;
+    if(!size){
+      fees.push({name:li.Description||(li.Product2&&li.Product2.Name)||'Fee',unit:Number(li.UnitPrice)||0});
+      return;
+    }
+    const product=(li.Product2&&li.Product2.Name)||'Item';
+    const color=(li.Color__c||'').trim();
+    const design=(li.Design__r&&li.Design__r.Name)||'';
+    const key=design+'|'+product+'|'+color;
+    if(!groups[key]) groups[key]={product,color,design,sizes:{},total:0};
+    groups[key].sizes[size]=(groups[key].sizes[size]||0)+qty;
+    groups[key].total+=qty;
+    seen.add(size);
+  });
+  const sizeCols=[...seen].sort((a,b)=>((SIZE_RANK[a]??99)-(SIZE_RANK[b]??99))||a.localeCompare(b));
+  return {groups:Object.values(groups), sizeCols, fees};
+}
+
+// Build the full standalone HTML document for the print window.
+function renderSheetHTML(order, rows){
+  const {groups, sizeCols, fees}=buildSizeSheet(rows);
+  const grand=groups.reduce((s,g)=>s+g.total,0);
+
+  const garmentHTML=groups.map(g=>{
+    const head='<div class="g-head">'
+      +'<span class="g-title">'+esc(g.product)+'</span>'
+      +(g.color?'<span class="g-swatch">'+esc(g.color)+'</span>':'')
+      +(g.design?'<span class="g-design">'+esc(g.design)+'</span>':'')
+      +'</div>';
+    const headCells=sizeCols.map(s=>'<th>'+esc(s)+'</th>').join('');
+    const bodyCells=sizeCols.map(s=>{
+      const q=g.sizes[s]||0;
+      return '<td'+(q?'':' class="zero"')+'>'+q+'</td>';
+    }).join('');
+    const table='<table class="grid"><thead><tr>'
+      +'<th class="rl"></th>'+headCells+'<th class="tc">Total</th></tr></thead>'
+      +'<tbody><tr><td class="rl">Qty</td>'+bodyCells+'<td class="tcell">'+g.total+'</td></tr></tbody></table>';
+    return '<div class="garment">'+head+table+'</div>';
+  }).join('');
+
+  const feesHTML=fees.length
+    ? '<div class="fees"><div class="fees-h">Fees &amp; upcharges</div>'
+      +fees.map(f=>'<div class="fee-row"><span>'+esc(f.name)+'</span><span>$'+f.unit.toFixed(2)+'</span></div>').join('')
+      +'</div>'
+    : '';
+
+  const mockupHTML=order.mockup
+    ? '<div class="mockup"><img src="'+esc(order.mockup)+'" alt="Order mockup" onerror="this.parentElement.style.display=\'none\'"></div>'
+    : '';
+
+  const body='<header class="masthead">'
+      +'<div class="brand">Culture Apparel<small>Order Sheet</small></div>'
+      +'<div class="tag"><div class="k">GOA Order</div><div class="goa">'+esc(order.goa||'—')+'</div></div>'
+    +'</header>'
+    +mockupHTML
+    +'<div class="meta">'
+      +'<div class="row"><span class="lbl">Order</span><span class="val name">'+esc(order.name||'—')+'</span></div>'
+      +'<div class="row"><span class="lbl">Account</span><span class="val">'+esc(order.account||'—')+'</span></div>'
+    +'</div>'
+    +(groups.length?garmentHTML:'<p class="empty">No size breakdown found on this order.</p>')
+    +(groups.length?'<div class="grand"><span class="glab">Total Garments</span><span class="gnum">'+grand+'<small>pcs</small></span></div>':'')
+    +feesHTML
+    +'<div class="foot"><span>Culture Apparel · Production</span><span>Generated live from Salesforce</span></div>';
+
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Order Sheet '+esc(order.goa||'')+'</title>'
+    +'<style>'
+    +'*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:"Helvetica Neue",Arial,sans-serif;color:#141210;background:#e9e6e0;padding:24px;-webkit-font-smoothing:antialiased}'
+    +'.bar{max-width:760px;margin:0 auto 14px;display:flex;justify-content:flex-end;gap:10px}'
+    +'.btn{font:600 14px/1 Arial;color:#fff;background:#141210;border:none;border-radius:7px;padding:11px 18px;cursor:pointer}'
+    +'.sheet{max-width:760px;margin:0 auto;background:#fff;padding:44px 48px 40px;box-shadow:0 18px 40px -24px rgba(0,0,0,.35)}'
+    +'.masthead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #141210;padding-bottom:14px;margin-bottom:20px}'
+    +'.brand{font:800 22px/1 Arial;letter-spacing:.14em;text-transform:uppercase}'
+    +'.brand small{display:block;font:600 10px/1.4 Arial;letter-spacing:.32em;color:#6b645c;margin-top:6px}'
+    +'.tag{text-align:right}.tag .k{font:700 10px/1 Arial;letter-spacing:.28em;text-transform:uppercase;color:#6b645c}'
+    +'.tag .goa{font:800 26px/1 Arial;margin-top:6px}'
+    +'.mockup{margin-bottom:22px;text-align:center}'
+    +'.mockup img{max-width:100%;max-height:320px;border:1px solid #d8d2c8;border-radius:4px}'
+    +'.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;margin-bottom:26px}'
+    +'.meta .row{display:flex;justify-content:space-between;border-bottom:1px dotted #cfc7bd;padding:6px 0}'
+    +'.meta .lbl{font:700 10px/1.4 Arial;letter-spacing:.16em;text-transform:uppercase;color:#6b645c}'
+    +'.meta .val{font:600 15px/1.3 Arial;text-align:right}.meta .val.name{color:#b5321f}'
+    +'.garment{margin-bottom:22px;break-inside:avoid}'
+    +'.g-head{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}'
+    +'.g-title{font:700 17px/1.2 Arial}'
+    +'.g-swatch{font:700 11px/1 Arial;letter-spacing:.06em;text-transform:uppercase;border:1px solid #141210;border-radius:100px;padding:5px 11px}'
+    +'.g-design{font:500 13px/1 Arial;color:#6b645c;margin-left:auto}'
+    +'table.grid{width:100%;border-collapse:collapse}'
+    +'table.grid th,table.grid td{border:1.5px solid #141210;text-align:center}'
+    +'table.grid thead th{background:#f2ede6;font:700 12px/1 Arial;letter-spacing:.08em;text-transform:uppercase;padding:8px 4px;color:#6b645c}'
+    +'table.grid thead th.tc,table.grid tbody td.tcell{background:#141210;color:#fff}'
+    +'table.grid tbody td{font:700 24px/1 Arial;padding:14px 4px}'
+    +'table.grid tbody td.zero{color:#c9c1b7;font-weight:400}'
+    +'table.grid .rl{font:700 11px/1 Arial;letter-spacing:.14em;text-transform:uppercase;color:#6b645c;text-align:left;padding-left:10px;width:64px}'
+    +'.grand{display:flex;justify-content:space-between;align-items:center;border-top:3px solid #141210;margin-top:8px;padding-top:14px}'
+    +'.glab{font:700 12px/1 Arial;letter-spacing:.16em;text-transform:uppercase;color:#6b645c}'
+    +'.gnum{font:800 30px/1 Arial}.gnum small{font:600 13px/1 Arial;color:#6b645c;letter-spacing:.1em;margin-left:6px;text-transform:uppercase}'
+    +'.fees{margin-top:16px;border-top:1px dotted #cfc7bd;padding-top:10px}'
+    +'.fees-h{font:700 10px/1 Arial;letter-spacing:.18em;text-transform:uppercase;color:#6b645c;margin-bottom:6px}'
+    +'.fee-row{display:flex;justify-content:space-between;font:500 13px/1.5 Arial;color:#6b645c}'
+    +'.empty{font:500 14px/1.5 Arial;color:#6b645c;padding:20px 0}'
+    +'.foot{margin-top:26px;display:flex;justify-content:space-between;color:#6b645c;font:500 11px/1.4 Arial}'
+    +'@media print{@page{margin:14mm}body{background:#fff;padding:0}.bar{display:none}.sheet{box-shadow:none;max-width:none;padding:0}.garment{break-inside:avoid}}'
+    +'</style></head><body>'
+    +'<div class="bar"><button class="btn" onclick="window.print()">Print / Save PDF</button></div>'
+    +'<div class="sheet">'+body+'</div>'
+    +'</body></html>';
+}
+
+// Open a new window and populate it with the printable sheet for one order.
 function openOrderSheet(o){
   const w=window.open('','_blank');
-  if(!w) return;
-  const cols=sizeColumns(o);
-  const colTotals={};cols.forEach(c=>colTotals[c]=0);
-  let grand=0;
-  const bodyRows=o.blanks.map(b=>{
-    const cells=cols.map(c=>{const v=(b.sizes||{})[c]||0;colTotals[c]+=v;return '<td>'+(v||'–')+'</td>';}).join('');
-    grand+=b.qty;
-    return '<tr><td class="item">'+esc(b.name)+(b.color?' <span class="muted">'+esc(b.color)+'</span>':'')+'</td>'+cells+'<td class="tot">'+b.qty+'</td></tr>';
-  }).join('');
-  const footCells=cols.map(c=>'<td>'+(colTotals[c]||'–')+'</td>').join('');
-  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Order Sheet — '+esc(o.num)+'</title><style>'
-    +'body{font-family:Arial,sans-serif;padding:40px;color:#111;max-width:720px}'
-    +'h1{font-size:20px;margin:0 0 4px}'
-    +'.sub{font-size:13px;color:#666;margin-bottom:18px}'
-    +(o.mockupUrl?'.mockup{max-width:100%;max-height:320px;border:1px solid #ccc;border-radius:8px;margin-bottom:20px;display:block}':'')
-    +'table{width:100%;border-collapse:collapse;margin-bottom:20px}'
-    +'th,td{border:1px solid #ccc;padding:6px 8px;font-size:13px;text-align:center}'
-    +'th{background:#f2f2f2;font-size:11px;text-transform:uppercase;color:#555}'
-    +'.item{text-align:left}'
-    +'.muted{color:#888}'
-    +'.tot{font-weight:700}'
-    +'tfoot td{font-weight:700;background:#fafafa}'
-    +'.sec{margin-bottom:18px}'
-    +'.sec-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:4px}'
-    +'.sec-body{font-size:14px;white-space:pre-wrap;line-height:1.5}'
-    +'.bar{margin-top:10px}'
-    +'</style></head><body>'
-    +'<h1>Order #'+esc(o.num)+(o.name?' — '+esc(o.name):'')+'</h1>'
-    +'<div class="sub">'+esc(o.acct)+(o.due?' · Print date '+esc(o.due):'')+'</div>'
-    +(o.mockupUrl?'<img class="mockup" src="'+esc(o.mockupUrl)+'" alt="Mockup">':'')
-    +'<table><thead><tr><th class="item">Item</th>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'<th>Total</th></tr></thead>'
-    +'<tbody>'+bodyRows+'</tbody>'
-    +'<tfoot><tr><td class="item">Total</td>'+footCells+'<td>'+grand+'</td></tr></tfoot>'
-    +'</table>'
-    +(o.printSpecs?'<div class="sec"><div class="sec-lbl">Specifications for Printing</div><div class="sec-body">'+esc(o.printSpecs)+'</div></div>':'')
-    +(o.specialNotes?'<div class="sec"><div class="sec-lbl">Special Notes</div><div class="sec-body">'+esc(o.specialNotes)+'</div></div>':'')
-    +'<div class="bar"><button onclick="window.print()" style="padding:10px 18px;font-size:13px;cursor:pointer">Print / Save PDF</button></div>'
-    +'</body></html>';
-  w.document.write(html);
-  w.document.close();
+  if(!w) return; // popup blocked
+  w.document.write('<p style="font-family:Arial;padding:24px;color:#666">Loading order sheet…</p>');
+  fetch('/api/order-sizes?orderId='+encodeURIComponent(o.id),{headers:{Accept:'application/json'}})
+    .then(r=>r.json())
+    .then(d=>{
+      const rows=(d&&d.records)||[];
+      const html=renderSheetHTML({goa:o.num,name:o.name,account:o.acct,mockup:o.mockupUrl}, rows);
+      w.document.open(); w.document.write(html); w.document.close();
+    })
+    .catch(e=>{
+      w.document.body.innerHTML='<p style="font-family:Arial;padding:24px">Could not load size data: '+(e&&e.message||'error')+'</p>';
+    });
 }
 
 /* ── Ready for Print ── */
