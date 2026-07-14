@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Culture Apparel — Production Dashboard</title>
+<link rel="stylesheet" href="tabler-icons.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+ --bg:#0B0B0C;--hdr:#070708;--nav:#0E0E10;--panel:#121214;--ink-bg:#0C0C0D;
+ --chip:#1A1A1C;--line:#262628;--line2:#313134;
+ --ink:#ECEAE4;--ink2:#9C988F;--ink3:#6E6A62;--ink4:#5E5C56;
+ --red:#C6372B;--red-hot:#E24A3A;--red-bg:#2A100D;--red-bd:#7A241C;--red-tx:#E8A89F;
+ --grn:#7FA644;--grn-bg:#18230D;--grn-bd:#3D5418;--grn-tx:#BBD382;
+ --amb:#C68A30;--amb-bg:#281C09;--amb-bd:#5E4214;--amb-tx:#E0B870;
+ --rad-lg:8px;--rad-md:6px;--rad-sm:4px;
+ --cond:'Oswald',-apple-system,sans-serif;--sans:'Archivo',-apple-system,sans-serif;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;letter-spacing:.005em}
+.hdr{background:var(--hdr);border-bottom:1px solid var(--red);padding:16px 28px;display:flex;align-items:center;gap:16px}
+.logo{width:44px;height:40px;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo svg{width:100%;height:100%;display:block;filter:drop-shadow(0 0 9px rgba(198,55,43,.4))}
+.app-title{font-family:var(--cond);font-size:20px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink);line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-sub{font-family:var(--cond);font-size:11px;font-weight:500;letter-spacing:.3em;text-transform:uppercase;color:var(--red);margin-top:4px}
+.conn-badge{margin-left:auto;background:transparent;border:1px solid var(--line);border-radius:var(--rad-sm);padding:6px 10px;font-family:var(--cond);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);display:flex;align-items:center;gap:7px;flex-shrink:1;min-width:0;overflow:hidden}
+.sf-dot{width:8px;height:8px;border-radius:50%;background:#3A3A3D;flex-shrink:0}
+.sf-dot.on{background:var(--grn);box-shadow:0 0 6px var(--grn)}
+.sf-dot.err{background:var(--red-hot);box-shadow:0 0 6px var(--red-hot)}
+.sf-dot.load{background:var(--amb);box-shadow:0 0 6px var(--amb);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.top-nav{background:var(--nav);border-bottom:1px solid var(--line);padding:0 28px;display:flex;gap:2px;overflow-x:auto}
+.ttab{display:inline-flex;align-items:center;gap:9px;padding:15px 22px;font-family:var(--cond);font-size:14px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:var(--ink2);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;user-select:none;white-space:nowrap}
+.ttab:hover{color:var(--ink)}
+.ttab.on{color:var(--ink);border-bottom-color:var(--red)}
+.tcount{background:var(--chip);color:var(--ink2);font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;margin-left:2px}
+.ttab.on .tcount{background:var(--red);color:#000}
+.page{padding:24px 28px;max-width:1240px;margin:0 auto;width:100%}
+.sec{display:none}.sec.on{display:block}
+.sf-panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--rad-lg);padding:22px;margin-bottom:22px}
+.btn-ref{background:transparent;border:1px solid var(--line2);color:var(--ink);padding:9px 16px;border-radius:var(--rad-sm);font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .15s}
+.btn-ref:hover{border-color:var(--red);color:var(--red)}
+.msg-err{background:var(--red-bg);border:1px solid var(--red-bd);border-radius:var(--rad-sm);padding:9px 13px;font-size:12px;color:var(--red-tx);margin-top:10px}
+.badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--cond);font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:var(--rad-sm)}
+.empty{font-size:13px;color:var(--ink4);padding:14px 4px}
+.meth-hdr{display:flex;align-items:center;gap:9px;font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin:22px 0 10px}
+.meth-hdr:first-child{margin-top:0}
+.meth-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ocard{border-radius:var(--rad-md);margin-bottom:9px;overflow:hidden;border:1px solid var(--line)}
+.ohdr{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer;user-select:none;font-family:var(--cond);letter-spacing:.02em;transition:filter .15s;background:var(--chip)}
+.ohdr:hover{filter:brightness(1.25)}
+.odet{padding:16px;display:none;border-top:1px solid var(--line);background:var(--ink-bg)}
+.odet.on{display:block}
+.chev{font-size:15px;margin-left:auto;transition:transform .2s;opacity:.6}
+.chev.on{transform:rotate(180deg)}
+.fieldlbl{font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.07em;font-family:var(--cond)}
+.fieldwrap{margin-bottom:16px}
+input,textarea,select{border-radius:var(--rad-sm);border:1px solid var(--line);padding:10px 12px;font-size:13px;width:100%;font-family:var(--sans);color:var(--ink);background:var(--ink-bg);outline:none;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--red)}
+textarea{resize:vertical;min-height:70px}
+.ckrow{display:flex;align-items:center;gap:10px;background:var(--chip);border:1px solid var(--line);border-radius:var(--rad-sm);padding:11px 14px;margin-bottom:10px;cursor:pointer}
+.cktog{width:22px;height:22px;border-radius:5px;border:2px solid var(--ink4);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.cktog.ck{background:var(--red-bg);border-color:var(--red);color:var(--red-tx)}
+.sav-tag{font-size:10px;color:var(--amb-tx);margin-left:6px}
+.actbtn{width:100%;background:var(--red);color:#fff;border:none;border-radius:var(--rad-sm);padding:13px;font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s;margin-top:6px}
+.actbtn:hover{filter:brightness(1.12)}
+.actbtn.ghost{background:transparent;border:1px solid var(--line2);color:var(--ink)}
+.actbtn.ghost:hover{border-color:var(--red);color:var(--red)}
+.pp-mini{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--rad-sm);padding:9px 12px;margin-bottom:6px;font-size:12px}
+.pp-mini b{font-family:var(--cond);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);min-width:78px}
+.hint{font-size:11px;color:var(--ink4);margin-top:-10px;margin-bottom:16px}
+.stepbar{display:flex;gap:3px;margin-bottom:18px}
+.stepseg{flex:1;text-align:center;padding:7px 2px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* login (same as pre-production dashboard) */
+#login-screen{position:fixed;inset:0;background:#070708;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.login-box{background:#0E0E10;border:1px solid #262628;border-radius:12px;padding:36px 40px;width:100%;max-width:380px;text-align:center}
+.login-logo{width:56px;height:56px;background:#C6372B;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px}
+.login-title{font-family:var(--cond,'Oswald',sans-serif);font-size:22px;font-weight:700;color:#ECEAE4;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.login-sub{font-size:12px;color:#6E6A62;margin-bottom:28px}
+.pin-display{display:flex;justify-content:center;gap:12px;margin-bottom:24px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid #444441;background:transparent;transition:all .15s}
+.pin-dot.filled{background:#C6372B;border-color:#C6372B}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.pin-btn{background:#1A1A1C;border:1px solid #262628;color:#ECEAE4;font-family:var(--cond,'Oswald',sans-serif);font-size:20px;font-weight:600;border-radius:8px;padding:16px;cursor:pointer;transition:all .15s;user-select:none}
+.pin-btn:hover{background:#262628;border-color:#444441}
+.pin-btn:active{transform:scale(.95);background:#C6372B;color:#000;border-color:#C6372B}
+.pin-clear{background:transparent;border:1px solid #262628;color:#6E6A62;font-size:13px;font-weight:500;border-radius:8px;padding:16px;cursor:pointer;transition:all .15s}
+.pin-clear:hover{color:#ECEAE4;border-color:#444441}
+.login-err{color:#E8A89F;font-size:12px;font-weight:500;margin-top:8px;min-height:18px}
+.login-hint{font-size:11px;color:#444441;margin-top:16px}
+@media(max-width:760px){.page{padding:16px}.hdr,.top-nav{padding-left:16px;padding-right:16px}}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><i class="ti ti-printer" style="color:#000;font-size:26px" aria-hidden="true"></i></div>
+    <div class="login-title">Culture Apparel</div>
+    <div class="login-sub">Production Dashboard — Enter PIN to continue</div>
+    <div class="pin-display">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-clear" onclick="pinClear()"><i class="ti ti-backspace" aria-hidden="true"></i></button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn" onclick="pinSubmit()" style="background:#C6372B;color:#000;border-color:#C6372B"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-hint">Worker PIN: 4 digits · Manager PIN: 4 digits</div>
+  </div>
+</div>
+
+<div style="display:flex;flex-direction:column;min-height:100vh;display:none" id="app-shell">
+
+<header class="hdr">
+  <div class="logo" aria-label="Culture Apparel"><svg viewBox="0 0 124 104" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Culture Apparel"><circle cx="62" cy="52" r="46" fill="#C6372B"></circle></svg></div>
+  <div style="min-width:0;flex-shrink:1"><div class="app-title">Culture Apparel Print Shop</div><div class="app-sub">Production Dashboard</div></div>
+  <div class="conn-badge"><div class="sf-dot" id="sf-dot"></div><span id="sf-txt" style="white-space:nowrap">Loading…</span></div>
+  <button onclick="doLogout()" style="background:transparent;border:1px solid #262628;color:#6E6A62;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;flex-shrink:0;white-space:nowrap">
+    <i class="ti ti-logout" style="font-size:14px" aria-hidden="true"></i> Log out
+  </button>
+</header>
+
+<nav class="top-nav">
+  <button class="ttab on" id="tab-rfp" onclick="goStage('rfp')"><i class="ti ti-clock-check" aria-hidden="true"></i> Ready for Print <span class="tcount" id="ct-rfp">0</span></button>
+  <button class="ttab" id="tab-ip" onclick="goStage('ip')"><i class="ti ti-printer" aria-hidden="true"></i> In Production <span class="tcount" id="ct-ip">0</span></button>
+  <button class="ttab" id="tab-pp" onclick="goStage('pp')"><i class="ti ti-package" aria-hidden="true"></i> Post-Production <span class="tcount" id="ct-pp">0</span></button>
+  <button class="ttab" id="tab-done" onclick="goStage('done')"><i class="ti ti-circle-check" aria-hidden="true"></i> Completed <span class="tcount" id="ct-done">0</span></button>
+  <a class="ttab" href="index.html" style="margin-left:auto;text-decoration:none"><i class="ti ti-arrow-left" aria-hidden="true"></i> Pre-Production Dashboard</a>
+</nav>
+
+<div class="page" style="flex:1">
+  <div class="sf-panel" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="font-size:14px;font-weight:600;color:#ECEAE4;display:flex;align-items:center;gap:8px"><i class="ti ti-cloud" style="color:#C6372B" aria-hidden="true"></i> Live Production Orders</div>
+    <button class="btn-ref" onclick="doLoad()"><i class="ti ti-refresh" aria-hidden="true"></i> Refresh</button>
+    <span style="font-size:11px;color:#6E6A62">Synced live from Salesforce</span>
+    <div id="sf-msg" style="flex-basis:100%"></div>
+  </div>
+
+  <div id="sec-rfp" class="sec on"></div>
+  <div id="sec-ip" class="sec"></div>
+  <div id="sec-pp" class="sec"></div>
+  <div id="sec-done" class="sec"></div>
+</div>
+
+</div>
+
+<script>
+(function(){
+
+/* ══════════════════════════════════════
+   LOGIN (same PINs as the Pre-Production Dashboard)
+══════════════════════════════════════ */
+let pinBuffer='';
+const WORKER_PIN='1234';
+const MANAGER_PIN='6767';
+window.pinPress=function(d){
+  if(pinBuffer.length>=4) return;
+  pinBuffer+=d;
+  updatePinDots();
+  if(pinBuffer.length===4) setTimeout(pinSubmit,120);
+};
+window.pinClear=function(){
+  pinBuffer=pinBuffer.slice(0,-1);
+  updatePinDots();
+  document.getElementById('login-err').textContent='';
+};
+window.pinSubmit=function(){
+  if(pinBuffer===WORKER_PIN||pinBuffer===MANAGER_PIN){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-shell').style.display='flex';
+    initApp();
+  } else {
+    document.getElementById('login-err').textContent='Incorrect PIN — try again';
+    pinBuffer='';
+    updatePinDots();
+    setTimeout(()=>document.getElementById('login-err').textContent='',2000);
+  }
+};
+function updatePinDots(){
+  for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);
+}
+window.doLogout=function(){
+  pinBuffer='';updatePinDots();
+  document.getElementById('login-err').textContent='';
+  document.getElementById('app-shell').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+};
+
+/* ══════════════════════════════════════
+   DATA
+══════════════════════════════════════ */
+const STAGE_KEY={'Ready for Print':'rfp','In Production':'ip','Post-Production':'pp','Completed':'done'};
+const STAGES=['rfp','ip','pp','done'];
+const METH_COLOR={sp:'#C6372B',em:'#5E8B8A',hp:'#C68A30'};
+const METH_LABEL={sp:'Screen Print',em:'Embroidery',hp:'Heat Press'};
+let ALL=[];
+let curStage='rfp';
+let openO={};
+let ppItems={};
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function methodOf(printerName){
+  const p=(printerName||'').toLowerCase();
+  if(p.includes('embroidery')) return 'em';
+  if(p.includes('heat press')) return 'hp';
+  return 'sp';
+}
+
+function mapRec(r){
+  const addr=r.ShippingAddress||{};
+  return{
+    id:r.Id,
+    num:(r.GOA_Order_Number__c&&String(r.GOA_Order_Number__c).replace(/<[^>]*>/g,''))||r.OrderNumber||'—',
+    name:r.Customer_Order_Name__c||'',
+    acct:(r.Account&&r.Account.Name)||'—',
+    due:r.Print_Date__c?r.Print_Date__c.slice(0,10):null,
+    method:methodOf(r.Printer__r&&r.Printer__r.Name),
+    stageKey:STAGE_KEY[r.Order_Substatus__c]||null,
+    substatus:r.Order_Substatus__c||'Pre-Production',
+    timer:r.Production_Timer__c==null?'':r.Production_Timer__c,
+    misprint:!!r.Misprint__c,
+    misprintDetails:r.Misprint_Details__c||'',
+    packaging:r.Packaging_Count__c==null?'':r.Packaging_Count__c,
+    notes:r.Production_Notes__c||'',
+    delivery:r.Shipping_Delivery__c||'',
+    labelPrinted:!!r.Shipping_Label_Printed__c,
+    addr:{street:addr.street||'',city:addr.city||'',state:addr.state||'',postalCode:addr.postalCode||'',country:addr.country||''},
+    blanks:(()=>{const rows=(r.OrderItems&&r.OrderItems.records)||[];const m={};rows.forEach(it=>{if(!it.Product2)return;const k=it.Product2.Name+'|'+(it.Color__c||'');if(!m[k])m[k]={name:it.Product2.Name,color:it.Color__c||'',qty:0};m[k].qty+=(it.Quantity||0);});return Object.values(m);})(),
+    mockupUrl:r.DesignMockupUrl||null,
+    sav:{},
+  };
+}
+
+let loadInFlight=false;
+async function doLoad(){
+  if(loadInFlight) return;
+  loadInFlight=true;
+  sfSt('load','Loading...');
+  sfMsg('','');
+  try{
+    const r=await fetch('/api/orders',{headers:{Accept:'application/json'}});
+    const d=await r.json();
+    if(!r.ok) throw new Error((d&&d.error)||('Request failed ('+r.status+')'));
+    ALL=(d.records||[]).map(mapRec).filter(o=>o.stageKey); // only orders past Pre-Production show here
+    sfSt('on','Live · '+ALL.length+' orders in production');
+    updateCounts();
+    renderCur();
+  }catch(e){sfSt('err','Load failed');sfMsg('Load error: '+e.message,'err');}
+  finally{loadInFlight=false;}
+}
+window.doLoad=doLoad;
+
+function sfSt(cls,t){
+  const dot=document.getElementById('sf-dot');
+  dot.className='sf-dot '+cls;
+  document.getElementById('sf-txt').textContent=t;
+}
+function sfMsg(m,t){document.getElementById('sf-msg').innerHTML=m?'<div class="msg-'+t+'" style="margin-top:10px">'+m+'</div>':'';}
+
+let autoRefreshTimer=null;
+function startAutoRefresh(){
+  if(autoRefreshTimer) return;
+  autoRefreshTimer=setInterval(()=>{
+    if(document.hidden) return;
+    const a=document.activeElement;
+    if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT')) return;
+    doLoad();
+  },20000);
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) doLoad(); });
+
+function initApp(){
+  renderCur();
+  doLoad();
+  startAutoRefresh();
+}
+
+/* ══════════════════════════════════════
+   WRITE BACK — same optimistic-save pattern as the Pre-Production Dashboard
+══════════════════════════════════════ */
+async function patchField(sid,field,val,o,key){
+  o.sav[key]=true;renderCur();
+  const body={};body[field]=val;
+  try{
+    const r=await fetch('/api/orders/'+encodeURIComponent(sid),{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body),
+    });
+    if(!r.ok&&r.status!==204){let m='Update failed';try{const e=await r.json();m=(e&&e.error)||m;}catch(_){}throw new Error(m);}
+    o[key]=val;
+  }catch(e){alert('Sync error: '+e.message);}
+  finally{o.sav[key]=false;renderCur();}
+}
+
+// Moving stages re-buckets the order (or drops it off this dashboard, for Pre-Production).
+async function advanceStage(o,newSubstatus){
+  o.sav.substatus=true;renderCur();
+  try{
+    const r=await fetch('/api/orders/'+encodeURIComponent(o.id),{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({Order_Substatus__c:newSubstatus}),
+    });
+    if(!r.ok&&r.status!==204){let m='Update failed';try{const e=await r.json();m=(e&&e.error)||m;}catch(_){}throw new Error(m);}
+    o.substatus=newSubstatus;
+    o.stageKey=STAGE_KEY[newSubstatus]||null;
+    openO[o.id]=false;
+  }catch(e){alert('Sync error: '+e.message);}
+  finally{o.sav.substatus=false;updateCounts();renderCur();}
+}
+
+/* ══════════════════════════════════════
+   RENDER
+══════════════════════════════════════ */
+window.goStage=function(k){
+  curStage=k;
+  STAGES.forEach(s=>{
+    document.getElementById('tab-'+s).classList.toggle('on',s===k);
+    document.getElementById('sec-'+s).classList.toggle('on',s===k);
+  });
+  renderCur();
+};
+
+function updateCounts(){
+  STAGES.forEach(s=>{
+    document.getElementById('ct-'+s).textContent=ALL.filter(o=>o.stageKey===s).length;
+  });
+}
+
+function renderCur(){
+  const el=document.getElementById('sec-'+curStage);
+  const orders=ALL.filter(o=>o.stageKey===curStage);
+  if(!orders.length){ el.innerHTML='<p class="empty">No orders currently at this stage.</p>'; return; }
+  let h='';
+  ['sp','em','hp'].forEach(m=>{
+    const grp=orders.filter(o=>o.method===m);
+    if(!grp.length) return;
+    h+='<div class="meth-hdr"><div class="meth-dot" style="background:'+METH_COLOR[m]+'"></div>'+METH_LABEL[m]+' <span style="color:var(--ink4);font-weight:400">· '+grp.length+'</span></div>';
+    grp.forEach(o=>{ h+=orderCard(o); });
+  });
+  el.innerHTML=h;
+}
+
+function stageBadge(s){
+  const map={'Ready for Print':'#1E2D0E|#E7F2D2','In Production':'#2A100D|#E8A89F','Post-Production':'#281C09|#E0B870','Completed':'#0D1F2A|#8FCBE0'};
+  const c=(map[s]||'#1A1A1C|#9C988F').split('|');
+  return '<span class="badge" style="background:'+c[0]+';color:'+c[1]+'">'+s+'</span>';
+}
+
+function orderCard(o){
+  const open=!!openO[o.id];
+  const dt=o.due?new Date(o.due+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+  return '<div class="ocard">'
+    +'<div class="ohdr" data-a="toggle" data-sid="'+o.id+'" style="border-left:3px solid '+METH_COLOR[o.method]+'">'
+    +'<span style="font-size:14px;font-weight:600;color:#ECEAE4">#'+esc(o.num)+'</span>'
+    +(o.name?'<span style="font-size:13px;color:#C9C6BF">'+esc(o.name)+'</span>':'')
+    +stageBadge(o.substatus)
+    +(o.misprint?'<span class="badge" style="background:var(--red-bg);color:var(--red-tx)"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Misprint</span>':'')
+    +(dt?'<span style="font-size:11px;color:#6E6A62;margin-left:auto">'+dt+'</span>':'<span style="margin-left:auto"></span>')
+    +'<i class="ti ti-chevron-down chev'+(open?' on':'')+'" aria-hidden="true"></i>'
+    +'</div>'
+    +'<div class="odet'+(open?' on':'')+'">'
+    +(open?stagePanel(o):'')
+    +'</div>'
+    +'</div>';
+}
+
+function stagePanel(o){
+  if(o.stageKey==='rfp') return rfpPanel(o);
+  if(o.stageKey==='ip') return ipPanel(o);
+  if(o.stageKey==='pp') return ppPanel(o);
+  return donePanel(o);
+}
+
+/* Full 5-stage path, click any stage to jump there (mirrors the Salesforce
+   Path and the stepper on the Pre-Production Dashboard). This is what lets an
+   order be sent backward — e.g. Ready for Print -> Pre-Production to remake a
+   screen — from right here, not just forward through the stage buttons. */
+const STATUS_STAGES=['Pre-Production','Ready for Print','In Production','Post-Production','Completed'];
+function stepperHTML(o){
+  const curIdx=STATUS_STAGES.indexOf(o.substatus);
+  return '<div class="fieldwrap"><span class="fieldlbl">Production Status'+(o.sav.substatus?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<div class="stepbar">'
+    +STATUS_STAGES.map((s,i)=>{
+      const done=i<curIdx,active=i===curIdx;
+      const bg=active?'#C6372B':done?'#3A2C10':'#1A1A1C';
+      const text=active?'#FFFFFF':done?'#E0B870':'#6E6A62';
+      return '<div class="stepseg" data-a="advance" data-sid="'+o.id+'" data-v="'+s+'" title="Set to '+s+'" style="background:'+bg+';color:'+text+'">'+s+'</div>';
+    }).join('')
+    +'</div>'
+    +(curIdx===0?'<p class="hint" style="margin-top:8px">Moving this order to Pre-Production sends it back to the Pre-Production Dashboard — it will drop off this page.</p>':'')
+    +'</div>';
+}
+
+function blanksHTML(o){
+  if(!o.blanks.length) return '';
+  return '<div class="fieldwrap"><span class="fieldlbl">Garment Breakdown</span>'
+    +o.blanks.map(b=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1A1A1C;font-size:13px"><span style="color:#C9C6BF">'+esc(b.name)+(b.color?' <span style="color:#6E6A62">'+esc(b.color)+'</span>':'')+'</span><span style="font-weight:600;color:#9C988F">'+b.qty+' units</span></div>').join('')
+    +'</div>';
+}
+
+/* ── Ready for Print ── */
+function rfpPanel(o){
+  return stepperHTML(o)
+    +blanksHTML(o)
+    +'<p style="font-size:12px;color:#6E6A62;margin-bottom:14px">Pre-production requirements are complete for this order. Click below once the press operator begins the job.</p>'
+    +'<button class="actbtn" data-a="advance" data-sid="'+o.id+'" data-v="In Production"'+(o.sav.substatus?' disabled':'')+'><i class="ti ti-player-play" aria-hidden="true"></i> '+(o.sav.substatus?'Starting…':'Start Production')+'</button>';
+}
+
+/* ── In Production ── */
+function ppItemsPanel(o){
+  const st=ppItems[o.id];
+  let h='<div class="fieldwrap"><span class="fieldlbl">Production Items</span>';
+  if(!st||st.loading){ h+='<p style="font-size:12px;color:#6E6A62">Loading items…</p>'; }
+  else if(st.error){ h+='<p style="font-size:12px;color:#E8A89F">'+esc(st.error)+'</p>'; }
+  else if(!st.items.length){ h+='<p style="font-size:12px;color:#6E6A62">No production items recorded for this order.</p>'; }
+  else{
+    h+=st.items.map(it=>{
+      const detail=it.Type__c==='Screen'?(it.Screen_Sub_Status__c||''):it.Type__c==='Ink'?(it.Ink_Sub_Status__c||''):it.Type__c==='Transfer'?(it.Transfers_Sub_Status__c||''):(it.Status__c||'');
+      return '<div class="pp-mini"><b>'+esc(it.Type__c||'—')+'</b><span style="flex:1;color:#9C988F">'+esc(detail||it.Status__c||'—')+'</span></div>';
+    }).join('');
+  }
+  h+='</div>';
+  return h;
+}
+async function loadPpItems(orderId){
+  if(ppItems[orderId]&&!ppItems[orderId].error) return;
+  ppItems[orderId]={loading:true,error:null,items:[]};
+  renderCur();
+  try{
+    const r=await fetch('/api/pre-production-items?orderId='+encodeURIComponent(orderId),{headers:{Accept:'application/json'}});
+    const d=await r.json();
+    if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+    ppItems[orderId]={loading:false,error:null,items:(d.records||[])};
+  }catch(e){ ppItems[orderId]={loading:false,error:'Could not load items: '+e.message,items:[]}; }
+  renderCur();
+}
+
+function ipPanel(o){
+  return stepperHTML(o)
+    +blanksHTML(o)
+    +ppItemsPanel(o)
+    +'<div class="fieldwrap"><span class="fieldlbl">Time in Production (minutes)'+(o.sav.timer?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<input type="number" min="0" placeholder="e.g. 45" value="'+(o.timer===''?'':o.timer)+'" data-fi="'+o.id+'" data-ff="Production_Timer__c" data-fk="timer">'
+    +'<p class="hint">Logged manually by the press operator — there\'s no live stopwatch field in Salesforce yet.</p></div>'
+    +'<div class="fieldwrap"><span class="fieldlbl">Packaging Count'+(o.sav.packaging?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<input type="number" min="0" placeholder="Number of boxes" value="'+(o.packaging===''?'':o.packaging)+'" data-fi="'+o.id+'" data-ff="Packaging_Count__c" data-fk="packaging"></div>'
+    +'<div class="ckrow" data-a="ck" data-sid="'+o.id+'" data-v="'+(o.misprint?'true':'false')+'"><div class="cktog'+(o.misprint?' ck':'')+'"><i class="ti ti-alert-triangle" style="font-size:12px" aria-hidden="true"></i></div><div style="font-size:13px;font-weight:500;color:#C9C6BF">Flag misprint on this order'+(o.sav.misprint?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</div></div>'
+    +'<div class="fieldwrap"><span class="fieldlbl">Misprint Details'+(o.sav.misprintDetails?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<textarea placeholder="What happened, which item, how many…" data-fi="'+o.id+'" data-ff="Misprint_Details__c" data-fk="misprintDetails">'+esc(o.misprintDetails)+'</textarea></div>'
+    +'<button class="actbtn" data-a="advance" data-sid="'+o.id+'" data-v="Post-Production"'+(o.sav.substatus?' disabled':'')+'><i class="ti ti-arrow-right" aria-hidden="true"></i> '+(o.sav.substatus?'Moving…':'Move to Post-Production')+'</button>';
+}
+
+/* ── Post-Production ── */
+function ppPanel(o){
+  return stepperHTML(o)
+    +'<div class="fieldwrap"><span class="fieldlbl">Production Notes'+(o.sav.notes?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<textarea placeholder="Notes for this order\'s production run…" data-fi="'+o.id+'" data-ff="Production_Notes__c" data-fk="notes">'+esc(o.notes)+'</textarea></div>'
+    +'<div class="ckrow" data-a="ck" data-sid="'+o.id+'" data-v="'+(o.misprint?'true':'false')+'"><div class="cktog'+(o.misprint?' ck':'')+'"><i class="ti ti-alert-triangle" style="font-size:12px" aria-hidden="true"></i></div><div style="font-size:13px;font-weight:500;color:#C9C6BF">Misprint flagged on this order'+(o.sav.misprint?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</div></div>'
+    +(o.misprint?'<div class="fieldwrap"><span class="fieldlbl">Misprint Details'+(o.sav.misprintDetails?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span><textarea placeholder="What happened, which item, how many…" data-fi="'+o.id+'" data-ff="Misprint_Details__c" data-fk="misprintDetails">'+esc(o.misprintDetails)+'</textarea></div>':'')
+    +'<div class="fieldwrap"><span class="fieldlbl">Delivery Method'+(o.sav.delivery?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<input type="text" placeholder="e.g. Ship, Local Delivery, Customer Pickup" value="'+esc(o.delivery)+'" data-fi="'+o.id+'" data-ff="Shipping_Delivery__c" data-fk="delivery">'
+    +'<p class="hint">Free text for now — tell me the exact picklist values from Salesforce and I\'ll turn this into a dropdown.</p></div>'
+    +'<div class="fieldwrap"><span class="fieldlbl">Packaging Count'+(o.sav.packaging?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<input type="number" min="0" placeholder="Number of boxes" value="'+(o.packaging===''?'':o.packaging)+'" data-fi="'+o.id+'" data-ff="Packaging_Count__c" data-fk="packaging"></div>'
+    +'<button class="actbtn" data-a="label" data-sid="'+o.id+'"><i class="ti ti-printer" aria-hidden="true"></i> Print Shipping Label</button>';
+}
+
+/* ── Completed ── */
+function donePanel(o){
+  return stepperHTML(o)
+    +blanksHTML(o)
+    +'<div class="fieldwrap"><span class="fieldlbl">Delivery Method</span><div style="font-size:13px;color:#C9C6BF">'+esc(o.delivery||'—')+'</div></div>'
+    +'<div class="fieldwrap"><span class="fieldlbl">Packaging Count</span><div style="font-size:13px;color:#C9C6BF">'+(o.packaging===''?'—':o.packaging)+'</div></div>'
+    +'<div class="fieldwrap"><span class="fieldlbl">Shipping Label</span>'
+    +(o.labelPrinted?'<span class="badge" style="background:var(--grn-bg);color:var(--grn-tx)"><i class="ti ti-check" aria-hidden="true"></i> Printed</span>':'<span class="badge" style="background:var(--chip);color:var(--ink2)">Not printed</span>')
+    +'</div>'
+    +'<button class="actbtn ghost" data-a="label" data-sid="'+o.id+'"><i class="ti ti-printer" aria-hidden="true"></i> Reprint Shipping Label</button>';
+}
+
+/* ── Shipping label (printable sheet — no live carrier integration yet) ── */
+function openShippingLabel(o){
+  const w=window.open('','_blank');
+  if(!w) return;
+  const addrLines=[o.addr.street,[o.addr.city,o.addr.state,o.addr.postalCode].filter(Boolean).join(', '),o.addr.country].filter(Boolean);
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Shipping Label — '+esc(o.num)+'</title><style>'
+    +'body{font-family:Arial,sans-serif;padding:40px;color:#111}'
+    +'.label{border:2px solid #111;border-radius:10px;padding:28px;max-width:480px}'
+    +'.from{font-size:11px;color:#666;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #ccc}'
+    +'.to-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:6px}'
+    +'.to{font-size:20px;font-weight:700;margin-bottom:4px}'
+    +'.addr{font-size:16px;line-height:1.5}'
+    +'.meta{margin-top:20px;padding-top:14px;border-top:1px solid #ccc;font-size:12px;color:#444}'
+    +'.bar{margin-top:6px}'
+    +'</style></head><body>'
+    +'<div class="label">'
+    +'<div class="from">Culture Apparel Print Shop</div>'
+    +'<div class="to-lbl">Ship To</div>'
+    +'<div class="to">'+esc(o.acct)+'</div>'
+    +(addrLines.length?'<div class="addr">'+addrLines.map(esc).join('<br>')+'</div>':'<div class="addr" style="color:#c00">No shipping address on file for this order — check the Account in Salesforce.</div>')
+    +'<div class="meta">Order #'+esc(o.num)+(o.name?' · '+esc(o.name):'')+(o.delivery?' · '+esc(o.delivery):'')+'</div>'
+    +'</div>'
+    +'<div class="bar"><button onclick="window.print()" style="margin-top:20px;padding:10px 18px;font-size:13px;cursor:pointer">Print / Save PDF</button></div>'
+    +'</body></html>';
+  w.document.write(html);
+  w.document.close();
+}
+
+/* ══════════════════════════════════════
+   EVENTS
+══════════════════════════════════════ */
+document.body.addEventListener('click',function(e){
+  const t=e.target.closest('[data-a]');
+  if(!t) return;
+  const{a,sid,v}=t.dataset;
+  const o=ALL.find(x=>x.id===sid);
+  if(a==='toggle'){
+    openO[sid]=!openO[sid];
+    if(openO[sid]){
+      const oo=ALL.find(x=>x.id===sid);
+      if(oo&&oo.stageKey==='ip') loadPpItems(sid);
+    }
+    renderCur();return;
+  }
+  if(!o) return;
+  if(a==='advance'){
+    if(o.sav.substatus||o.substatus===v) return;
+    advanceStage(o,v);return;
+  }
+  if(a==='ck'){
+    if(o.sav.misprint) return;
+    patchField(sid,'Misprint__c',v!=='true',o,'misprint');return;
+  }
+  if(a==='label'){
+    openShippingLabel(o);
+    // Printing the label marks it printed and completes the order.
+    if(!o.labelPrinted) patchField(sid,'Shipping_Label_Printed__c',true,o,'labelPrinted');
+    if(o.substatus!=='Completed') advanceStage(o,'Completed');
+    return;
+  }
+});
+
+document.body.addEventListener('change',function(e){
+  const t=e.target;
+  const oid=t.dataset.fi, field=t.dataset.ff, key=t.dataset.fk;
+  if(!oid||!field) return;
+  const o=ALL.find(x=>x.id===oid);
+  if(!o) return;
+  let val=t.value;
+  if(t.type==='number') val=val===''?null:Number(val);
+  patchField(oid,field,val,o,key);
+});
+
+})();
+</script>
+</body></html>
