@@ -322,10 +322,27 @@ async function patchField(sid,field,val,o,key){
 async function advanceStage(o,newSubstatus){
   o.sav.substatus=true;renderCur();
   try{
+    const body={Order_Substatus__c:newSubstatus};
+    // Moving back to Pre-Production must also clear the checklist fields.
+    // Salesforce's "RECORDTRIGGER ORDER Production Status" flow auto-promotes
+    // Order_Substatus__c back to "Ready for Print" the instant it sees the
+    // checklist fields (Films Printed / Screens Completed / Mix Inks, Digitize
+    // File / Thread & Materials, Transfers Received / Ready) still marked
+    // complete -- so without this, the revert gets silently overwritten by
+    // Salesforce within the same save. Reset all of them (not just this
+    // order's method) since an order can have multiple production tracks.
+    // Confirmed via OrderHistory + Flow Builder, 2026-07-14.
+    if(newSubstatus==='Pre-Production'){
+      Object.assign(body,{
+        Films_Printed__c:false,Screens_Completed__c:false,Mix_Inks__c:false,
+        Digitize_File__c:false,Thread_Color_Materials__c:false,
+        Transfers_Received__c:false,Transfers_Ready__c:false,
+      });
+    }
     const r=await fetch('/api/orders/'+encodeURIComponent(o.id),{
       method:'PATCH',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({Order_Substatus__c:newSubstatus}),
+      body:JSON.stringify(body),
     });
     if(!r.ok&&r.status!==204){let m='Update failed';try{const e=await r.json();m=(e&&e.error)||m;}catch(_){}throw new Error(m);}
     o.substatus=newSubstatus;
@@ -414,7 +431,7 @@ function stepperHTML(o){
       return '<div class="stepseg" data-a="advance" data-sid="'+o.id+'" data-v="'+s+'" title="Set to '+s+'" style="background:'+bg+';color:'+text+'">'+s+'</div>';
     }).join('')
     +'</div>'
-    +(curIdx===0?'<p class="hint" style="margin-top:8px">Moving this order to Pre-Production sends it back to the Pre-Production Dashboard — it will drop off this page.</p>':'')
+    +'<p class="hint" style="margin-top:8px">Moving this order to Pre-Production clears its checklist items and sends it back to the Pre-Production Dashboard — it will drop off this page.</p>'
     +'</div>';
 }
 
