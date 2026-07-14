@@ -625,8 +625,31 @@ function mapRec(r){
     scDone:!!r.Screens_Completed__c,inkDone:!!r.Mix_Inks__c,
     dfDone:!!r.Digitize_File__c,thDone:!!r.Thread_Color_Materials__c,
     trRecv:!!r.Transfers_Received__c,trRdy:!!r.Transfers_Ready__c,
+    substatus:r.Order_Substatus__c||'Pre-Production',
     sav:{},
   };
+}
+
+/* ── PRODUCTION STATUS (Order_Substatus__c) ──
+   Mirrors the 5-stage Path on the Order record in Salesforce. Pre-Production
+   and Ready for Print are computed from the existing per-method checklists;
+   In Production / Post-Production / Completed are operator-driven (clicking a
+   stage advances the order — same click-any-stage UX as the Salesforce Path). */
+const STATUS_STAGES=['Pre-Production','Ready for Print','In Production','Post-Production','Completed'];
+function statusStepperHTML(o){
+  const cur=STATUS_STAGES.includes(o.substatus)?o.substatus:'Pre-Production';
+  const curIdx=STATUS_STAGES.indexOf(cur);
+  const saving=!!o.sav.substatus;
+  let h='<div style="margin-bottom:12px"><p style="font-size:11px;font-weight:500;color:#9C988F;margin-bottom:6px">Production Status'+(saving?' <i class="ti ti-loader" style="font-size:11px;color:#E0B870" aria-hidden="true"></i>':'')+'</p>'
+    +'<div style="display:flex;gap:3px">'
+    +STATUS_STAGES.map((s,i)=>{
+      const done=i<curIdx,active=i===curIdx;
+      const bg=active?'#C6372B':done?'#3A2C10':'#1A1A1C';
+      const text=active?'#FFFFFF':done?'#E0B870':'#6E6A62';
+      return '<div data-a="advance" data-sid="'+o.id+'" data-v="'+s+'" title="Set to '+s+'" style="flex:1;text-align:center;padding:6px 2px;border-radius:5px;background:'+bg+';color:'+text+';font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+s+'</div>';
+    }).join('')
+    +'</div></div>';
+  return h;
 }
 
 /* ── WRITE BACK ──
@@ -750,9 +773,9 @@ function ckHTML(lbl,val,sav,sid,field,key){
   const ic=sav?'<i class="ti ti-loader" style="font-size:12px"></i>':val?'<i class="ti ti-check" style="font-size:12px"></i>':'';
   return'<div class="ckitem"><div class="ckleft"><div class="cktog '+cls+'" data-a="ck" data-sid="'+sid+'" data-f="'+field+'" data-k="'+key+'" data-v="'+val+'">'+ic+'</div><div style="font-size:13px;font-weight:500;color:#C9C6BF">'+lbl+'</div></div><span class="badge" style="background:'+(val?'#1E2D0E':'#1A1A1C')+';color:'+(val?'#E7F2D2':'#6E6A62')+'">'+(val?'✓ Done':'Pending')+'</span></div>';
 }
-function spDet(o){return mockupHTML(o)+blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Films printed',o.filmsPrinted,!!o.sav.filmsPrinted,o.id,'Films_Printed__c','filmsPrinted')+ckHTML('Screens completed',o.scDone,!!o.sav.scDone,o.id,'Screens_Completed__c','scDone')+ckHTML('Mix inks',o.inkDone,!!o.sav.inkDone,o.id,'Mix_Inks__c','inkDone')+'</div>';}
-function emDet(o){return mockupHTML(o)+blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Digitize File',o.dfDone,!!o.sav.dfDone,o.id,'Digitize_File__c','dfDone')+ckHTML('Thread Color / Materials',o.thDone,!!o.sav.thDone,o.id,'Thread_Color_Materials__c','thDone')+'</div>';}
-function hpDet(o){return mockupHTML(o)+blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Transfers Received',o.trRecv,!!o.sav.trRecv,o.id,'Transfers_Received__c','trRecv')+ckHTML('Transfers Ready',o.trRdy,!!o.sav.trRdy,o.id,'Transfers_Ready__c','trRdy')+'</div>';}
+function spDet(o){return statusStepperHTML(o)+mockupHTML(o)+blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Films printed',o.filmsPrinted,!!o.sav.filmsPrinted,o.id,'Films_Printed__c','filmsPrinted')+ckHTML('Screens completed',o.scDone,!!o.sav.scDone,o.id,'Screens_Completed__c','scDone')+ckHTML('Mix inks',o.inkDone,!!o.sav.inkDone,o.id,'Mix_Inks__c','inkDone')+'</div>';}
+function emDet(o){return statusStepperHTML(o)+mockupHTML(o)+blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Digitize File',o.dfDone,!!o.sav.dfDone,o.id,'Digitize_File__c','dfDone')+ckHTML('Thread Color / Materials',o.thDone,!!o.sav.thDone,o.id,'Thread_Color_Materials__c','thDone')+'</div>';}
+function hpDet(o){return statusStepperHTML(o)+mockupHTML(o)+blanksHTML(o)+recvHTML(o)+'<div class="cklist">'+ckHTML('Transfers Received',o.trRecv,!!o.sav.trRecv,o.id,'Transfers_Received__c','trRecv')+ckHTML('Transfers Ready',o.trRdy,!!o.sav.trRdy,o.id,'Transfers_Ready__c','trRdy')+'</div>';}
 
 /* ══════════════════════════════════════
    ORDER SHEET — SIZE BREAKDOWN (printable)
@@ -914,6 +937,7 @@ function ocHTML(o,oi,rdyFn,pctFn,issFn,detFn,pfx,ac){
     +(iss?'<span class="badge" style="background:#4A360F;color:#E6D5BC"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Partial</span>':'')
     +(od?'<span class="badge" style="background:#7A241C;color:#F6DAD5"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Overdue</span>':'')
     +(pp?'<span class="badge" style="background:#3A2800;color:#FFC107"><i class="ti ti-clock-hour-4" aria-hidden="true"></i> Prep-Priority</span>':'')
+    +(o.substatus&&o.substatus!=='Pre-Production'?'<span class="badge" style="background:#C6372B;color:#fff">'+o.substatus+'</span>':'')
     +'</div>'
     +'<div style="font-size:11px;color:'+col.sub+';margin-top:-3px;margin-bottom:5px">'+escAttr(o.acct)+'</div>'
     +'<div style="display:flex;align-items:center;gap:10px">'
@@ -1548,6 +1572,12 @@ document.body.addEventListener('click',function(e){
     const o=[...DB.sp,...DB.em,...DB.hp].find(x=>x.id===sid);
     if(!o||o.sav.recv||o.recv===v)return;
     sfPatch(sid,'Receiving_Status__c',v,o,'recv');return;
+  }
+  if(a==='advance'){
+    const o=[...DB.sp,...DB.em,...DB.hp].find(x=>x.id===sid);
+    if(!o||o.sav.substatus||o.substatus===v)return;
+    if(!confirm('Set Production Status to "'+v+'"?'))return;
+    sfPatch(sid,'Order_Substatus__c',v,o,'substatus');return;
   }
   if(a==='fset'){
     F[p].mode=m;
