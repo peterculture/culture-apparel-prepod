@@ -23,6 +23,7 @@ const ALLOWED_FIELDS = new Set([
   // Order-level production stage ("Production Status" path in Salesforce UI)
   "Order_Substatus__c",
   // Production Dashboard (In Production / Post-Production / shipping)
+  "Print_Setup_Timer__c",
   "Production_Timer__c",
   "Misprint__c",
   "Misprint_Details__c",
