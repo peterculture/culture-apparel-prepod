@@ -22,6 +22,14 @@ const ALLOWED_FIELDS = new Set([
   "Transfers_Ready__c",
   // Order-level production stage ("Production Status" path in Salesforce UI)
   "Order_Substatus__c",
+  // Production Dashboard (In Production / Post-Production / shipping)
+  "Production_Timer__c",
+  "Misprint__c",
+  "Misprint_Details__c",
+  "Packaging_Count__c",
+  "Production_Notes__c",
+  "Shipping_Delivery__c",
+  "Shipping_Label_Printed__c",
 ]);
 
 // Order_Substatus__c picklist values, confirmed against Setup 2026-07-14.
