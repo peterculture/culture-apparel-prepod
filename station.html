@@ -7,7 +7,7 @@
 <style>
 /*
   STANDALONE STATION TABLET PAGE.
-  Deliberately separate from index.html so it can't affect the main board.
+  Deliberately separate from pre-production.html so it can't affect the main board.
   A dedicated tablet opens this pinned to its station, e.g.
       https://culture-apparel-preprod.pages.dev/station.html?station=ink
   OPEN ACCESS: no PIN / login — the tablet loads straight to its board. The
@@ -285,7 +285,7 @@ const STATIONS={
     idField:'Transfer_Type__c', idFallback:'(no type)', idSuffix:'',
     countWord:'to prep', emptyMsg:'All transfers ready — nothing waiting.',
     doneMsg:'Cut & ready — moved off the board',
-    // Sub-status flow from index.html's PP_TRANSFER_SUB — CONFIRM the order.
+    // Sub-status flow from pre-production.html's PP_TRANSFER_SUB — CONFIRM the order.
     stages:['Not Received','Transfers Received','Transfers Cut/Ready'],
     action:{
       'Not Received':'Transfers received',
