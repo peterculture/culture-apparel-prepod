@@ -235,7 +235,35 @@ let ALL=[];
 let curStage='rfp';
 let openO={};
 let ppItems={};
+let pkgItems={},pkgSaving={},pkgErr={};
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+/* ── Live production timers ──
+   Print_Setup_Timer__c / Production_Timer__c are plain whole-number
+   (minutes) fields in Salesforce -- there's no live stopwatch field there,
+   so "running" state lives only in this browser (persisted to localStorage
+   so a refresh doesn't lose an in-progress timer). Stopping a timer rounds
+   the accumulated seconds to the nearest minute and writes that total back. */
+const TIMER_LS_KEY='ca_prod_timers_v1';
+function loadTimerRun(){ try{ return JSON.parse(localStorage.getItem(TIMER_LS_KEY)||'{}'); }catch(_){ return {}; } }
+function saveTimerRun(){ try{ localStorage.setItem(TIMER_LS_KEY,JSON.stringify(timerRun)); }catch(_){} }
+let timerRun=loadTimerRun();
+const timerKey=(oid,kind)=>oid+':'+kind;
+function timerElapsedSec(o,kind){
+  const baseMin=(kind==='setup'?o.setupTimer:o.timer)||0;
+  const startedAt=timerRun[timerKey(o.id,kind)];
+  const liveSec=startedAt?Math.floor((Date.now()-startedAt)/1000):0;
+  return baseMin*60+liveSec;
+}
+function fmtHMS(totalSec){
+  totalSec=Math.max(0,Math.round(totalSec));
+  const h=Math.floor(totalSec/3600),m=Math.floor((totalSec%3600)/60),s=totalSec%60;
+  const pad=n=>String(n).padStart(2,'0');
+  return h>0?h+':'+pad(m)+':'+pad(s):m+':'+pad(s);
+}
+
+// Packaging__c "Packaging Type" picklist -- confirmed via ui-api/object-info, 2026-07-14.
+const PKG_TYPES=['Culture Box (22x16x12)','Hat Box (26x8x6)','Large Otto Box (27x17x20)','Small White (12x10x8)','Small Brown (12x8x5)','Poly Bag (14x12x3)','Cart'];
 
 /* ── Overdue ── mirrors the Pre-Production Dashboard's priority marker:
    an order is overdue once its print date has passed. */
@@ -262,7 +290,8 @@ function mapRec(r){
     method:methodOf(r.Printer__r&&r.Printer__r.Name),
     stageKey:STAGE_KEY[SUBSTATUS_LABEL[r.Order_Substatus__c]||r.Order_Substatus__c]||null,
     substatus:SUBSTATUS_LABEL[r.Order_Substatus__c]||r.Order_Substatus__c||'Pre-Production',
-    timer:r.Production_Timer__c==null?'':r.Production_Timer__c,
+    timer:r.Production_Timer__c==null?0:r.Production_Timer__c,
+    setupTimer:r.Print_Setup_Timer__c==null?0:r.Print_Setup_Timer__c,
     misprint:!!r.Misprint__c,
     misprintDetails:r.Misprint_Details__c||'',
     packaging:r.Packaging_Count__c==null?'':r.Packaging_Count__c,
@@ -319,6 +348,18 @@ function startAutoRefresh(){
 }
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) doLoad(); });
 
+// Ticks any visible running timer displays every second without doing a
+// full renderCur() (which would rebuild the whole DOM and blow away
+// open panels / in-progress form input elsewhere on the page).
+setInterval(()=>{
+  document.querySelectorAll('[data-tmr]').forEach(el=>{
+    const oid=el.dataset.tsid,kind=el.dataset.tmr;
+    const o=ALL.find(x=>x.id===oid);
+    if(!o) return;
+    el.textContent=fmtHMS(timerElapsedSec(o,kind));
+  });
+},1000);
+
 function initApp(){
   renderCur();
   doLoad();
@@ -364,6 +405,22 @@ async function advanceStage(o,newSubstatus){
         Transfers_Received__c:false,Transfers_Ready__c:false,
       });
     }
+    // If a print-setup or production timer is still running on this order,
+    // stop and fold its elapsed time into this same PATCH so moving stages
+    // never silently drops time that was never explicitly "Stopped".
+    ['setup','prod'].forEach(kind=>{
+      const key=timerKey(o.id,kind);
+      const startedAt=timerRun[key];
+      if(!startedAt) return;
+      const liveSec=Math.max(0,Math.floor((Date.now()-startedAt)/1000));
+      const savKey=kind==='setup'?'setupTimer':'timer';
+      const field=kind==='setup'?'Print_Setup_Timer__c':'Production_Timer__c';
+      const newMin=Math.round((o[savKey]||0)+liveSec/60);
+      body[field]=newMin;
+      o[savKey]=newMin;
+      delete timerRun[key];
+    });
+    saveTimerRun();
     const r=await fetch('/api/orders/'+encodeURIComponent(o.id),{
       method:'PATCH',
       headers:{'Content-Type':'application/json'},
@@ -689,18 +746,38 @@ function rfpPanel(o){
 }
 
 /* ── In Production ── */
+
+// Read-only "sheet" row for one Pre_Production_Item__c -- logged with every
+// property relevant to its type (same fields the Pre-Production Dashboard's
+// worker board edits), just display-only here since editing happens upstream.
+function ppItemRow(it){
+  const type=it.Type__c||'—';
+  const extra=[];
+  if(type==='Screen') extra.push(['Screen Sub-Status',it.Screen_Sub_Status__c],['Mesh Count',it.Mesh_Count__c]);
+  else if(type==='Ink') extra.push(['Ink Sub-Status',it.Ink_Sub_Status__c],['Pantone Color',it.Pantone_Color__c]);
+  else if(type==='Thread') extra.push(['Thread Color',it.Thread_Color__c],['Thread Number',it.Thread_Number__c]);
+  else if(type==='Digitization') extra.push(['Stitch Count',it.Stitch_Count__c]);
+  else if(type==='Transfer') extra.push(['Transfers Sub-Status',it.Transfers_Sub_Status__c],['Transfer Type',it.Transfer_Type__c]);
+  if(it.Notes__c) extra.push(['Notes',it.Notes__c]);
+  const map={'Ready':'#1E2D0E|#E7F2D2','In Progress':'#281C09|#E0B870','Not Started':'#1A1A1C|#9C988F'};
+  const c=(map[it.Status__c]||'#1A1A1C|#9C988F').split('|');
+  return '<div style="background:var(--panel);border:1px solid var(--line);border-radius:var(--rad-sm);padding:10px 12px;margin-bottom:8px">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:'+(extra.length?'6px':'0')+'">'
+    +'<span style="font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#ECEAE4">'+esc(type)+'</span>'
+    +(it.Name?'<span style="font-size:11px;color:var(--ink4)">'+esc(it.Name)+'</span>':'')
+    +'<span class="badge" style="background:'+c[0]+';color:'+c[1]+'">'+esc(it.Status__c||'—')+'</span>'
+    +(it.Production_Method__r&&it.Production_Method__r.Type__c?'<span style="margin-left:auto;font-size:11px;color:var(--ink4)">'+esc(it.Production_Method__r.Type__c)+'</span>':'')
+    +'</div>'
+    +extra.filter(([,v])=>v!=null&&v!=='').map(([lbl,v])=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:4px 0;border-top:1px solid var(--line)"><span style="color:var(--ink4)">'+esc(lbl)+'</span><span style="color:var(--ink2);font-weight:500;text-align:right">'+esc(String(v))+'</span></div>').join('')
+    +'</div>';
+}
 function ppItemsPanel(o){
   const st=ppItems[o.id];
   let h='<div class="fieldwrap"><span class="fieldlbl">Production Items</span>';
   if(!st||st.loading){ h+='<p style="font-size:12px;color:#6E6A62">Loading items…</p>'; }
   else if(st.error){ h+='<p style="font-size:12px;color:#E8A89F">'+esc(st.error)+'</p>'; }
   else if(!st.items.length){ h+='<p style="font-size:12px;color:#6E6A62">No production items recorded for this order.</p>'; }
-  else{
-    h+=st.items.map(it=>{
-      const detail=it.Type__c==='Screen'?(it.Screen_Sub_Status__c||''):it.Type__c==='Ink'?(it.Ink_Sub_Status__c||''):it.Type__c==='Transfer'?(it.Transfers_Sub_Status__c||''):(it.Status__c||'');
-      return '<div class="pp-mini"><b>'+esc(it.Type__c||'—')+'</b><span style="flex:1;color:#9C988F">'+esc(detail||it.Status__c||'—')+'</span></div>';
-    }).join('');
-  }
+  else{ h+=st.items.map(ppItemRow).join(''); }
   h+='</div>';
   return h;
 }
@@ -717,15 +794,67 @@ async function loadPpItems(orderId){
   renderCur();
 }
 
+// Live start/stop stopwatch for Print_Setup_Timer__c / Production_Timer__c.
+function timerBlock(o,kind){
+  const label=kind==='setup'?'Print Setup Timer':'Production Timer';
+  const savKey=kind==='setup'?'setupTimer':'timer';
+  const running=!!timerRun[timerKey(o.id,kind)];
+  return '<div class="fieldwrap"><span class="fieldlbl">'+label+(o.sav[savKey]?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<div style="display:flex;align-items:center;gap:12px;background:var(--chip);border:1px solid var(--line);border-radius:var(--rad-sm);padding:12px 14px">'
+    +'<span data-tmr="'+kind+'" data-tsid="'+o.id+'" style="font-family:var(--cond);font-size:22px;font-weight:700;color:'+(running?'#7FA644':'#ECEAE4')+';min-width:64px">'+fmtHMS(timerElapsedSec(o,kind))+'</span>'
+    +'<button class="actbtn'+(running?'':' ghost')+'" style="width:auto;margin:0;padding:9px 16px;flex:1" data-a="'+(running?'timer-stop':'timer-start')+'" data-sid="'+o.id+'" data-v="'+kind+'">'
+    +'<i class="ti ti-'+(running?'player-pause':'player-play')+'" aria-hidden="true"></i> '+(running?'Stop':'Start')
+    +'</button></div></div>';
+}
+
+/* ── Packaging (Packaging__c related list) ── */
+function pkgSection(o){
+  const st=pkgItems[o.id];
+  let h='<div class="fieldwrap"><span class="fieldlbl">Packaging</span>';
+  if(!st||st.loading){ h+='<p style="font-size:12px;color:#6E6A62">Loading packages…</p>'; }
+  else if(st.error){ h+='<p style="font-size:12px;color:#E8A89F">'+esc(st.error)+'</p>'; }
+  else if(!st.items.length){ h+='<p style="font-size:12px;color:#6E6A62">No packages logged yet for this order.</p>'; }
+  else{
+    h+=st.items.map(p=>'<div class="pp-mini"><b>'+esc(p.Name||'—')+'</b>'
+      +'<span style="flex:1;color:#9C988F">'+esc(p.Packaging_Type__c||'—')+'</span>'
+      +'<span style="font-weight:600;color:#C9C6BF">'+(p.Quantity__c==null?'—':p.Quantity__c)+' garments</span>'
+      +'<button data-a="pkg-del" data-sid="'+o.id+'" data-pid="'+p.Id+'" title="Remove" style="background:none;border:none;color:var(--ink4);cursor:pointer;padding:2px 2px 2px 6px"><i class="ti ti-x" aria-hidden="true"></i></button>'
+      +'</div>').join('');
+  }
+  h+='</div>'
+  +'<div class="fieldwrap"><span class="fieldlbl">Log a Package'+(pkgSaving[o.id]?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+  +'<select id="pkg-type-'+o.id+'" style="margin-bottom:8px">'
+  +'<option value="">Select box/package type…</option>'
+  +PKG_TYPES.map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('')
+  +'</select>'
+  +'<input type="number" min="1" id="pkg-qty-'+o.id+'" placeholder="Quantity of garments in this package" style="margin-bottom:8px">'
+  +'<button class="actbtn ghost" data-a="pkg-add" data-sid="'+o.id+'"'+(pkgSaving[o.id]?' disabled':'')+'><i class="ti ti-package" aria-hidden="true"></i> Log Package</button>'
+  +(pkgErr[o.id]?'<p class="hint" style="color:#E8A89F">'+esc(pkgErr[o.id])+'</p>':'')
+  +'</div>';
+  return h;
+}
+async function loadPkgItems(orderId){
+  if(pkgItems[orderId]&&!pkgItems[orderId].error) return;
+  pkgItems[orderId]={loading:true,error:null,items:[]};
+  renderCur();
+  try{
+    const r=await fetch('/api/packaging?orderId='+encodeURIComponent(orderId),{headers:{Accept:'application/json'}});
+    const d=await r.json();
+    if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+    pkgItems[orderId]={loading:false,error:null,items:(d.records||[])};
+  }catch(e){ pkgItems[orderId]={loading:false,error:'Could not load packages: '+e.message,items:[]}; }
+  renderCur();
+}
+
 function ipPanel(o){
   return stepperHTML(o)
-    +blanksHTML(o)
+    +sizeTableHTML(o)
+    +timerBlock(o,'setup')
+    +timerBlock(o,'prod')
     +ppItemsPanel(o)
-    +'<div class="fieldwrap"><span class="fieldlbl">Time in Production (minutes)'+(o.sav.timer?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
-    +'<input type="number" min="0" placeholder="e.g. 45" value="'+(o.timer===''?'':o.timer)+'" data-fi="'+o.id+'" data-ff="Production_Timer__c" data-fk="timer">'
-    +'<p class="hint">Logged manually by the press operator — there\'s no live stopwatch field in Salesforce yet.</p></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Packaging Count'+(o.sav.packaging?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<input type="number" min="0" placeholder="Number of boxes" value="'+(o.packaging===''?'':o.packaging)+'" data-fi="'+o.id+'" data-ff="Packaging_Count__c" data-fk="packaging"></div>'
+    +pkgSection(o)
     +'<div class="ckrow" data-a="ck" data-sid="'+o.id+'" data-v="'+(o.misprint?'true':'false')+'"><div class="cktog'+(o.misprint?' ck':'')+'"><i class="ti ti-alert-triangle" style="font-size:12px" aria-hidden="true"></i></div><div style="font-size:13px;font-weight:500;color:#C9C6BF">Flag misprint on this order'+(o.sav.misprint?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</div></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Misprint Details'+(o.sav.misprintDetails?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<textarea placeholder="What happened, which item, how many…" data-fi="'+o.id+'" data-ff="Misprint_Details__c" data-fk="misprintDetails">'+esc(o.misprintDetails)+'</textarea></div>'
@@ -793,13 +922,13 @@ function openShippingLabel(o){
 document.body.addEventListener('click',function(e){
   const t=e.target.closest('[data-a]');
   if(!t) return;
-  const{a,sid,v}=t.dataset;
+  const{a,sid,v,pid}=t.dataset;
   const o=ALL.find(x=>x.id===sid);
   if(a==='toggle'){
     openO[sid]=!openO[sid];
     if(openO[sid]){
       const oo=ALL.find(x=>x.id===sid);
-      if(oo&&oo.stageKey==='ip') loadPpItems(sid);
+      if(oo&&oo.stageKey==='ip'){ loadPpItems(sid); loadPkgItems(sid); }
     }
     renderCur();return;
   }
@@ -821,6 +950,59 @@ document.body.addEventListener('click',function(e){
   }
   if(a==='ordersheet'){
     openOrderSheet(o);
+    return;
+  }
+  if(a==='timer-start'){
+    const savKey=v==='setup'?'setupTimer':'timer';
+    if(o.sav[savKey]||timerRun[timerKey(sid,v)]) return;
+    timerRun[timerKey(sid,v)]=Date.now();
+    saveTimerRun();
+    renderCur();
+    return;
+  }
+  if(a==='timer-stop'){
+    const savKey=v==='setup'?'setupTimer':'timer';
+    const field=v==='setup'?'Print_Setup_Timer__c':'Production_Timer__c';
+    const key=timerKey(sid,v);
+    const startedAt=timerRun[key];
+    if(!startedAt||o.sav[savKey]) return;
+    delete timerRun[key];
+    saveTimerRun();
+    const liveSec=Math.max(0,Math.floor((Date.now()-startedAt)/1000));
+    const newMin=Math.round((o[savKey]||0)+liveSec/60);
+    patchField(sid,field,newMin,o,savKey);
+    return;
+  }
+  if(a==='pkg-add'){
+    if(pkgSaving[sid]) return;
+    const typeEl=document.getElementById('pkg-type-'+sid);
+    const qtyEl=document.getElementById('pkg-qty-'+sid);
+    const type=typeEl?typeEl.value:'';
+    const qty=qtyEl?qtyEl.value:'';
+    if(!type){ pkgErr[sid]='Choose a package type.'; renderCur(); return; }
+    if(!qty||Number(qty)<=0){ pkgErr[sid]='Enter how many garments are in this package.'; renderCur(); return; }
+    pkgSaving[sid]=true; pkgErr[sid]=null; renderCur();
+    fetch('/api/packaging',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:sid,Packaging_Type__c:type,Quantity__c:Number(qty)})})
+      .then(async r=>{
+        const d=await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+        delete pkgItems[sid];
+        return loadPkgItems(sid);
+      })
+      .catch(e=>{ pkgErr[sid]='Could not log package: '+e.message; renderCur(); })
+      .finally(()=>{ pkgSaving[sid]=false; renderCur(); });
+    return;
+  }
+  if(a==='pkg-del'){
+    if(!pid) return;
+    if(!confirm('Remove this package log entry?')) return;
+    fetch('/api/packaging/'+encodeURIComponent(pid),{method:'DELETE'})
+      .then(async r=>{
+        if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error((d&&d.error)||('Failed '+r.status)); }
+        if(pkgItems[sid]) pkgItems[sid].items=pkgItems[sid].items.filter(p=>p.Id!==pid);
+        renderCur();
+      })
+      .catch(e=>alert('Could not remove package: '+e.message));
     return;
   }
 });
