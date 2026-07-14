@@ -1576,7 +1576,6 @@ document.body.addEventListener('click',function(e){
   if(a==='advance'){
     const o=[...DB.sp,...DB.em,...DB.hp].find(x=>x.id===sid);
     if(!o||o.sav.substatus||o.substatus===v)return;
-    if(!confirm('Set Production Status to "'+v+'"?'))return;
     sfPatch(sid,'Order_Substatus__c',v,o,'substatus');return;
   }
   if(a==='fset'){
