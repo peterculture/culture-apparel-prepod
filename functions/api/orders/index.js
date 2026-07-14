@@ -38,6 +38,7 @@ const FIELDS = [
   "Transfers_Received__c",
   "Transfers_Ready__c",
   // Production Dashboard (In Production / Post-Production / shipping)
+  "Print_Setup_Timer__c",
   "Production_Timer__c",
   "Misprint__c",
   "Misprint_Details__c",
