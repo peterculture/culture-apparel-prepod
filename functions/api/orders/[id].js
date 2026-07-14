@@ -35,8 +35,16 @@ const ALLOWED_FIELDS = new Set([
 // Order_Substatus__c picklist values, confirmed against Setup 2026-07-14.
 // Dependent on standard Status (controlling field); Status stays 'Pre-Production'
 // for shop orders throughout this whole pipeline, so it isn't written here.
+// NOTE: the picklist entry displayed as "In Production" has an actual stored
+// API value of "Production" -- its label was changed in Salesforce (Peter
+// Larson, 7/12/2026) without updating the underlying value. Every other
+// stage's label matches its value. The value here must be "Production";
+// sending the literal label "In Production" fails with
+// INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST. Confirmed via ui-api/object-info,
+// 2026-07-14. The client (index.html / pre-production.html) translates the
+// display label to this value before sending.
 const ALLOWED_SUBSTATUSES = new Set([
-  "Pre-Production", "Ready for Print", "In Production", "Post-Production", "Completed",
+  "Pre-Production", "Ready for Print", "Production", "Post-Production", "Completed",
 ]);
 
 // Salesforce IDs are 15 or 18 chars, alphanumeric. Validate before using in a URL.
