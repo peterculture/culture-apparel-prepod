@@ -236,6 +236,28 @@ let curStage='rfp';
 let openO={};
 let ppItems={};
 let pkgItems={},pkgSaving={},pkgErr={};
+let shipItems={},shipSaving={},shipErr={};
+
+// Field ID Salesforce uses to prefill the Order lookup on the Zenkraft
+// "Shipment Wizard" Visualforce page via URL (captured live off the real
+// "New" button on an Order's Shipments related list, 2026-07-14). Actual
+// label purchase (rate shopping + buying real postage via FedEx/UPS/USPS)
+// only happens inside that wizard, never in this app -- see shipSection().
+// NOTE: this VF domain is sandbox-specific; update it if/when this org
+// moves to production.
+const ZK_WIZARD_FIELD_ID='00NRi000001mOHB';
+function zkWizardUrl(o){
+  const orderId15=(o.id||'').slice(0,15);
+  const qs=new URLSearchParams({
+    ['CF'+ZK_WIZARD_FIELD_ID]:o.sfNum||o.num||'',
+    ['CF'+ZK_WIZARD_FIELD_ID+'_lkid']:orderId15,
+    navigationLocation:'RELATED_LIST',
+    lexiSObjectName:'zkmulti__MCShipment__c',
+    lexiActionName:'new',
+    'sfdc.override':'1',
+  });
+  return 'https://cultureapparel--dev2--zkmulti.sandbox.vf.force.com/apex/Wizard?'+qs.toString();
+}
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 /* ── Live production timers ──
@@ -297,6 +319,7 @@ function mapRec(r){
   return{
     id:r.Id,
     num:(r.GOA_Order_Number__c&&String(r.GOA_Order_Number__c).replace(/<[^>]*>/g,''))||r.OrderNumber||'—',
+    sfNum:r.OrderNumber||'', // raw standard Order Number -- needed for the Zenkraft wizard deep link, distinct from the GOA display number above
     name:r.Customer_Order_Name__c||'',
     acct:(r.Account&&r.Account.Name)||'—',
     due:r.Print_Date__c?r.Print_Date__c.slice(0,10):null,
@@ -882,18 +905,69 @@ function ipPanel(o){
     +'<button class="actbtn" data-a="advance" data-sid="'+o.id+'" data-v="Post-Production"'+(o.sav.substatus?' disabled':'')+'><i class="ti ti-arrow-right" aria-hidden="true"></i> '+(o.sav.substatus?'Moving…':'Move to Post-Production')+'</button>';
 }
 
+/* ── Shipments (zkmulti__MCShipment__c related list) ──
+   Real label purchase (rate shopping + spending real postage money via
+   FedEx/UPS/USPS) happens ONLY inside Salesforce's own Zenkraft "Shipment
+   Wizard" -- the "Ship via Salesforce" button below deep-links straight
+   into it for this order. This app never calls a carrier or charges
+   anything; it only lets you log the resulting carrier/tracking info
+   afterward so it's visible here and prints on our reference label. */
+function shipSection(o){
+  const st=shipItems[o.id];
+  let h='<div class="fieldwrap"><span class="fieldlbl">Shipments</span>';
+  if(!st||st.loading){ h+='<p style="font-size:12px;color:#6E6A62">Loading shipments…</p>'; }
+  else if(st.error){ h+='<p style="font-size:12px;color:#E8A89F">'+esc(st.error)+'</p>'; }
+  else if(!st.items.length){ h+='<p style="font-size:12px;color:#6E6A62">No shipments logged yet for this order.</p>'; }
+  else{
+    h+=st.items.map(s=>'<div class="pp-mini"><b>'+esc(s.zkmulti__Carrier__c||'—')+'</b>'
+      +'<span style="flex:1;color:#9C988F">'+esc(s.zkmulti__Service_Type_Name__c||'')+(s.zkmulti__Tracking_Number__c?' · #'+esc(s.zkmulti__Tracking_Number__c):'')+'</span>'
+      +(s.Weight!=null?'<span style="font-weight:600;color:#C9C6BF">'+s.Weight+' '+(s.WeightUnits||'lbs')+'</span>':'')
+      +'<button data-a="ship-del" data-sid="'+o.id+'" data-pid="'+s.Id+'" title="Remove" style="background:none;border:none;color:var(--ink4);cursor:pointer;padding:2px 2px 2px 6px"><i class="ti ti-x" aria-hidden="true"></i></button>'
+      +'</div>').join('');
+  }
+  h+='</div>'
+  +'<a class="actbtn ghost" href="'+esc(zkWizardUrl(o))+'" target="_blank" rel="noopener" style="text-decoration:none;box-sizing:border-box"><i class="ti ti-external-link" aria-hidden="true"></i> Ship via Salesforce (Zenkraft)</a>'
+  +'<p class="hint">Opens the real Shipment Wizard in Salesforce to rate-shop and buy the actual label. Log the result below once it\'s purchased.</p>'
+  +'<div class="fieldwrap"><span class="fieldlbl">Log Shipment'+(shipSaving[o.id]?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+  +'<input type="text" id="ship-carrier-'+o.id+'" placeholder="Carrier (e.g. USPS, UPS, FedEx)" style="margin-bottom:8px">'
+  +'<input type="text" id="ship-service-'+o.id+'" placeholder="Service type (e.g. Priority Mail, Ground)" style="margin-bottom:8px">'
+  +'<input type="text" id="ship-track-'+o.id+'" placeholder="Tracking number" style="margin-bottom:8px">'
+  +'<input type="number" min="0" step="0.1" id="ship-weight-'+o.id+'" placeholder="Weight (lbs, optional)" style="margin-bottom:8px">'
+  +'<button class="actbtn ghost" data-a="ship-add" data-sid="'+o.id+'"'+(shipSaving[o.id]?' disabled':'')+'><i class="ti ti-truck" aria-hidden="true"></i> Log Shipment</button>'
+  +(shipErr[o.id]?'<p class="hint" style="color:#E8A89F">'+esc(shipErr[o.id])+'</p>':'')
+  +'</div>';
+  return h;
+}
+async function loadShipments(orderId){
+  if(shipItems[orderId]&&!shipItems[orderId].error) return;
+  shipItems[orderId]={loading:true,error:null,items:[]};
+  renderCur();
+  try{
+    const r=await fetch('/api/shipments?orderId='+encodeURIComponent(orderId),{headers:{Accept:'application/json'}});
+    const d=await r.json();
+    if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+    shipItems[orderId]={loading:false,error:null,items:(d.records||[])};
+  }catch(e){ shipItems[orderId]={loading:false,error:'Could not load shipments: '+e.message,items:[]}; }
+  renderCur();
+}
+
 /* ── Post-Production ── */
 function ppPanel(o){
   return stepperHTML(o)
+    +mockupHTML(o)
+    +ppItemsPanel(o)
     +'<div class="fieldwrap"><span class="fieldlbl">Production Notes'+(o.sav.notes?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<textarea placeholder="Notes for this order\'s production run…" data-fi="'+o.id+'" data-ff="Production_Notes__c" data-fk="notes">'+esc(o.notes)+'</textarea></div>'
     +'<div class="ckrow" data-a="ck" data-sid="'+o.id+'" data-v="'+(o.misprint?'true':'false')+'"><div class="cktog'+(o.misprint?' ck':'')+'"><i class="ti ti-alert-triangle" style="font-size:12px" aria-hidden="true"></i></div><div style="font-size:13px;font-weight:500;color:#C9C6BF">Misprint flagged on this order'+(o.sav.misprint?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</div></div>'
-    +(o.misprint?'<div class="fieldwrap"><span class="fieldlbl">Misprint Details'+(o.sav.misprintDetails?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span><textarea placeholder="What happened, which item, how many…" data-fi="'+o.id+'" data-ff="Misprint_Details__c" data-fk="misprintDetails">'+esc(o.misprintDetails)+'</textarea></div>':'')
+    +'<div class="fieldwrap"><span class="fieldlbl">Misprint Details'+(o.sav.misprintDetails?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<textarea placeholder="What happened, which item, how many…" data-fi="'+o.id+'" data-ff="Misprint_Details__c" data-fk="misprintDetails">'+esc(o.misprintDetails)+'</textarea></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Delivery Method'+(o.sav.delivery?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<input type="text" placeholder="e.g. Ship, Local Delivery, Customer Pickup" value="'+esc(o.delivery)+'" data-fi="'+o.id+'" data-ff="Shipping_Delivery__c" data-fk="delivery">'
     +'<p class="hint">Free text for now — tell me the exact picklist values from Salesforce and I\'ll turn this into a dropdown.</p></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Packaging Count'+(o.sav.packaging?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<input type="number" min="0" placeholder="Number of boxes" value="'+(o.packaging===''?'':o.packaging)+'" data-fi="'+o.id+'" data-ff="Packaging_Count__c" data-fk="packaging"></div>'
+    +pkgSection(o)
+    +shipSection(o)
     +'<button class="actbtn" data-a="label" data-sid="'+o.id+'"><i class="ti ti-printer" aria-hidden="true"></i> Print Shipping Label</button>';
 }
 
@@ -909,11 +983,22 @@ function donePanel(o){
     +'<button class="actbtn ghost" data-a="label" data-sid="'+o.id+'"><i class="ti ti-printer" aria-hidden="true"></i> Reprint Shipping Label</button>';
 }
 
-/* ── Shipping label (printable sheet — no live carrier integration yet) ── */
+/* ── Shipping label (printable sheet) ──
+   Purely a reference printout: address plus whatever carrier/tracking
+   info has been logged via shipSection() (the real label itself is
+   bought through the Zenkraft wizard in Salesforce, not here). Pulls the
+   most recently logged shipment for this order if one has been loaded. */
 function openShippingLabel(o){
   const w=window.open('','_blank');
   if(!w) return;
   const addrLines=[o.addr.street,[o.addr.city,o.addr.state,o.addr.postalCode].filter(Boolean).join(', '),o.addr.country].filter(Boolean);
+  const ship=shipItems[o.id]&&shipItems[o.id].items&&shipItems[o.id].items[0];
+  const shipLines=[];
+  if(ship){
+    if(ship.zkmulti__Carrier__c||ship.zkmulti__Service_Type_Name__c) shipLines.push([ship.zkmulti__Carrier__c,ship.zkmulti__Service_Type_Name__c].filter(Boolean).join(' · '));
+    if(ship.zkmulti__Tracking_Number__c) shipLines.push('Tracking #'+ship.zkmulti__Tracking_Number__c);
+    if(ship.Weight!=null) shipLines.push(ship.Weight+' '+(ship.WeightUnits||'lbs'));
+  }
   const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Shipping Label — '+esc(o.num)+'</title><style>'
     +'body{font-family:Arial,sans-serif;padding:40px;color:#111}'
     +'.label{border:2px solid #111;border-radius:10px;padding:28px;max-width:480px}'
@@ -922,6 +1007,7 @@ function openShippingLabel(o){
     +'.to{font-size:20px;font-weight:700;margin-bottom:4px}'
     +'.addr{font-size:16px;line-height:1.5}'
     +'.meta{margin-top:20px;padding-top:14px;border-top:1px solid #ccc;font-size:12px;color:#444}'
+    +'.ship{margin-top:12px;padding-top:12px;border-top:1px dashed #ccc;font-size:13px;color:#111;font-weight:600}'
     +'.bar{margin-top:6px}'
     +'</style></head><body>'
     +'<div class="label">'
@@ -930,6 +1016,7 @@ function openShippingLabel(o){
     +'<div class="to">'+esc(o.acct)+'</div>'
     +(addrLines.length?'<div class="addr">'+addrLines.map(esc).join('<br>')+'</div>':'<div class="addr" style="color:#c00">No shipping address on file for this order — check the Account in Salesforce.</div>')
     +'<div class="meta">Order #'+esc(o.num)+(o.name?' · '+esc(o.name):'')+(o.delivery?' · '+esc(o.delivery):'')+'</div>'
+    +(shipLines.length?'<div class="ship">'+shipLines.map(esc).join('<br>')+'</div>':'')
     +'</div>'
     +'<div class="bar"><button onclick="window.print()" style="margin-top:20px;padding:10px 18px;font-size:13px;cursor:pointer">Print / Save PDF</button></div>'
     +'</body></html>';
@@ -950,6 +1037,7 @@ document.body.addEventListener('click',function(e){
     if(openO[sid]){
       const oo=ALL.find(x=>x.id===sid);
       if(oo&&oo.stageKey==='ip'){ loadPpItems(sid); loadPkgItems(sid); }
+      if(oo&&oo.stageKey==='pp'){ loadPpItems(sid); loadPkgItems(sid); loadShipments(sid); }
     }
     renderCur();return;
   }
@@ -1024,6 +1112,42 @@ document.body.addEventListener('click',function(e){
         renderCur();
       })
       .catch(e=>alert('Could not remove package: '+e.message));
+    return;
+  }
+  if(a==='ship-add'){
+    if(shipSaving[sid]) return;
+    const carrierEl=document.getElementById('ship-carrier-'+sid);
+    const serviceEl=document.getElementById('ship-service-'+sid);
+    const trackEl=document.getElementById('ship-track-'+sid);
+    const weightEl=document.getElementById('ship-weight-'+sid);
+    const carrier=carrierEl?carrierEl.value.trim():'';
+    const service=serviceEl?serviceEl.value.trim():'';
+    const track=trackEl?trackEl.value.trim():'';
+    const weight=weightEl?weightEl.value:'';
+    if(!carrier){ shipErr[sid]='Enter a carrier.'; renderCur(); return; }
+    if(!track){ shipErr[sid]='Enter a tracking number.'; renderCur(); return; }
+    shipSaving[sid]=true; shipErr[sid]=null; renderCur();
+    fetch('/api/shipments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:sid,Carrier:carrier,ServiceType:service,TrackingNumber:track,Weight:weight?Number(weight):null})})
+      .then(async r=>{
+        const d=await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
+        delete shipItems[sid];
+        return loadShipments(sid);
+      })
+      .catch(e=>{ shipErr[sid]='Could not log shipment: '+e.message; renderCur(); })
+      .finally(()=>{ shipSaving[sid]=false; renderCur(); });
+    return;
+  }
+  if(a==='ship-del'){
+    if(!pid) return;
+    if(!confirm('Remove this shipment log entry?')) return;
+    fetch('/api/shipments/'+encodeURIComponent(pid),{method:'DELETE'})
+      .then(async r=>{
+        if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error((d&&d.error)||('Failed '+r.status)); }
+        if(shipItems[sid]) shipItems[sid].items=shipItems[sid].items.filter(s=>s.Id!==pid);
+        renderCur();
+      })
+      .catch(e=>alert('Could not remove shipment: '+e.message));
     return;
   }
 });
