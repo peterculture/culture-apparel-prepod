@@ -48,6 +48,11 @@ const ALLOWED_SUBSTATUSES = new Set([
   "Pre-Production", "Ready for Print", "Production", "Post-Production", "Completed",
 ]);
 
+// Shipping_Delivery__c picklist values, confirmed 2026-07-14.
+const ALLOWED_DELIVERY_METHODS = new Set([
+  "Shipping", "Local Dropoff", "Pickup", "Order Fulfillment", "Split Ship",
+]);
+
 // Salesforce IDs are 15 or 18 chars, alphanumeric. Validate before using in a URL.
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
@@ -77,6 +82,13 @@ export async function onRequestPatch({ params, request, env }) {
       !ALLOWED_SUBSTATUSES.has(payload.Order_Substatus__c)
     ) {
       return jsonError("bad_substatus", 400);
+    }
+    if (
+      "Shipping_Delivery__c" in payload &&
+      payload.Shipping_Delivery__c &&
+      !ALLOWED_DELIVERY_METHODS.has(payload.Shipping_Delivery__c)
+    ) {
+      return jsonError("bad_delivery_method", 400);
     }
 
     const path = `/services/data/${apiVersion(env)}/sobjects/Order/${id}`;
