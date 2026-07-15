@@ -261,6 +261,13 @@ function fmtHMS(totalSec){
   const pad=n=>String(n).padStart(2,'0');
   return h>0?h+':'+pad(m)+':'+pad(s):m+':'+pad(s);
 }
+// Human-readable "logged so far" readout, e.g. "8 min" or "1 hr 12 min".
+function fmtMinutes(min){
+  min=Math.max(0,Math.round(min||0));
+  if(min<=0) return '0 min';
+  const h=Math.floor(min/60),m=min%60;
+  return h>0?(h+' hr'+(h>1?'s':'')+(m>0?' '+m+' min':'')):(min+' min');
+}
 
 // Packaging__c "Packaging Type" picklist -- confirmed via ui-api/object-info, 2026-07-14.
 const PKG_TYPES=['Culture Box (22x16x12)','Hat Box (26x8x6)','Large Otto Box (27x17x20)','Small White (12x10x8)','Small Brown (12x8x5)','Poly Bag (14x12x3)','Cart'];
@@ -804,7 +811,9 @@ function timerBlock(o,kind){
     +'<span data-tmr="'+kind+'" data-tsid="'+o.id+'" style="font-family:var(--cond);font-size:22px;font-weight:700;color:'+(running?'#7FA644':'#ECEAE4')+';min-width:64px">'+fmtHMS(timerElapsedSec(o,kind))+'</span>'
     +'<button class="actbtn'+(running?'':' ghost')+'" style="width:auto;margin:0;padding:9px 16px;flex:1" data-a="'+(running?'timer-stop':'timer-start')+'" data-sid="'+o.id+'" data-v="'+kind+'">'
     +'<i class="ti ti-'+(running?'player-pause':'player-play')+'" aria-hidden="true"></i> '+(running?'Stop':'Start')
-    +'</button></div></div>';
+    +'</button>'
+    +'<span style="font-size:11px;color:'+(running?'#7FA644':'var(--ink4)')+';white-space:nowrap">'+(running?'Running…':'Logged: '+fmtMinutes(o[savKey]))+'</span>'
+    +'</div></div>';
 }
 
 /* ── Packaging (Packaging__c related list) ── */
@@ -848,6 +857,7 @@ async function loadPkgItems(orderId){
 
 function ipPanel(o){
   return stepperHTML(o)
+    +mockupHTML(o)
     +sizeTableHTML(o)
     +timerBlock(o,'setup')
     +timerBlock(o,'prod')
