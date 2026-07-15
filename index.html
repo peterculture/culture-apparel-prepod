@@ -237,6 +237,10 @@ let openO={};
 let ppItems={};
 let pkgItems={},pkgSaving={},pkgErr={};
 let shipItems={},shipSaving={},shipErr={};
+// Completed tab: per-order toggle for the "Inspect Order Details" drill-down
+// (production items, packaging, shipments, timers, mockup, order sheet, etc.)
+// so the backlog list stays a quick-scan list until someone wants the full record.
+let doneInspect={};
 
 // Field ID Salesforce uses to prefill the Order lookup on the Zenkraft
 // "Shipment Wizard" Visualforce page via URL (captured live off the real
@@ -979,14 +983,48 @@ function ppPanel(o){
 }
 
 /* ── Completed ── */
+
+// Read-only "logged so far" readout for a timer — no Start/Stop controls,
+// since a completed order's timers are historical record, not something to
+// resume. Mirrors timerBlock()'s numbers exactly (fmtMinSec of the same
+// saved-seconds field).
+function timerReadout(o,kind){
+  const label=kind==='setup'?'Print Setup Timer':'Production Timer';
+  const savKey=kind==='setup'?'setupTimer':'timer';
+  return '<div class="fieldwrap"><span class="fieldlbl">'+label+'</span>'
+    +'<div style="font-size:14px;font-weight:600;color:#ECEAE4;background:var(--chip);border:1px solid var(--line);border-radius:var(--rad-sm);padding:10px 14px">'+fmtMinSec(o[savKey])+'</div></div>';
+}
+
+// Full backlog record for one completed order -- everything a manager would
+// need to evaluate a reorder without re-opening Salesforce: mockup, garment
+// size breakdown + printable order sheet, logged setup/production time, every
+// production item (screens/ink/thread/digitization/transfers) with its
+// type-specific details, packaging logged, shipments logged, production
+// notes, and misprint details. Hidden behind "Inspect Order Details" so the
+// Completed tab itself stays a fast-scanning backlog list.
+function doneDetailHTML(o){
+  return mockupHTML(o)
+    +sizeTableHTML(o)
+    +timerReadout(o,'setup')
+    +timerReadout(o,'prod')
+    +ppItemsPanel(o)
+    +pkgSection(o)
+    +shipSection(o)
+    +(o.notes?'<div class="fieldwrap"><span class="fieldlbl">Production Notes</span><p style="font-size:13px;color:#C9C6BF;white-space:pre-wrap;line-height:1.5;margin:0">'+esc(o.notes)+'</p></div>':'')
+    +(o.misprint?'<div class="fieldwrap"><span class="fieldlbl">Misprint Details</span><p style="font-size:13px;color:#E8A89F;white-space:pre-wrap;line-height:1.5;margin:0">'+esc(o.misprintDetails||'—')+'</p></div>':'');
+}
+
 function donePanel(o){
+  const insp=!!doneInspect[o.id];
   return stepperHTML(o)
-    +blanksHTML(o)
     +'<div class="fieldwrap"><span class="fieldlbl">Delivery Method</span><div style="font-size:13px;color:#C9C6BF">'+esc(o.delivery||'—')+'</div></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Packaging Count</span><div style="font-size:13px;color:#C9C6BF">'+(o.packaging===''?'—':o.packaging)+'</div></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Shipping Label</span>'
     +(o.labelPrinted?'<span class="badge" style="background:var(--grn-bg);color:var(--grn-tx)"><i class="ti ti-check" aria-hidden="true"></i> Printed</span>':'<span class="badge" style="background:var(--chip);color:var(--ink2)">Not printed</span>')
     +'</div>'
+    +(o.misprint?'<div class="fieldwrap"><span class="fieldlbl">Misprint</span><span class="badge" style="background:var(--red-bg);color:var(--red-tx)"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Flagged</span></div>':'')
+    +'<button class="actbtn ghost" data-a="inspect" data-sid="'+o.id+'" style="margin-bottom:14px"><i class="ti ti-'+(insp?'chevron-up':'file-search')+'" aria-hidden="true"></i> '+(insp?'Hide Order Details':'Inspect Order Details')+'</button>'
+    +(insp?doneDetailHTML(o):'')
     +'<button class="actbtn ghost" data-a="label" data-sid="'+o.id+'"><i class="ti ti-printer" aria-hidden="true"></i> Reprint Shipping Label</button>';
 }
 
@@ -1049,6 +1087,11 @@ document.body.addEventListener('click',function(e){
     renderCur();return;
   }
   if(!o) return;
+  if(a==='inspect'){
+    doneInspect[sid]=!doneInspect[sid];
+    if(doneInspect[sid]){ loadPpItems(sid); loadPkgItems(sid); loadShipments(sid); }
+    renderCur();return;
+  }
   if(a==='advance'){
     if(o.sav.substatus||o.substatus===v) return;
     advanceStage(o,v);return;
