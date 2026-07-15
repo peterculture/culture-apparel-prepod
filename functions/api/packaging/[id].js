@@ -1,7 +1,7 @@
 /**
  * DELETE /api/packaging/<id>
  *
- * Removes one Packaging__c record -- lets a worker undo a mis-logged
+ * Removes one Order_Packaging__c record -- lets a worker undo a mis-logged
  * package entry (wrong type/quantity typed in). Salesforce returns 204 No
  * Content on a successful delete.
  */
@@ -14,7 +14,7 @@ export async function onRequestDelete({ env, params }) {
     const id = params && params.id;
     if (!SF_ID.test(id)) return jsonError("invalid_id", 400);
 
-    const path = `/services/data/${apiVersion(env)}/sobjects/Packaging__c/${encodeURIComponent(id)}`;
+    const path = `/services/data/${apiVersion(env)}/sobjects/Order_Packaging__c/${encodeURIComponent(id)}`;
     const resp = await sfFetch(env, path, { method: "DELETE" });
 
     if (resp.status === 204) {
