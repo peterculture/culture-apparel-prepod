@@ -300,6 +300,9 @@ function fmtMinSec(totalSec){
 // Packaging__c "Packaging Type" picklist -- confirmed via ui-api/object-info, 2026-07-14.
 const PKG_TYPES=['Culture Box (22x16x12)','Hat Box (26x8x6)','Large Otto Box (27x17x20)','Small White (12x10x8)','Small Brown (12x8x5)','Poly Bag (14x12x3)','Cart'];
 
+// Shipping_Delivery__c picklist -- confirmed 2026-07-14.
+const DELIVERY_METHODS=['Shipping','Local Dropoff','Pickup','Order Fulfillment','Split Ship'];
+
 /* ── Overdue ── mirrors the Pre-Production Dashboard's priority marker:
    an order is overdue once its print date has passed. */
 const iso=d=>d.toISOString().slice(0,10);
@@ -962,8 +965,10 @@ function ppPanel(o){
     +'<div class="fieldwrap"><span class="fieldlbl">Misprint Details'+(o.sav.misprintDetails?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<textarea placeholder="What happened, which item, how many…" data-fi="'+o.id+'" data-ff="Misprint_Details__c" data-fk="misprintDetails">'+esc(o.misprintDetails)+'</textarea></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Delivery Method'+(o.sav.delivery?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
-    +'<input type="text" placeholder="e.g. Ship, Local Delivery, Customer Pickup" value="'+esc(o.delivery)+'" data-fi="'+o.id+'" data-ff="Shipping_Delivery__c" data-fk="delivery">'
-    +'<p class="hint">Free text for now — tell me the exact picklist values from Salesforce and I\'ll turn this into a dropdown.</p></div>'
+    +'<select data-fi="'+o.id+'" data-ff="Shipping_Delivery__c" data-fk="delivery">'
+    +'<option value=""'+(o.delivery?'':' selected')+'>— Select —</option>'
+    +DELIVERY_METHODS.map(m=>'<option value="'+esc(m)+'"'+(o.delivery===m?' selected':'')+'>'+esc(m)+'</option>').join('')
+    +'</select></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Packaging Count'+(o.sav.packaging?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<input type="number" min="0" placeholder="Number of boxes" value="'+(o.packaging===''?'':o.packaging)+'" data-fi="'+o.id+'" data-ff="Packaging_Count__c" data-fk="packaging"></div>'
     +pkgSection(o)
