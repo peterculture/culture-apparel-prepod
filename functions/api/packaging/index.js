@@ -1,31 +1,38 @@
 /**
  * GET  /api/packaging?orderId=<Order Id>
- *   Lists Packaging__c records for one order -- this is the "Packaging"
- *   related list in Salesforce (object description: "Stores detailed box
- *   information associated with an order, including quantity, type, weight,
- *   label ID, notes, status, and timestamps"). One row per physical box/bag
- *   packed for the order, its type, and how many garments are inside it.
+ *   Lists Order_Packaging__c records for one order -- this is the "Order
+ *   Packagings" related list in Salesforce (visible on the Order page).
+ *   One row per physical box/bag packed for the order: its type and how
+ *   many garments are inside it.
+ *
+ *   NOTE: there is a separate, similarly-named custom object called
+ *   `Packaging__c` ("Stores detailed box information...") which this
+ *   endpoint used to target -- that was a mistake found 2026-07-14: the
+ *   real related list shown on the Order record ("Order Packagings") is
+ *   backed by `Order_Packaging__c`, not `Packaging__c`. Packages logged
+ *   against the wrong object never showed up where the user was looking.
+ *   Confirmed via Setup > Object Manager > Order Packaging > Fields.
  *
  * POST /api/packaging
- *   Logs a new package against an order (creates one Packaging__c record).
- *   Body: { orderId, Packaging_Type__c, Quantity__c }
+ *   Logs a new package against an order (creates one Order_Packaging__c
+ *   record). Body: { orderId, Packaging_Type__c, Quantity__c }
  *   Packaging_Type__c must be one of the confirmed active picklist values
  *   below (fetched via ui-api/object-info, 2026-07-14). Order__c is the
- *   master-detail lookup back to Order; Name (the "Packaging ID") is an
- *   auto-number assigned by Salesforce on insert.
+ *   lookup back to Order. Name ("Order Packaging Name") is a plain,
+ *   optional text field here (NOT an auto-number like on Packaging__c),
+ *   so we fill it with the packaging type for a readable related-list row.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
+const PACKAGING_OBJECT = "Order_Packaging__c";
+
 const PACKAGING_TYPES = new Set([
-  "Culture Box (22x16x12)",
-  "Hat Box (26x8x6)",
-  "Large Otto Box (27x17x20)",
-  "Small White (12x10x8)",
-  "Small Brown (12x8x5)",
-  "Poly Bag (14x12x3)",
-  "Cart",
+  "Standard Culture Box",
+  "Culture Hat Box",
+  "Poly Bag",
+  "Standard Brown Box",
 ]);
 
 const FIELDS = [
@@ -33,8 +40,6 @@ const FIELDS = [
   "Name",
   "Packaging_Type__c",
   "Quantity__c",
-  "Packaging_Weight__c",
-  "Notes__c",
   "CreatedDate",
 ];
 
@@ -44,7 +49,7 @@ export async function onRequestGet({ env, request }) {
     if (!SF_ID.test(orderId)) return jsonError("invalid_order_id", 400);
 
     const soql =
-      `SELECT ${FIELDS.join(", ")} FROM Packaging__c ` +
+      `SELECT ${FIELDS.join(", ")} FROM ${PACKAGING_OBJECT} ` +
       `WHERE Order__c = '${orderId}' ORDER BY CreatedDate DESC`;
     const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
 
@@ -80,9 +85,9 @@ export async function onRequestPost({ env, request }) {
     const qty = Number(body.Quantity__c);
     if (!Number.isFinite(qty) || qty <= 0) return jsonError("bad_quantity", 400);
 
-    const payload = { Order__c: orderId, Packaging_Type__c: type, Quantity__c: qty };
+    const payload = { Order__c: orderId, Packaging_Type__c: type, Quantity__c: qty, Name: type };
 
-    const path = `/services/data/${apiVersion(env)}/sobjects/Packaging__c`;
+    const path = `/services/data/${apiVersion(env)}/sobjects/${PACKAGING_OBJECT}`;
     const resp = await sfFetch(env, path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
