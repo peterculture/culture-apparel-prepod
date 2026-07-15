@@ -324,7 +324,12 @@ async function doLoad(){
   sfSt('load','Loading...');
   sfMsg('','');
   try{
-    const r=await fetch('/api/orders',{headers:{Accept:'application/json'}});
+    // /api/production-orders filters on Order_Substatus__c (not the standard
+    // Status field /api/orders uses) -- see functions/api/production-orders/index.js
+    // for why: standard Status can advance on its own via shipping/tracking
+    // entry, independent of the custom production pipeline, which was
+    // silently dropping orders out of this dashboard.
+    const r=await fetch('/api/production-orders',{headers:{Accept:'application/json'}});
     const d=await r.json();
     if(!r.ok) throw new Error((d&&d.error)||('Request failed ('+r.status+')'));
     ALL=(d.records||[]).map(mapRec).filter(o=>o.stageKey); // only orders past Pre-Production show here
