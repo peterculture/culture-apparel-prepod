@@ -239,21 +239,23 @@ let pkgItems={},pkgSaving={},pkgErr={};
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 /* ── Live production timers ──
-   Print_Setup_Timer__c / Production_Timer__c are plain whole-number
-   (minutes) fields in Salesforce -- there's no live stopwatch field there,
-   so "running" state lives only in this browser (persisted to localStorage
-   so a refresh doesn't lose an in-progress timer). Stopping a timer rounds
-   the accumulated seconds to the nearest minute and writes that total back. */
+   Print_Setup_Timer__c / Production_Timer__c are plain whole-number fields
+   in Salesforce, stored here in whole SECONDS (not minutes) so a stop
+   preserves exact minute-and-second precision instead of rounding. There's
+   no live stopwatch field on the Order itself, so "running" state lives
+   only in this browser (persisted to localStorage so a refresh doesn't
+   lose an in-progress timer). Stopping a timer writes the exact elapsed
+   seconds, added to whatever was already logged, back to Salesforce. */
 const TIMER_LS_KEY='ca_prod_timers_v1';
 function loadTimerRun(){ try{ return JSON.parse(localStorage.getItem(TIMER_LS_KEY)||'{}'); }catch(_){ return {}; } }
 function saveTimerRun(){ try{ localStorage.setItem(TIMER_LS_KEY,JSON.stringify(timerRun)); }catch(_){} }
 let timerRun=loadTimerRun();
 const timerKey=(oid,kind)=>oid+':'+kind;
 function timerElapsedSec(o,kind){
-  const baseMin=(kind==='setup'?o.setupTimer:o.timer)||0;
+  const baseSec=(kind==='setup'?o.setupTimer:o.timer)||0;
   const startedAt=timerRun[timerKey(o.id,kind)];
   const liveSec=startedAt?Math.floor((Date.now()-startedAt)/1000):0;
-  return baseMin*60+liveSec;
+  return baseSec+liveSec;
 }
 function fmtHMS(totalSec){
   totalSec=Math.max(0,Math.round(totalSec));
@@ -261,12 +263,16 @@ function fmtHMS(totalSec){
   const pad=n=>String(n).padStart(2,'0');
   return h>0?h+':'+pad(m)+':'+pad(s):m+':'+pad(s);
 }
-// Human-readable "logged so far" readout, e.g. "8 min" or "1 hr 12 min".
-function fmtMinutes(min){
-  min=Math.max(0,Math.round(min||0));
-  if(min<=0) return '0 min';
-  const h=Math.floor(min/60),m=min%60;
-  return h>0?(h+' hr'+(h>1?'s':'')+(m>0?' '+m+' min':'')):(min+' min');
+// Human-readable "logged so far" readout with exact minute+second
+// precision, e.g. "8m 32s" or "1h 5m 12s".
+function fmtMinSec(totalSec){
+  totalSec=Math.max(0,Math.round(totalSec||0));
+  const h=Math.floor(totalSec/3600),m=Math.floor((totalSec%3600)/60),s=totalSec%60;
+  const parts=[];
+  if(h>0) parts.push(h+'h');
+  if(h>0||m>0) parts.push(m+'m');
+  parts.push(s+'s');
+  return parts.join(' ');
 }
 
 // Packaging__c "Packaging Type" picklist -- confirmed via ui-api/object-info, 2026-07-14.
@@ -427,9 +433,9 @@ async function advanceStage(o,newSubstatus){
       const liveSec=Math.max(0,Math.floor((Date.now()-startedAt)/1000));
       const savKey=kind==='setup'?'setupTimer':'timer';
       const field=kind==='setup'?'Print_Setup_Timer__c':'Production_Timer__c';
-      const newMin=Math.round((o[savKey]||0)+liveSec/60);
-      body[field]=newMin;
-      o[savKey]=newMin;
+      const newSec=(o[savKey]||0)+liveSec;
+      body[field]=newSec;
+      o[savKey]=newSec;
       delete timerRun[key];
     });
     saveTimerRun();
@@ -817,7 +823,7 @@ function timerBlock(o,kind){
     +'<button class="actbtn'+(running?'':' ghost')+'" style="width:auto;margin:0;padding:9px 16px;flex:1" data-a="'+(running?'timer-stop':'timer-start')+'" data-sid="'+o.id+'" data-v="'+kind+'">'
     +'<i class="ti ti-'+(running?'player-pause':'player-play')+'" aria-hidden="true"></i> '+(running?'Stop':'Start')
     +'</button>'
-    +'<span style="font-size:11px;color:'+(running?'#7FA644':'var(--ink4)')+';white-space:nowrap">'+(running?'Running…':'Logged: '+fmtMinutes(o[savKey]))+'</span>'
+    +'<span style="font-size:11px;color:'+(running?'#7FA644':'var(--ink4)')+';white-space:nowrap">'+(running?'Running…':'Logged: '+fmtMinSec(o[savKey]))+'</span>'
     +'</div></div>';
 }
 
@@ -984,8 +990,8 @@ document.body.addEventListener('click',function(e){
     delete timerRun[key];
     saveTimerRun();
     const liveSec=Math.max(0,Math.floor((Date.now()-startedAt)/1000));
-    const newMin=Math.round((o[savKey]||0)+liveSec/60);
-    patchField(sid,field,newMin,o,savKey);
+    const newSec=(o[savKey]||0)+liveSec;
+    patchField(sid,field,newSec,o,savKey);
     return;
   }
   if(a==='pkg-add'){
