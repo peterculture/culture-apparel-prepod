@@ -57,6 +57,7 @@ const FIELDS = [
   "Production_Timer__c",
   "Misprint__c",
   "Misprint_Details__c",
+  "TotalQtyMisprints__c",
   "Packaging_Count__c",
   "Production_Notes__c",
   "Shipping_Delivery__c", // <-- "Delivery Method" picklist
