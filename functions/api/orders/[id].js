@@ -27,10 +27,20 @@ const ALLOWED_FIELDS = new Set([
   "Production_Timer__c",
   "Misprint__c",
   "Misprint_Details__c",
+  // How many garments were affected -- lets a manager see misprint scale at a
+  // glance instead of reading free text. Reuses the org's existing
+  // TotalQtyMisprints__c field (Number 5,0) rather than adding a new one.
+  "TotalQtyMisprints__c",
   "Packaging_Count__c",
   "Production_Notes__c",
   "Shipping_Delivery__c",
   "Shipping_Label_Printed__c",
+  // Audit trail: free-text name of whoever made this change, captured client-side
+  // at login (there's no per-worker Salesforce user -- both dashboards share one
+  // Worker PIN and one Manager PIN). NOTE: this field must exist on Order in
+  // Salesforce (Text(80), e.g. Last_Updated_By__c) before this ships, or every
+  // PATCH that includes it will fail with INVALID_FIELD.
+  "Last_Updated_By__c",
 ]);
 
 // Order_Substatus__c picklist values, confirmed against Setup 2026-07-14.
@@ -76,6 +86,20 @@ export async function onRequestPatch({ params, request, env }) {
     }
     if (Object.keys(payload).length === 0) {
       return jsonError("no_allowed_fields", 400);
+    }
+    if ("Last_Updated_By__c" in payload) {
+      const name = payload.Last_Updated_By__c;
+      payload.Last_Updated_By__c = name ? String(name).slice(0, 80) : null;
+    }
+    if ("TotalQtyMisprints__c" in payload) {
+      const raw = payload.TotalQtyMisprints__c;
+      if (raw === null || raw === "") {
+        payload.TotalQtyMisprints__c = null;
+      } else {
+        const n = Number(raw);
+        if (!Number.isFinite(n) || n < 0 || n > 99999) return jsonError("bad_misprint_quantity", 400);
+        payload.TotalQtyMisprints__c = Math.floor(n);
+      }
     }
     if (
       "Order_Substatus__c" in payload &&
