@@ -93,6 +93,10 @@ export async function onRequestPost({ env, request }) {
   }
 
   const { orderId, vendorId, status, type, planId, items } = payload || {};
+  // Optional worker-name attribution -- who set this order's pre-production
+  // up. Stamped onto each created item's Last_Updated_By__c (see
+  // pre-production-items/[id].js for the field prerequisite).
+  const by = (payload && payload.by == null ? "" : String(payload.by)).trim().slice(0, 80);
 
   // --- validate before touching Salesforce ---
   if (!orderId || typeof orderId !== "string")   return jsonError("missing_orderId", 400);
@@ -167,6 +171,7 @@ export async function onRequestPost({ env, request }) {
       [ITEM_TYPE_FIELD]:   item.type,
       [ITEM_STATUS_FIELD]: item.status || ITEM_STATUS_DEFAULT,
     };
+    if (by) body.Last_Updated_By__c = by;
     if (item.type === "Screen") {
       if (item.mesh) body[ITEM_MESH_FIELD] = String(item.mesh);
     } else if (item.type === "Ink") {
