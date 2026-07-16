@@ -1,9 +1,16 @@
 /**
  * POST /api/update-item-status
- * Body: { "station": "<name>", "itemId": "<15/18-char SF Id>", "subStatus": "<value>" }
+ * Body: { "station": "<name>", "itemId": "<15/18-char SF Id>", "subStatus": "<value>", "by": "<worker name>" }
  *
  * Advances one Pre-Production Item's sub-status for the given station, and
  * sets the rolled-up Status__c in the SAME write when the station has no flow.
+ *
+ * "by" is an optional free-text worker name (captured client-side at station
+ * login, since a station tablet is shared by whoever's PIN unlocked it, not
+ * tied to one person) -- stamped onto Last_Updated_By__c alongside the
+ * sub-status write, so there's an audit trail of who advanced what. NOTE:
+ * Pre_Production_Item__c.Last_Updated_By__c (Text(80)) must exist in
+ * Salesforce before this ships, or the PATCH will fail with INVALID_FIELD.
  *
  * WRITE endpoint -- open (no login); the real perimeter is Cloudflare Access in
  * front of /api/*. Still validated:
@@ -40,6 +47,11 @@ export async function onRequestPost({ env, request }) {
 
     // Always write the sub-status the worker set.
     const payload = { [cfg.subStatusField]: subStatus };
+
+    // Optional worker-name attribution (see file header). Trimmed/capped
+    // server-side regardless of what the client sends.
+    const by = (body.by == null ? "" : String(body.by)).trim();
+    if (by) payload.Last_Updated_By__c = by.slice(0, 80);
 
     // Status__c: if a Salesforce flow rolls it up from the sub-status
     // (cfg.statusViaFlow), DON'T write it here -- writing the sub-status
