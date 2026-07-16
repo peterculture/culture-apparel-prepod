@@ -197,6 +197,24 @@ body.modal-open{overflow:hidden}
 </head>
 <body>
 
+<!-- Name capture -- this tablet is open-access (no PIN), shared by whoever's
+     working this station, so it's the one place in the whole system that
+     genuinely has no identity signal at all. Ask once per tablet (persisted
+     in localStorage so it survives reloads); tap the pill in the bar to
+     change it for the next person. Included as "by" on every write so
+     Last_Updated_By__c on the Pre-Production Item / Order gets stamped. -->
+<div id="name-screen" style="position:fixed;inset:0;background:var(--hdr);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div class="login-box">
+    <div class="login-badge"><i class="ti ti-user" style="color:#fff;font-size:26px" aria-hidden="true"></i></div>
+    <div class="login-title" style="font-size:20px">Who's working this station?</div>
+    <div class="login-sub">Enter your name so what you log here can be traced back to you</div>
+    <input type="text" id="name-input" placeholder="Your first name" maxlength="80" autocomplete="off"
+      style="width:100%;padding:13px 14px;border-radius:9px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font-size:16px;font-family:inherit;text-align:center;margin-bottom:14px;outline:none">
+    <button class="key go" style="width:100%;padding:14px;border-radius:9px" onclick="submitWorkerName()">Continue</button>
+    <div class="login-err" id="name-err"></div>
+  </div>
+</div>
+
 <!-- ── BOARD ── -->
 <div id="board">
   <div class="bar">
@@ -207,6 +225,7 @@ body.modal-open{overflow:hidden}
     </div>
     <div class="bar-actions">
       <span class="pill" id="count-pill">—</span>
+      <span class="pill" id="worker-pill" style="cursor:pointer" title="Tap to change">—</span>
       <button class="btn-ghost" id="btn-refresh">Refresh</button>
     </div>
   </div>
@@ -328,6 +347,32 @@ document.getElementById('bar-title').textContent=CFG.label;
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+/* ── WORKER NAME ── per-tablet, not per-PIN (this board is open-access).
+   Persisted in localStorage so a reload doesn't re-prompt; tap the pill to
+   swap it when a different person picks up this tablet. */
+const STATION_NAME_KEY='caStationWorkerName';
+function workerName(){ try{return localStorage.getItem(STATION_NAME_KEY)||'';}catch(_){return '';} }
+function updateWorkerPill(){ const p=$('worker-pill'); if(p) p.textContent=workerName()||'Set name'; }
+window.submitWorkerName=function(){
+  const inp=$('name-input');
+  const val=((inp&&inp.value)||'').trim();
+  if(!val){ $('name-err').textContent='Enter your name to continue'; return; }
+  try{localStorage.setItem(STATION_NAME_KEY,val.slice(0,80));}catch(_){}
+  $('name-screen').style.display='none';
+  updateWorkerPill();
+  showBoard();
+};
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&$('name-screen').style.display!=='none'&&document.activeElement&&document.activeElement.id==='name-input'){
+    submitWorkerName();
+  }
+});
+function requireWorkerName(){
+  if(workerName()){ updateWorkerPill(); showBoard(); return; }
+  $('name-screen').style.display='flex';
+  setTimeout(()=>{const inp=$('name-input');if(inp)inp.focus();},50);
+}
 // GOA_Order_Number__c comes back from Salesforce as an <a> anchor; show the text.
 function goaText(v){ if(v==null)return''; const m=String(v).match(/>([^<]+)<\/a>/); return (m?m[1]:String(v)).trim(); }
 
@@ -380,6 +425,11 @@ document.addEventListener('visibilitychange',()=>{
 $('btn-refresh').addEventListener('click',()=>{
   if(CFG.inventory && garmentView==='inventory'){ invCache=null; renderInventory(); }
   else loadSchedule();
+});
+$('worker-pill').addEventListener('click',()=>{
+  const inp=$('name-input'); if(inp) inp.value=workerName();
+  $('name-screen').style.display='flex';
+  setTimeout(()=>{if(inp)inp.focus();},50);
 });
 
 // Tap a compact card -> open the full-screen item modal (delegated, since the
@@ -957,9 +1007,10 @@ async function writeStatus(itemId, value, okMsg, extra){
   try{
     const isOrder = CFG.source==='order';
     const url = isOrder ? '/api/update-order-receiving' : '/api/update-item-status';
+    const by=workerName();
     const body = isOrder
-      ? { station:STATION, orderId:itemId, status:value, missing: extra && extra.missing }
-      : { station:STATION, itemId, subStatus:value };
+      ? { station:STATION, orderId:itemId, status:value, missing: extra && extra.missing, by }
+      : { station:STATION, itemId, subStatus:value, by };
     const r=await fetch(url,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -978,8 +1029,9 @@ async function writeStatus(itemId, value, okMsg, extra){
   }
 }
 
-/* ── INIT ── Open access: the tablet loads straight to its station board. */
-showBoard();
+/* ── INIT ── Open access: the tablet loads straight to its station board,
+   once a worker name is on file for it (see requireWorkerName above). */
+requireWorkerName();
 
 })();
 </script>
