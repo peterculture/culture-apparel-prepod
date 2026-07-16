@@ -11,6 +11,11 @@
  * Gated on the signed station token; only a station whose config is source:"order"
  * (i.e. garment) may call it. The order Id is shape-validated and the status must
  * be one the station config allows.
+ *
+ * Body may also include "by": an optional free-text worker name (captured
+ * client-side at station login), stamped onto Order.Last_Updated_By__c in the
+ * same write -- audit trail for a shared station tablet. NOTE: that field
+ * (Text(80)) must exist on Order in Salesforce before this ships.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 import { STATION_CONFIG } from "../_station.js";
@@ -44,6 +49,9 @@ export async function onRequestPost({ env, request }) {
     if (cfg.missingField) {
       payload[cfg.missingField] = status === cfg.missingAtStage ? missing : null;
     }
+
+    const by = (body.by == null ? "" : String(body.by)).trim();
+    if (by) payload.Last_Updated_By__c = by.slice(0, 80);
 
     const path = `/services/data/${apiVersion(env)}/sobjects/Order/${orderId}`;
     const resp = await sfFetch(env, path, {
