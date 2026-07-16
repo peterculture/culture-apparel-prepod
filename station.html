@@ -36,10 +36,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-
 
 /* ── LOGIN ── */
 #login{position:fixed;inset:0;background:var(--hdr);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
-.login-box{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:34px 34px 30px;width:100%;max-width:400px;text-align:center}
+.login-box{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:34px 34px 30px;width:100%;max-width:400px;text-align:center;box-shadow:0 24px 60px -24px rgba(0,0,0,.65)}
 .login-badge{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;background:var(--red)}
 .login-badge svg{width:30px;height:30px}
-.login-station{font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--red)}
+.login-station{font-family:var(--cond);font-size:13px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--acc)}
+/* ── NAME CAPTURE CARD ── same shell as .login-box, plus a station-accent
+   top edge and a real logo mark in place of a plain icon-in-a-square. */
+.name-card{position:relative;overflow:hidden;padding-top:38px}
+.name-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--acc)}
+.name-logo{width:92px;height:78px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center}
+.name-logo svg{width:100%;height:100%;display:block;filter:drop-shadow(0 0 18px rgba(198,55,43,.45))}
 .login-title{font-family:var(--cond);font-size:26px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin:2px 0 4px}
 .login-sub{font-size:12px;color:var(--ink3);margin-bottom:24px}
 .pin-dots{display:flex;justify-content:center;gap:14px;margin-bottom:22px}
@@ -204,8 +210,9 @@ body.modal-open{overflow:hidden}
      change it for the next person. Included as "by" on every write so
      Last_Updated_By__c on the Pre-Production Item / Order gets stamped. -->
 <div id="name-screen" style="position:fixed;inset:0;background:var(--hdr);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px">
-  <div class="login-box">
-    <div class="login-badge"><i class="ti ti-user" style="color:#fff;font-size:26px" aria-hidden="true"></i></div>
+  <div class="login-box name-card">
+    <div class="name-logo" aria-label="Culture Apparel"><svg viewBox="0 0 124 104" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Culture Apparel"><defs><clipPath id="caBallStation"><circle cx="70" cy="52" r="38"></circle></clipPath><linearGradient id="caRedStation" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E2452E"></stop><stop offset=".5" stop-color="#BA3024"></stop><stop offset="1" stop-color="#841E16"></stop></linearGradient></defs><g fill="#C8382A"><path d="M 57.9 15.4 L 57.9 18.6 L 44.4 17.2 Z"></path><path d="M 50.7 20.6 L 50.7 23.7 L 32.6 22.3 Z"></path><path d="M 46.3 25.7 L 46.3 28.9 L 24.1 27.5 Z"></path><path d="M 43.3 30.9 L 43.3 34.0 L 17.2 32.6 Z"></path><path d="M 41.2 36.0 L 41.2 39.2 L 11.5 37.8 Z"></path><path d="M 39.8 41.2 L 39.8 44.3 L 6.7 43.0 Z"></path><path d="M 39.0 46.3 L 39.0 49.5 L 3.0 48.1 Z"></path><path d="M 38.9 51.5 L 38.9 54.6 L 3.0 53.3 Z"></path><path d="M 39.3 56.6 L 39.3 59.8 L 4.3 58.4 Z"></path><path d="M 40.3 61.8 L 40.3 64.9 L 8.6 63.5 Z"></path><path d="M 41.9 66.9 L 41.9 70.1 L 13.8 68.7 Z"></path><path d="M 44.4 72.1 L 44.4 75.2 L 19.9 73.9 Z"></path><path d="M 47.9 77.2 L 47.9 80.4 L 27.3 79.0 Z"></path><path d="M 53.1 82.4 L 53.1 85.5 L 36.8 84.1 Z"></path></g><g clip-path="url(#caBallStation)" fill="url(#caRedStation)"><rect x="62.0" y="15.1" width="25.8" height="3.9" rx="1"></rect><rect x="62.0" y="20.2" width="34.5" height="3.9" rx="1"></rect><rect x="62.0" y="25.3" width="39.9" height="3.9" rx="1"></rect><rect x="62.0" y="30.5" width="43.6" height="3.9" rx="1"></rect><rect x="62.0" y="35.6" width="46.2" height="3.9" rx="1"></rect><rect x="62.0" y="40.8" width="47.9" height="3.9" rx="1"></rect><rect x="62.0" y="45.9" width="48.8" height="3.9" rx="1"></rect><rect x="62.0" y="51.1" width="49.0" height="3.9" rx="1"></rect><rect x="62.0" y="56.2" width="48.5" height="3.9" rx="1"></rect><rect x="62.0" y="61.4" width="47.3" height="3.9" rx="1"></rect><rect x="62.0" y="66.5" width="45.2" height="3.9" rx="1"></rect><rect x="62.0" y="71.7" width="42.2" height="3.9" rx="1"></rect><rect x="62.0" y="76.8" width="37.9" height="3.9" rx="1"></rect><rect x="62.0" y="82.0" width="31.6" height="3.9" rx="1"></rect><rect x="59.9" y="15.2" width="7.4" height="3.5" rx="1"></rect><rect x="54.0" y="20.4" width="11.8" height="3.5" rx="1"></rect><rect x="50.4" y="25.5" width="14.4" height="3.5" rx="1"></rect><rect x="47.8" y="30.7" width="16.3" height="3.5" rx="1"></rect><rect x="46.1" y="35.8" width="17.6" height="3.5" rx="1"></rect><rect x="44.9" y="41.0" width="18.4" height="3.5" rx="1"></rect><rect x="44.3" y="46.1" width="18.9" height="3.5" rx="1"></rect><rect x="44.2" y="51.3" width="19.0" height="3.5" rx="1"></rect><rect x="44.5" y="56.4" width="18.7" height="3.5" rx="1"></rect><rect x="45.3" y="61.6" width="18.1" height="3.5" rx="1"></rect><rect x="46.7" y="66.7" width="17.1" height="3.5" rx="1"></rect><rect x="48.8" y="71.9" width="15.6" height="3.5" rx="1"></rect><rect x="51.7" y="77.0" width="13.5" height="3.5" rx="1"></rect><rect x="56.0" y="82.2" width="10.3" height="3.5" rx="1"></rect></g></svg></div>
+    <div class="login-station" id="name-station-tag"></div>
     <div class="login-title" style="font-size:20px">Who's working this station?</div>
     <div class="login-sub">Enter your name so what you log here can be traced back to you</div>
     <input type="text" id="name-input" placeholder="Your first name" maxlength="80" autocomplete="off"
@@ -344,6 +351,7 @@ document.documentElement.style.setProperty('--acc-bg',CFG.accentBg);
 document.documentElement.style.setProperty('--acc-tx',CFG.accentTx);
 document.getElementById('bar-badge').innerHTML=CFG.icon;
 document.getElementById('bar-title').textContent=CFG.label;
+document.getElementById('name-station-tag').textContent=CFG.label;
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
