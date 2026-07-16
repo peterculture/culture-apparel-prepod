@@ -188,3 +188,15 @@ Fields) and edit `functions/api/orders/index.js` / `[id].js` if any differ:
   `Transfers_Received__c`, `Transfers_Ready__c`, `Print_Date__c`, `OrderNumber`
 - `Name` on `Order` is flagged in the code — confirm what actually holds the
   customer name in your org and adjust if needed.
+- `Last_Updated_By__c` — Text(80) on `Order`, Text Area(255) on
+  `Pre_Production_Item__c`. **Both created 2026-07-15.** Both dashboards and
+  the station boards send this field on every write once a worker enters
+  their name.
+- **Misprint quantity reuses an existing field — no new field was created.**
+  The org already had `TotalQtyMisprints__c` (Number 5,0) on `Order` predating
+  this project; the Production Dashboard's In Production / Post-Production /
+  Completed views read and write that field alongside `Misprint_Details__c`
+  rather than adding a duplicate. The org also has related misprint fields
+  (`Misprint_Outcome__c`, `Order_Misprint_Rate__c`, `Misprint_Order__c`, etc.)
+  that this app doesn't touch — worth a look if you want richer misprint
+  reporting later.
