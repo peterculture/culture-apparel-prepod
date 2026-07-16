@@ -31,6 +31,10 @@ const FREEFORM = new Set([
   "Thread_Number__c",
   "Stitch_Count__c",
   "Notes__c",
+  // Audit trail: free-text name of whoever made this change (see orders/[id].js
+  // for why -- no per-worker Salesforce user exists yet). NOTE: this field must
+  // exist on Pre_Production_Item__c (Text(80)) before this ships.
+  "Last_Updated_By__c",
 ]);
 
 const ITEM_OBJECT = "Pre_Production_Item__c";
@@ -71,6 +75,8 @@ export async function onRequestPatch({ env, request, params }) {
           if (Number.isNaN(n)) return Response.json({ error: "bad_number", field }, { status: 400 });
           body[field] = n;
         }
+      } else if (field === "Last_Updated_By__c") {
+        body[field] = value ? String(value).slice(0, 80) : null;
       } else {
         body[field] = value === "" ? null : String(value);
       }
