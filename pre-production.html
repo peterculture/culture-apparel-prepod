@@ -159,6 +159,12 @@ input[type=week]{color-scheme:dark}
 .pin-clear:hover{color:#ECEAE4;border-color:#444441}
 .login-err{color:#E8A89F;font-size:12px;font-weight:500;margin-top:8px;min-height:18px}
 .login-hint{font-size:11px;color:#444441;margin-top:16px}
+/* Inline save-failure notice -- replaces a blocking alert() popup, which on a
+   shared tablet is easy to dismiss without registering that a write didn't
+   actually go through. Self-dismisses, doesn't block the rest of the screen. */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--grn-bg);border:1px solid var(--grn-bd);color:var(--grn-tx);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:999999;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red-bg);border-color:var(--red-bd);color:var(--red-tx)}
 /* ── MANAGER TAB ── */
 #tab-mgr{display:none}
 .mgr-badge{background:#C6372B;color:#000;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;letter-spacing:.05em}
@@ -234,6 +240,22 @@ input[type=week]{color-scheme:dark}
   </div>
 </div>
 
+<!-- Name capture -- shown once per shift right after PIN entry (shared with
+     the Production Dashboard via localStorage) so writes can be traced back
+     to a person instead of just a shared PIN. See CA_NAME_KEY below. -->
+<div id="name-screen" style="position:fixed;inset:0;background:#070708;z-index:99998;display:none;align-items:center;justify-content:center;flex-direction:column">
+  <div class="login-box">
+    <div class="login-logo"><i class="ti ti-user" style="color:#000;font-size:26px" aria-hidden="true"></i></div>
+    <div class="login-title">Who's this?</div>
+    <div class="login-sub">Enter your name so changes made this shift can be traced back to you</div>
+    <input type="text" id="name-input" placeholder="Your first name" maxlength="80" autocomplete="off"
+      style="width:100%;padding:13px 14px;border-radius:8px;border:1px solid #262628;background:#1A1A1C;color:#ECEAE4;font-size:15px;font-family:inherit;text-align:center;margin-bottom:14px;outline:none">
+    <button onclick="submitWorkerName()" style="width:100%;background:#C6372B;color:#000;border:none;border-radius:8px;padding:14px;font-family:var(--cond,'Oswald',sans-serif);font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer">Continue</button>
+    <div class="login-err" id="name-err"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <div style="display:flex;flex-direction:column;min-height:100vh;display:none" id="app-shell">
 
@@ -241,6 +263,7 @@ input[type=week]{color-scheme:dark}
   <div class="logo" aria-label="Culture Apparel"><svg viewBox="0 0 124 104" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Culture Apparel"><defs><clipPath id="caBall"><circle cx="70" cy="52" r="38"></circle></clipPath><linearGradient id="caRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E2452E"></stop><stop offset=".5" stop-color="#BA3024"></stop><stop offset="1" stop-color="#841E16"></stop></linearGradient></defs><g fill="#C8382A"><path d="M 57.9 15.4 L 57.9 18.6 L 44.4 17.2 Z"></path><path d="M 50.7 20.6 L 50.7 23.7 L 32.6 22.3 Z"></path><path d="M 46.3 25.7 L 46.3 28.9 L 24.1 27.5 Z"></path><path d="M 43.3 30.9 L 43.3 34.0 L 17.2 32.6 Z"></path><path d="M 41.2 36.0 L 41.2 39.2 L 11.5 37.8 Z"></path><path d="M 39.8 41.2 L 39.8 44.3 L 6.7 43.0 Z"></path><path d="M 39.0 46.3 L 39.0 49.5 L 3.0 48.1 Z"></path><path d="M 38.9 51.5 L 38.9 54.6 L 3.0 53.3 Z"></path><path d="M 39.3 56.6 L 39.3 59.8 L 4.3 58.4 Z"></path><path d="M 40.3 61.8 L 40.3 64.9 L 8.6 63.5 Z"></path><path d="M 41.9 66.9 L 41.9 70.1 L 13.8 68.7 Z"></path><path d="M 44.4 72.1 L 44.4 75.2 L 19.9 73.9 Z"></path><path d="M 47.9 77.2 L 47.9 80.4 L 27.3 79.0 Z"></path><path d="M 53.1 82.4 L 53.1 85.5 L 36.8 84.1 Z"></path></g><g clip-path="url(#caBall)" fill="url(#caRed)"><rect x="62.0" y="15.1" width="25.8" height="3.9" rx="1"></rect><rect x="62.0" y="20.2" width="34.5" height="3.9" rx="1"></rect><rect x="62.0" y="25.3" width="39.9" height="3.9" rx="1"></rect><rect x="62.0" y="30.5" width="43.6" height="3.9" rx="1"></rect><rect x="62.0" y="35.6" width="46.2" height="3.9" rx="1"></rect><rect x="62.0" y="40.8" width="47.9" height="3.9" rx="1"></rect><rect x="62.0" y="45.9" width="48.8" height="3.9" rx="1"></rect><rect x="62.0" y="51.1" width="49.0" height="3.9" rx="1"></rect><rect x="62.0" y="56.2" width="48.5" height="3.9" rx="1"></rect><rect x="62.0" y="61.4" width="47.3" height="3.9" rx="1"></rect><rect x="62.0" y="66.5" width="45.2" height="3.9" rx="1"></rect><rect x="62.0" y="71.7" width="42.2" height="3.9" rx="1"></rect><rect x="62.0" y="76.8" width="37.9" height="3.9" rx="1"></rect><rect x="62.0" y="82.0" width="31.6" height="3.9" rx="1"></rect><rect x="59.9" y="15.2" width="7.4" height="3.5" rx="1"></rect><rect x="54.0" y="20.4" width="11.8" height="3.5" rx="1"></rect><rect x="50.4" y="25.5" width="14.4" height="3.5" rx="1"></rect><rect x="47.8" y="30.7" width="16.3" height="3.5" rx="1"></rect><rect x="46.1" y="35.8" width="17.6" height="3.5" rx="1"></rect><rect x="44.9" y="41.0" width="18.4" height="3.5" rx="1"></rect><rect x="44.3" y="46.1" width="18.9" height="3.5" rx="1"></rect><rect x="44.2" y="51.3" width="19.0" height="3.5" rx="1"></rect><rect x="44.5" y="56.4" width="18.7" height="3.5" rx="1"></rect><rect x="45.3" y="61.6" width="18.1" height="3.5" rx="1"></rect><rect x="46.7" y="66.7" width="17.1" height="3.5" rx="1"></rect><rect x="48.8" y="71.9" width="15.6" height="3.5" rx="1"></rect><rect x="51.7" y="77.0" width="13.5" height="3.5" rx="1"></rect><rect x="56.0" y="82.2" width="10.3" height="3.5" rx="1"></rect></g></svg></div>
   <div style="min-width:0;flex-shrink:1"><div class="app-title">Culture Apparel Print Shop</div><div class="app-sub">Pre-Production Master Dashboard</div></div>
   <div class="conn-badge"><div class="sf-dot" id="sf-dot"></div><span id="sf-txt" style="white-space:nowrap">Loading…</span><span style="opacity:.4;display:none" class="hdr-sep">·</span><span id="hdr-week" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:160px"></span></div>
+<span id="worker-name-tag" style="font-size:11px;color:#6E6A62;white-space:nowrap"></span>
 <button onclick="doLogout()" style="background:transparent;border:1px solid #262628;color:#6E6A62;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;transition:all .15s;flex-shrink:0;white-space:nowrap" onmouseover="this.style.borderColor='#C6372B';this.style.color='#C6372B'" onmouseout="this.style.borderColor='#262628';this.style.color='#6E6A62'">
   <i class="ti ti-logout" style="font-size:14px" aria-hidden="true"></i> Log out
 </button>
@@ -502,6 +525,20 @@ input[type=week]{color-scheme:dark}
 (function(){
 'use strict';
 
+// Inline save-failure notice -- see .toast CSS. Self-dismisses; doesn't block
+// the screen the way alert() does, and can't be missed the way a dismissed
+// alert() can on a shared tablet.
+let toastTimer=null;
+function toast(msg,isErr){
+  const t=document.getElementById('toast');
+  if(!t) return;
+  t.textContent=msg;
+  t.classList.toggle('err',!!isErr);
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('on'),isErr?3200:2000);
+}
+
 /* ── WEEK ── */
 function weekDays(anchor){
   const b=anchor?new Date(anchor+'T12:00:00'):new Date();
@@ -648,6 +685,14 @@ const STATUS_STAGES=['Pre-Production','Ready for Print','In Production','Post-Pr
 // 2026-07-14.
 const SUBSTATUS_VALUE={'Pre-Production':'Pre-Production','Ready for Print':'Ready for Print','In Production':'Production','Post-Production':'Post-Production','Completed':'Completed'};
 const SUBSTATUS_LABEL=Object.fromEntries(Object.entries(SUBSTATUS_VALUE).map(([label,val])=>[val,label]));
+// Only an ADJACENT move is allowed: one stage forward, or back to
+// Pre-Production (the one legitimate long jump -- it remakes pre-production
+// items). Stops an order from silently skipping steps by tapping straight
+// from e.g. Ready for Print to Completed. Mirrors the same rule on the
+// Production Dashboard's stepper.
+function isAllowedStageJump(curIdx,tgtIdx){
+  return tgtIdx===curIdx+1||(tgtIdx===0&&curIdx!==0);
+}
 function statusStepperHTML(o){
   const cur=STATUS_STAGES.includes(o.substatus)?o.substatus:'Pre-Production';
   const curIdx=STATUS_STAGES.indexOf(cur);
@@ -656,9 +701,14 @@ function statusStepperHTML(o){
     +'<div style="display:flex;gap:3px">'
     +STATUS_STAGES.map((s,i)=>{
       const done=i<curIdx,active=i===curIdx;
+      const allowed=isAllowedStageJump(curIdx,i);
       const bg=active?'#C6372B':done?'#3A2C10':'#1A1A1C';
       const text=active?'#FFFFFF':done?'#E0B870':'#6E6A62';
-      return '<div data-a="advance" data-sid="'+o.id+'" data-v="'+s+'" title="Set to '+s+'" style="flex:1;text-align:center;padding:6px 2px;border-radius:5px;background:'+bg+';color:'+text+';font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+s+'</div>';
+      const style='flex:1;text-align:center;padding:6px 2px;border-radius:5px;background:'+bg+';color:'+text+';font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'+(allowed?';cursor:pointer':';opacity:.35;cursor:not-allowed');
+      const attrs=allowed
+        ?' data-a="advance" data-sid="'+o.id+'" data-v="'+s+'" title="Set to '+s+'"'
+        :' title="'+(active?'Current stage':'Complete the stage before this one to reach it')+'"';
+      return '<div'+attrs+' style="'+style+'">'+s+'</div>';
     }).join('')
     +'</div></div>';
   return h;
@@ -671,6 +721,7 @@ function statusStepperHTML(o){
 async function sfPatch(sfId,field,val,order,key){
   order.sav[key]=true;renderCur();
   const body={};body[field]=val;
+  const by=workerName();if(by)body.Last_Updated_By__c=by;
   try{
     const r=await fetch('/api/orders/'+encodeURIComponent(sfId),{
       method:'PATCH',
@@ -679,7 +730,7 @@ async function sfPatch(sfId,field,val,order,key){
     });
     if(!r.ok&&r.status!==204){let m='Update failed';try{const e=await r.json();m=(e&&e.error)||(e&&e[0]&&e[0].message)||m;}catch(_){}throw new Error(m);}
     order[key]=val;
-  }catch(e){alert('Sync error: '+e.message);}
+  }catch(e){toast('Sync error: '+e.message,true);}
   finally{order.sav[key]=false;renderCur();renderOverview();}
 }
 
@@ -701,6 +752,7 @@ async function revertToPreProduction(o){
     Digitize_File__c:false,Thread_Color_Materials__c:false,
     Transfers_Received__c:false,Transfers_Ready__c:false,
   };
+  {const by=workerName();if(by)body.Last_Updated_By__c=by;}
   try{
     const r=await fetch('/api/orders/'+encodeURIComponent(o.id),{
       method:'PATCH',
@@ -712,7 +764,7 @@ async function revertToPreProduction(o){
     o.filmsPrinted=false;o.scDone=false;o.inkDone=false;
     o.dfDone=false;o.thDone=false;
     o.trRecv=false;o.trRdy=false;
-  }catch(e){alert('Sync error: '+e.message);}
+  }catch(e){toast('Sync error: '+e.message,true);}
   finally{o.sav.substatus=false;renderCur();renderOverview();}
 }
 
@@ -723,14 +775,16 @@ async function revertToPreProduction(o){
 async function advanceSubstatus(o,label){
   o.sav.substatus=true;renderCur();
   try{
+    const body={Order_Substatus__c:SUBSTATUS_VALUE[label]||label};
+    const by=workerName();if(by)body.Last_Updated_By__c=by;
     const r=await fetch('/api/orders/'+encodeURIComponent(o.id),{
       method:'PATCH',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({Order_Substatus__c:SUBSTATUS_VALUE[label]||label}),
+      body:JSON.stringify(body),
     });
     if(!r.ok&&r.status!==204){let m='Update failed';try{const e=await r.json();m=(e&&e.error)||(e&&e[0]&&e[0].message)||m;}catch(_){}throw new Error(m);}
     o.substatus=label;
-  }catch(e){alert('Sync error: '+e.message);}
+  }catch(e){toast('Sync error: '+e.message,true);}
   finally{o.sav.substatus=false;renderCur();renderOverview();}
 }
 
@@ -1639,6 +1693,10 @@ document.body.addEventListener('click',function(e){
   if(a==='advance'){
     const o=[...DB.sp,...DB.em,...DB.hp].find(x=>x.id===sid);
     if(!o||o.sav.substatus||o.substatus===v)return;
+    // Re-check adjacency here too (not just in the stepper's markup) so a
+    // stale render or dev-tools click can't force a stage skip.
+    const curIdx=STATUS_STAGES.indexOf(STATUS_STAGES.includes(o.substatus)?o.substatus:'Pre-Production');
+    if(!isAllowedStageJump(curIdx,STATUS_STAGES.indexOf(v))) return;
     if(v==='Pre-Production'){ revertToPreProduction(o); return; }
     advanceSubstatus(o,v);return;
   }
@@ -1736,6 +1794,13 @@ let pinBuffer='';
 const WORKER_PIN='1234';
 const MANAGER_PIN='6767';
 const CA_ROLE_KEY='caShopRole';
+// Worker's free-text name, captured once per shift right after the PIN and
+// shared with the Production Dashboard (same localStorage, same origin) --
+// see Last_Updated_By__c on Order / Pre_Production_Item__c, stamped on every
+// write below so a change can be traced back to a person, not just a PIN.
+const CA_NAME_KEY='caShopWorkerName';
+function workerName(){ try{return localStorage.getItem(CA_NAME_KEY)||'';}catch(_){return '';} }
+let pendingRole=null; // role awaiting a name before enterApp() runs
 
 window.pinPress=function(d){
   if(pinBuffer.length>=4) return;
@@ -1751,10 +1816,10 @@ window.pinClear=function(){
 window.pinSubmit=function(){
   if(pinBuffer===WORKER_PIN){
     try{localStorage.setItem(CA_ROLE_KEY,'worker');}catch(_){}
-    enterApp('worker');
+    proceedAfterPin('worker');
   } else if(pinBuffer===MANAGER_PIN){
     try{localStorage.setItem(CA_ROLE_KEY,'manager');}catch(_){}
-    enterApp('manager');
+    proceedAfterPin('manager');
   } else {
     document.getElementById('login-err').textContent='Incorrect PIN — try again';
     pinBuffer='';
@@ -1762,11 +1827,39 @@ window.pinSubmit=function(){
     setTimeout(()=>document.getElementById('login-err').textContent='',2000);
   }
 };
+// After a correct PIN: skip straight in if a name is already stored for this
+// shift (e.g. they just logged into the other dashboard), otherwise ask.
+function proceedAfterPin(role){
+  if(workerName()){ enterApp(role); return; }
+  pendingRole=role;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('name-screen').style.display='flex';
+  setTimeout(()=>{const inp=document.getElementById('name-input');if(inp)inp.focus();},50);
+}
+window.submitWorkerName=function(){
+  const inp=document.getElementById('name-input');
+  const val=((inp&&inp.value)||'').trim();
+  if(!val){
+    document.getElementById('name-err').textContent='Enter your name to continue';
+    return;
+  }
+  try{localStorage.setItem(CA_NAME_KEY,val.slice(0,80));}catch(_){}
+  document.getElementById('name-screen').style.display='none';
+  enterApp(pendingRole||'worker');
+};
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('name-screen').style.display!=='none'&&document.activeElement&&document.activeElement.id==='name-input'){
+    submitWorkerName();
+  }
+});
 function enterApp(role){
   currentRole=role;
   document.getElementById('login-screen').style.display='none';
+  document.getElementById('name-screen').style.display='none';
   document.getElementById('app-shell').style.display='flex';
   document.getElementById('tab-mgr').style.display=(role==='manager')?'inline-flex':'none';
+  const tag=document.getElementById('worker-name-tag');
+  if(tag) tag.textContent=workerName()?('· '+workerName()):'';
   initApp();
   if(role==='manager') loadMgrInbox();
 }
@@ -1781,13 +1874,17 @@ function initApp(){
   startAutoRefresh();
 }
 window.doLogout=function(){
-  // Reset role and PIN
-  currentRole=null;pinBuffer='';
+  // Reset role, name, and PIN
+  currentRole=null;pinBuffer='';pendingRole=null;
   try{localStorage.removeItem(CA_ROLE_KEY);}catch(_){}
+  try{localStorage.removeItem(CA_NAME_KEY);}catch(_){}
   updatePinDots();
   document.getElementById('login-err').textContent='';
+  document.getElementById('name-err').textContent='';
+  const inp=document.getElementById('name-input');if(inp)inp.value='';
   // Hide app, show login
   document.getElementById('app-shell').style.display='none';
+  document.getElementById('name-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   // Hide manager tab
   document.getElementById('tab-mgr').style.display='none';
@@ -1799,7 +1896,7 @@ window.doLogout=function(){
 (function(){
   let saved=null;
   try{saved=localStorage.getItem(CA_ROLE_KEY);}catch(_){}
-  if(saved==='worker'||saved==='manager') enterApp(saved);
+  if(saved==='worker'||saved==='manager') proceedAfterPin(saved);
 })();
 
 /* ══════════════════════════════════════
@@ -2361,6 +2458,7 @@ async function sendToShop(o){
     items:buildItemsPayload(o),
   };
   if(o.planMode==='existing'&&o.planId) body.planId=o.planId;
+  const by=workerName();if(by)body.by=by;
 
   try{
     const r=await fetch('/api/production-methods',{
