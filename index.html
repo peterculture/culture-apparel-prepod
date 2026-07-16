@@ -87,6 +87,12 @@ textarea{resize:vertical;min-height:70px}
 .pin-clear:hover{color:#ECEAE4;border-color:#444441}
 .login-err{color:#E8A89F;font-size:12px;font-weight:500;margin-top:8px;min-height:18px}
 .login-hint{font-size:11px;color:#444441;margin-top:16px}
+/* Inline save-failure notice -- replaces a blocking alert() popup, which on a
+   shared tablet is easy to dismiss without registering that a write didn't
+   actually go through. Self-dismisses, doesn't block the rest of the screen. */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--grn-bg);border:1px solid var(--grn-bd);color:var(--grn-tx);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:999999;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red-bg);border-color:var(--red-bd);color:var(--red-tx)}
 @media(max-width:760px){.page{padding:16px}.hdr,.top-nav{padding-left:16px;padding-right:16px}}
 </style>
 </head>
@@ -122,12 +128,31 @@ textarea{resize:vertical;min-height:70px}
   </div>
 </div>
 
+<!-- Name capture -- shown once per shift right after PIN entry, so every
+     write made from here on can be attributed to a person, not just a shared
+     PIN. Stored in localStorage under CA_NAME_KEY (shared with the
+     Pre-Production Dashboard, same as the role) and cleared on logout. -->
+<div id="name-screen" style="position:fixed;inset:0;background:#070708;z-index:99998;display:none;align-items:center;justify-content:center;flex-direction:column">
+  <div class="login-box">
+    <div class="login-logo"><i class="ti ti-user" style="color:#000;font-size:26px" aria-hidden="true"></i></div>
+    <div class="login-title">Who's this?</div>
+    <div class="login-sub">Enter your name so changes made this shift can be traced back to you</div>
+    <input type="text" id="name-input" placeholder="Your first name" maxlength="80" autocomplete="off"
+      style="width:100%;padding:13px 14px;border-radius:8px;border:1px solid #262628;background:#1A1A1C;color:#ECEAE4;font-size:15px;font-family:inherit;text-align:center;margin-bottom:14px;outline:none">
+    <button onclick="submitWorkerName()" style="width:100%;background:#C6372B;color:#000;border:none;border-radius:8px;padding:14px;font-family:var(--cond,'Oswald',sans-serif);font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer">Continue</button>
+    <div class="login-err" id="name-err"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <div style="display:flex;flex-direction:column;min-height:100vh;display:none" id="app-shell">
 
 <header class="hdr">
   <div class="logo" aria-label="Culture Apparel"><svg viewBox="0 0 124 104" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Culture Apparel"><defs><clipPath id="caBall"><circle cx="70" cy="52" r="38"></circle></clipPath><linearGradient id="caRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E2452E"></stop><stop offset=".5" stop-color="#BA3024"></stop><stop offset="1" stop-color="#841E16"></stop></linearGradient></defs><g fill="#C8382A"><path d="M 57.9 15.4 L 57.9 18.6 L 44.4 17.2 Z"></path><path d="M 50.7 20.6 L 50.7 23.7 L 32.6 22.3 Z"></path><path d="M 46.3 25.7 L 46.3 28.9 L 24.1 27.5 Z"></path><path d="M 43.3 30.9 L 43.3 34.0 L 17.2 32.6 Z"></path><path d="M 41.2 36.0 L 41.2 39.2 L 11.5 37.8 Z"></path><path d="M 39.8 41.2 L 39.8 44.3 L 6.7 43.0 Z"></path><path d="M 39.0 46.3 L 39.0 49.5 L 3.0 48.1 Z"></path><path d="M 38.9 51.5 L 38.9 54.6 L 3.0 53.3 Z"></path><path d="M 39.3 56.6 L 39.3 59.8 L 4.3 58.4 Z"></path><path d="M 40.3 61.8 L 40.3 64.9 L 8.6 63.5 Z"></path><path d="M 41.9 66.9 L 41.9 70.1 L 13.8 68.7 Z"></path><path d="M 44.4 72.1 L 44.4 75.2 L 19.9 73.9 Z"></path><path d="M 47.9 77.2 L 47.9 80.4 L 27.3 79.0 Z"></path><path d="M 53.1 82.4 L 53.1 85.5 L 36.8 84.1 Z"></path></g><g clip-path="url(#caBall)" fill="url(#caRed)"><rect x="62.0" y="15.1" width="25.8" height="3.9" rx="1"></rect><rect x="62.0" y="20.2" width="34.5" height="3.9" rx="1"></rect><rect x="62.0" y="25.3" width="39.9" height="3.9" rx="1"></rect><rect x="62.0" y="30.5" width="43.6" height="3.9" rx="1"></rect><rect x="62.0" y="35.6" width="46.2" height="3.9" rx="1"></rect><rect x="62.0" y="40.8" width="47.9" height="3.9" rx="1"></rect><rect x="62.0" y="45.9" width="48.8" height="3.9" rx="1"></rect><rect x="62.0" y="51.1" width="49.0" height="3.9" rx="1"></rect><rect x="62.0" y="56.2" width="48.5" height="3.9" rx="1"></rect><rect x="62.0" y="61.4" width="47.3" height="3.9" rx="1"></rect><rect x="62.0" y="66.5" width="45.2" height="3.9" rx="1"></rect><rect x="62.0" y="71.7" width="42.2" height="3.9" rx="1"></rect><rect x="62.0" y="76.8" width="37.9" height="3.9" rx="1"></rect><rect x="62.0" y="82.0" width="31.6" height="3.9" rx="1"></rect><rect x="59.9" y="15.2" width="7.4" height="3.5" rx="1"></rect><rect x="54.0" y="20.4" width="11.8" height="3.5" rx="1"></rect><rect x="50.4" y="25.5" width="14.4" height="3.5" rx="1"></rect><rect x="47.8" y="30.7" width="16.3" height="3.5" rx="1"></rect><rect x="46.1" y="35.8" width="17.6" height="3.5" rx="1"></rect><rect x="44.9" y="41.0" width="18.4" height="3.5" rx="1"></rect><rect x="44.3" y="46.1" width="18.9" height="3.5" rx="1"></rect><rect x="44.2" y="51.3" width="19.0" height="3.5" rx="1"></rect><rect x="44.5" y="56.4" width="18.7" height="3.5" rx="1"></rect><rect x="45.3" y="61.6" width="18.1" height="3.5" rx="1"></rect><rect x="46.7" y="66.7" width="17.1" height="3.5" rx="1"></rect><rect x="48.8" y="71.9" width="15.6" height="3.5" rx="1"></rect><rect x="51.7" y="77.0" width="13.5" height="3.5" rx="1"></rect><rect x="56.0" y="82.2" width="10.3" height="3.5" rx="1"></rect></g></svg></div>
   <div style="min-width:0;flex-shrink:1"><div class="app-title">Culture Apparel Print Shop</div><div class="app-sub">Production Dashboard</div></div>
   <div class="conn-badge"><div class="sf-dot" id="sf-dot"></div><span id="sf-txt" style="white-space:nowrap">Loading…</span></div>
+  <span id="worker-name-tag" style="font-size:11px;color:#6E6A62;white-space:nowrap"></span>
   <button onclick="doLogout()" style="background:transparent;border:1px solid #262628;color:#6E6A62;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;flex-shrink:0;white-space:nowrap">
     <i class="ti ti-logout" style="font-size:14px" aria-hidden="true"></i> Log out
   </button>
@@ -170,6 +195,13 @@ let pinBuffer='';
 const WORKER_PIN='1234';
 const MANAGER_PIN='6767';
 const CA_ROLE_KEY='caShopRole';
+// Worker's free-text name, captured once per shift right after the PIN and
+// shared with the Pre-Production Dashboard (same localStorage, same origin).
+// This is what lets a change be traced back to a person even though both
+// dashboards only gate access with two shared PINs -- see Last_Updated_By__c
+// on Order / Pre_Production_Item__c, stamped on every write below.
+const CA_NAME_KEY='caShopWorkerName';
+function workerName(){ try{return localStorage.getItem(CA_NAME_KEY)||'';}catch(_){return '';} }
 window.pinPress=function(d){
   if(pinBuffer.length>=4) return;
   pinBuffer+=d;
@@ -187,7 +219,7 @@ window.pinSubmit=function(){
   else if(pinBuffer===MANAGER_PIN) role='manager';
   if(role){
     try{localStorage.setItem(CA_ROLE_KEY,role);}catch(_){}
-    enterApp();
+    proceedAfterPin();
   } else {
     document.getElementById('login-err').textContent='Incorrect PIN — try again';
     pinBuffer='';
@@ -195,9 +227,36 @@ window.pinSubmit=function(){
     setTimeout(()=>document.getElementById('login-err').textContent='',2000);
   }
 };
+// After a correct PIN: skip straight in if a name is already stored for this
+// shift (e.g. they just logged into the other dashboard), otherwise ask.
+function proceedAfterPin(){
+  if(workerName()){ enterApp(); return; }
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('name-screen').style.display='flex';
+  setTimeout(()=>{const inp=document.getElementById('name-input');if(inp)inp.focus();},50);
+}
+window.submitWorkerName=function(){
+  const inp=document.getElementById('name-input');
+  const val=((inp&&inp.value)||'').trim();
+  if(!val){
+    document.getElementById('name-err').textContent='Enter your name to continue';
+    return;
+  }
+  try{localStorage.setItem(CA_NAME_KEY,val.slice(0,80));}catch(_){}
+  document.getElementById('name-screen').style.display='none';
+  enterApp();
+};
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('name-screen').style.display!=='none'&&document.activeElement&&document.activeElement.id==='name-input'){
+    submitWorkerName();
+  }
+});
 function enterApp(){
   document.getElementById('login-screen').style.display='none';
+  document.getElementById('name-screen').style.display='none';
   document.getElementById('app-shell').style.display='flex';
+  const tag=document.getElementById('worker-name-tag');
+  if(tag) tag.textContent=workerName()?('· '+workerName()):'';
   initApp();
 }
 function updatePinDots(){
@@ -206,8 +265,12 @@ function updatePinDots(){
 window.doLogout=function(){
   pinBuffer='';updatePinDots();
   try{localStorage.removeItem(CA_ROLE_KEY);}catch(_){}
+  try{localStorage.removeItem(CA_NAME_KEY);}catch(_){}
   document.getElementById('login-err').textContent='';
+  document.getElementById('name-err').textContent='';
+  const inp=document.getElementById('name-input');if(inp)inp.value='';
   document.getElementById('app-shell').style.display='none';
+  document.getElementById('name-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 };
 
@@ -263,6 +326,20 @@ function zkWizardUrl(o){
   return 'https://cultureapparel--dev2--zkmulti.sandbox.vf.force.com/apex/Wizard?'+qs.toString();
 }
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// Inline save-failure notice -- see .toast CSS. Self-dismisses; doesn't block
+// the screen the way alert() does, and can't be missed the way a dismissed
+// alert() can on a shared tablet.
+let toastTimer=null;
+function toast(msg,isErr){
+  const t=document.getElementById('toast');
+  if(!t) return;
+  t.textContent=msg;
+  t.classList.toggle('err',!!isErr);
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('on'),isErr?3200:2000);
+}
 
 /* ── Live production timers ──
    Print_Setup_Timer__c / Production_Timer__c are plain whole-number fields
@@ -339,6 +416,7 @@ function mapRec(r){
     setupTimer:r.Print_Setup_Timer__c==null?0:r.Print_Setup_Timer__c,
     misprint:!!r.Misprint__c,
     misprintDetails:r.Misprint_Details__c||'',
+    misprintQty:r.TotalQtyMisprints__c==null?'':r.TotalQtyMisprints__c,
     packaging:r.Packaging_Count__c==null?'':r.Packaging_Count__c,
     notes:r.Production_Notes__c||'',
     delivery:r.Shipping_Delivery__c||'',
@@ -422,6 +500,7 @@ function initApp(){
 async function patchField(sid,field,val,o,key){
   o.sav[key]=true;renderCur();
   const body={};body[field]=val;
+  const by=workerName();if(by)body.Last_Updated_By__c=by;
   try{
     const r=await fetch('/api/orders/'+encodeURIComponent(sid),{
       method:'PATCH',
@@ -430,7 +509,7 @@ async function patchField(sid,field,val,o,key){
     });
     if(!r.ok&&r.status!==204){let m='Update failed';try{const e=await r.json();m=(e&&e.error)||m;}catch(_){}throw new Error(m);}
     o[key]=val;
-  }catch(e){alert('Sync error: '+e.message);}
+  }catch(e){toast('Sync error: '+e.message,true);}
   finally{o.sav[key]=false;renderCur();}
 }
 
@@ -439,6 +518,7 @@ async function advanceStage(o,newSubstatus){
   o.sav.substatus=true;renderCur();
   try{
     const body={Order_Substatus__c:SUBSTATUS_VALUE[newSubstatus]||newSubstatus};
+    const by=workerName();if(by)body.Last_Updated_By__c=by;
     // Moving back to Pre-Production must also clear the checklist fields.
     // Salesforce's "RECORDTRIGGER ORDER Production Status" flow auto-promotes
     // Order_Substatus__c back to "Ready for Print" the instant it sees the
@@ -480,7 +560,7 @@ async function advanceStage(o,newSubstatus){
     o.substatus=newSubstatus;
     o.stageKey=STAGE_KEY[newSubstatus]||null;
     openO[o.id]=false;
-  }catch(e){alert('Sync error: '+e.message);}
+  }catch(e){toast('Sync error: '+e.message,true);}
   finally{o.sav.substatus=false;updateCounts();renderCur();}
 }
 
@@ -513,8 +593,58 @@ function sortByPriority(arr){
   return [...od,...rest];
 }
 
+// Completed tab: free-text backlog search (order #, customer, account), kept
+// in its own container so typing only re-renders the result list below the
+// search bar, never the bar/input itself -- rebuilding the input on every
+// keystroke would steal focus and the cursor position out from under the
+// person typing.
+let doneSearch='';
+function doneSearchMatches(o,q){
+  if(!q) return true;
+  q=q.toLowerCase();
+  return (o.num||'').toLowerCase().includes(q)
+    ||(o.name||'').toLowerCase().includes(q)
+    ||(o.acct||'').toLowerCase().includes(q);
+}
+function renderDoneList(){
+  const listEl=document.getElementById('done-list');
+  if(!listEl) return;
+  const orders=ALL.filter(o=>o.stageKey==='done'&&doneSearchMatches(o,doneSearch));
+  const countEl=document.getElementById('done-count');
+  if(countEl) countEl.textContent=orders.length+' order'+(orders.length!==1?'s':'');
+  if(!orders.length){
+    listEl.innerHTML='<p class="empty">'+(doneSearch?'No completed orders match "'+esc(doneSearch)+'".':'No orders currently at this stage.')+'</p>';
+    return;
+  }
+  let h='';
+  ['sp','em','hp'].forEach(m=>{
+    const grp=sortByPriority(orders.filter(o=>o.method===m));
+    if(!grp.length) return;
+    h+='<div class="meth-hdr"><div class="meth-dot" style="background:'+METH_COLOR[m]+'"></div>'+METH_LABEL[m]+' <span style="color:var(--ink4);font-weight:400">· '+grp.length+'</span></div>';
+    grp.forEach(o=>{ h+=orderCard(o); });
+  });
+  listEl.innerHTML=h;
+}
+
 function renderCur(){
   const el=document.getElementById('sec-'+curStage);
+  if(curStage==='done'){
+    // Build the search bar + list container once; every later call (refresh,
+    // tab switch, typing) only touches #done-list via renderDoneList().
+    if(!document.getElementById('done-list')){
+      el.innerHTML='<div style="background:var(--panel);border:1px solid var(--line);border-radius:var(--rad-lg);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+        +'<input type="search" id="done-search" placeholder="Search the backlog by order #, customer, or account…" value="'+esc(doneSearch)+'" style="flex:1;min-width:220px">'
+        +'<span id="done-count" style="font-size:11px;color:var(--ink2);white-space:nowrap"></span>'
+        +'</div>'
+        +'<div id="done-list"></div>';
+      document.getElementById('done-search').addEventListener('input',e=>{
+        doneSearch=e.target.value;
+        renderDoneList();
+      });
+    }
+    renderDoneList();
+    return;
+  }
   const orders=ALL.filter(o=>o.stageKey===curStage);
   if(!orders.length){ el.innerHTML='<p class="empty">No orders currently at this stage.</p>'; return; }
   let h='';
@@ -561,20 +691,31 @@ function stagePanel(o){
   return donePanel(o);
 }
 
-/* Full 5-stage path, click any stage to jump there (mirrors the Salesforce
-   Path and the stepper on the Pre-Production Dashboard). This is what lets an
-   order be sent backward — e.g. Ready for Print -> Pre-Production to remake a
-   screen — from right here, not just forward through the stage buttons. */
+/* 5-stage path. Only an ADJACENT move is allowed from here: one stage
+   forward, or back to Pre-Production (which remakes pre-production items, so
+   it's the one legitimate "long jump"). Every other stage is shown but
+   unclickable -- this is what stops an order from silently skipping timers,
+   misprint checks, or packaging/shipment logging by jumping straight from
+   e.g. Ready for Print to Completed in one tap. Mirrors the same rule on the
+   Pre-Production Dashboard's stepper. */
 const STATUS_STAGES=['Pre-Production','Ready for Print','In Production','Post-Production','Completed'];
+function isAllowedStageJump(curIdx,tgtIdx){
+  return tgtIdx===curIdx+1||(tgtIdx===0&&curIdx!==0);
+}
 function stepperHTML(o){
   const curIdx=STATUS_STAGES.indexOf(o.substatus);
   return '<div class="fieldwrap"><span class="fieldlbl">Production Status'+(o.sav.substatus?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<div class="stepbar">'
     +STATUS_STAGES.map((s,i)=>{
       const done=i<curIdx,active=i===curIdx;
+      const allowed=isAllowedStageJump(curIdx,i);
       const bg=active?'#C6372B':done?'#3A2C10':'#1A1A1C';
       const text=active?'#FFFFFF':done?'#E0B870':'#6E6A62';
-      return '<div class="stepseg" data-a="advance" data-sid="'+o.id+'" data-v="'+s+'" title="Set to '+s+'" style="background:'+bg+';color:'+text+'">'+s+'</div>';
+      const style='background:'+bg+';color:'+text+(allowed?'':';opacity:.35;cursor:not-allowed');
+      const attrs=allowed
+        ?' data-a="advance" data-sid="'+o.id+'" data-v="'+s+'" title="Set to '+s+'"'
+        :' title="'+(active?'Current stage':'Complete the stage before this one to reach it')+'"';
+      return '<div class="stepseg"'+attrs+' style="'+style+'">'+s+'</div>';
     }).join('')
     +'</div>'
     +'<p class="hint" style="margin-top:8px">Moving this order to Pre-Production clears its checklist items and sends it back to the Pre-Production Dashboard — it will drop off this page.</p>'
@@ -894,8 +1035,36 @@ async function loadPkgItems(orderId){
     const d=await r.json();
     if(!r.ok) throw new Error((d&&d.error)||('Failed '+r.status));
     pkgItems[orderId]={loading:false,error:null,items:(d.records||[])};
+    syncPackagingCount(orderId);
   }catch(e){ pkgItems[orderId]={loading:false,error:'Could not load packages: '+e.message,items:[]}; }
   renderCur();
+}
+
+// Packaging Count used to be a number a worker typed by hand, living
+// alongside the actual Order Packaging log entries -- the two drifted apart
+// with no way to tell which was right. Now the log IS the source of truth:
+// this sums the garment quantities of every package logged for the order,
+// and Packaging_Count__c on Salesforce is kept in sync automatically (below)
+// rather than typed. Returns null while the log hasn't loaded yet.
+function pkgTotalQty(oid){
+  const st=pkgItems[oid];
+  if(!st||st.loading||!st.items) return null;
+  return st.items.reduce((s,p)=>s+(Number(p.Quantity__c)||0),0);
+}
+function syncPackagingCount(sid){
+  const o=ALL.find(x=>x.id===sid);
+  const total=pkgTotalQty(sid);
+  if(!o||total==null||o.sav.packaging) return;
+  if(o.packaging===total) return;
+  patchField(sid,'Packaging_Count__c',total,o,'packaging');
+}
+function packagingCountHTML(o){
+  const total=pkgTotalQty(o.id);
+  const shown=total!=null?total:(o.packaging===''?0:o.packaging);
+  return '<div class="fieldwrap"><span class="fieldlbl">Packaging Count'+(o.sav.packaging?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<div style="font-size:14px;font-weight:600;color:#ECEAE4;background:var(--chip);border:1px solid var(--line);border-radius:var(--rad-sm);padding:10px 14px">'+shown+' garment'+(shown===1?'':'s')+' packed</div>'
+    +'<p class="hint" style="margin-top:6px;margin-bottom:0">Counted automatically from the packages logged below — no need to type it.</p>'
+    +'</div>';
 }
 
 function ipPanel(o){
@@ -905,10 +1074,11 @@ function ipPanel(o){
     +timerBlock(o,'setup')
     +timerBlock(o,'prod')
     +ppItemsPanel(o)
-    +'<div class="fieldwrap"><span class="fieldlbl">Packaging Count'+(o.sav.packaging?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
-    +'<input type="number" min="0" placeholder="Number of boxes" value="'+(o.packaging===''?'':o.packaging)+'" data-fi="'+o.id+'" data-ff="Packaging_Count__c" data-fk="packaging"></div>'
+    +packagingCountHTML(o)
     +pkgSection(o)
     +'<div class="ckrow" data-a="ck" data-sid="'+o.id+'" data-v="'+(o.misprint?'true':'false')+'"><div class="cktog'+(o.misprint?' ck':'')+'"><i class="ti ti-alert-triangle" style="font-size:12px" aria-hidden="true"></i></div><div style="font-size:13px;font-weight:500;color:#C9C6BF">Flag misprint on this order'+(o.sav.misprint?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</div></div>'
+    +'<div class="fieldwrap"><span class="fieldlbl">Garments Affected'+(o.sav.misprintQty?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<input type="number" min="0" placeholder="How many garments" value="'+(o.misprintQty===''?'':o.misprintQty)+'" data-fi="'+o.id+'" data-ff="TotalQtyMisprints__c" data-fk="misprintQty"></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Misprint Details'+(o.sav.misprintDetails?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<textarea placeholder="What happened, which item, how many…" data-fi="'+o.id+'" data-ff="Misprint_Details__c" data-fk="misprintDetails">'+esc(o.misprintDetails)+'</textarea></div>'
     +'<button class="actbtn" data-a="advance" data-sid="'+o.id+'" data-v="Post-Production"'+(o.sav.substatus?' disabled':'')+'><i class="ti ti-arrow-right" aria-hidden="true"></i> '+(o.sav.substatus?'Moving…':'Move to Post-Production')+'</button>';
@@ -968,6 +1138,8 @@ function ppPanel(o){
     +'<div class="fieldwrap"><span class="fieldlbl">Production Notes'+(o.sav.notes?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<textarea placeholder="Notes for this order\'s production run…" data-fi="'+o.id+'" data-ff="Production_Notes__c" data-fk="notes">'+esc(o.notes)+'</textarea></div>'
     +'<div class="ckrow" data-a="ck" data-sid="'+o.id+'" data-v="'+(o.misprint?'true':'false')+'"><div class="cktog'+(o.misprint?' ck':'')+'"><i class="ti ti-alert-triangle" style="font-size:12px" aria-hidden="true"></i></div><div style="font-size:13px;font-weight:500;color:#C9C6BF">Misprint flagged on this order'+(o.sav.misprint?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</div></div>'
+    +'<div class="fieldwrap"><span class="fieldlbl">Garments Affected'+(o.sav.misprintQty?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
+    +'<input type="number" min="0" placeholder="How many garments" value="'+(o.misprintQty===''?'':o.misprintQty)+'" data-fi="'+o.id+'" data-ff="TotalQtyMisprints__c" data-fk="misprintQty"></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Misprint Details'+(o.sav.misprintDetails?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
     +'<textarea placeholder="What happened, which item, how many…" data-fi="'+o.id+'" data-ff="Misprint_Details__c" data-fk="misprintDetails">'+esc(o.misprintDetails)+'</textarea></div>'
     +'<div class="fieldwrap"><span class="fieldlbl">Delivery Method'+(o.sav.delivery?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
@@ -975,8 +1147,7 @@ function ppPanel(o){
     +'<option value=""'+(o.delivery?'':' selected')+'>— Select —</option>'
     +DELIVERY_METHODS.map(m=>'<option value="'+esc(m)+'"'+(o.delivery===m?' selected':'')+'>'+esc(m)+'</option>').join('')
     +'</select></div>'
-    +'<div class="fieldwrap"><span class="fieldlbl">Packaging Count'+(o.sav.packaging?' <i class="ti ti-loader sav-tag" aria-hidden="true"></i>':'')+'</span>'
-    +'<input type="number" min="0" placeholder="Number of boxes" value="'+(o.packaging===''?'':o.packaging)+'" data-fi="'+o.id+'" data-ff="Packaging_Count__c" data-fk="packaging"></div>'
+    +packagingCountHTML(o)
     +pkgSection(o)
     +shipSection(o)
     +'<button class="actbtn" data-a="label" data-sid="'+o.id+'"><i class="ti ti-printer" aria-hidden="true"></i> Print Shipping Label</button>';
@@ -1011,6 +1182,7 @@ function doneDetailHTML(o){
     +pkgSection(o)
     +shipSection(o)
     +(o.notes?'<div class="fieldwrap"><span class="fieldlbl">Production Notes</span><p style="font-size:13px;color:#C9C6BF;white-space:pre-wrap;line-height:1.5;margin:0">'+esc(o.notes)+'</p></div>':'')
+    +(o.misprint?'<div class="fieldwrap"><span class="fieldlbl">Garments Affected</span><div style="font-size:13px;color:#E8A89F">'+(o.misprintQty===''?'—':o.misprintQty)+'</div></div>':'')
     +(o.misprint?'<div class="fieldwrap"><span class="fieldlbl">Misprint Details</span><p style="font-size:13px;color:#E8A89F;white-space:pre-wrap;line-height:1.5;margin:0">'+esc(o.misprintDetails||'—')+'</p></div>':'');
 }
 
@@ -1094,6 +1266,9 @@ document.body.addEventListener('click',function(e){
   }
   if(a==='advance'){
     if(o.sav.substatus||o.substatus===v) return;
+    // Re-check adjacency here too (not just in the stepper's markup) so a
+    // stale render or dev-tools click can't force a stage skip.
+    if(!isAllowedStageJump(STATUS_STAGES.indexOf(o.substatus),STATUS_STAGES.indexOf(v))) return;
     advanceStage(o,v);return;
   }
   if(a==='ck'){
@@ -1159,9 +1334,10 @@ document.body.addEventListener('click',function(e){
       .then(async r=>{
         if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error((d&&d.error)||('Failed '+r.status)); }
         if(pkgItems[sid]) pkgItems[sid].items=pkgItems[sid].items.filter(p=>p.Id!==pid);
+        syncPackagingCount(sid);
         renderCur();
       })
-      .catch(e=>alert('Could not remove package: '+e.message));
+      .catch(e=>toast('Could not remove package: '+e.message,true));
     return;
   }
   if(a==='ship-add'){
@@ -1197,7 +1373,7 @@ document.body.addEventListener('click',function(e){
         if(shipItems[sid]) shipItems[sid].items=shipItems[sid].items.filter(s=>s.Id!==pid);
         renderCur();
       })
-      .catch(e=>alert('Could not remove shipment: '+e.message));
+      .catch(e=>toast('Could not remove shipment: '+e.message,true));
     return;
   }
 });
@@ -1221,7 +1397,7 @@ document.body.addEventListener('change',function(e){
 (function(){
   let saved=null;
   try{saved=localStorage.getItem(CA_ROLE_KEY);}catch(_){}
-  if(saved==='worker'||saved==='manager') enterApp();
+  if(saved==='worker'||saved==='manager') proceedAfterPin();
 })();
 
 })();
