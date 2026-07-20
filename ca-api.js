@@ -35,8 +35,8 @@
     'Transfers received':'Transfers_Received__c', 'Transfers ready':'Transfers_Ready__c'
   };
   /* Receiving_Status__c picklist <-> board key */
-  var RECV_FROM_SF = { 'Not Received':'none', 'Partial':'partial', 'Counted In':'staged', 'Staged':'staged' };
-  var RECV_TO_SF = { none:'Not Received', partial:'Partial', staged:'Staged' };
+  var RECV_FROM_SF = { 'Not Received':'none', 'Partial':'partial', 'Counted In':'countedin', 'Staged':'staged' };
+  var RECV_TO_SF = { none:'Not Received', partial:'Partial', countedin:'Counted In', staged:'Staged' };
 
   /* ── low-level fetch ── */
   function jget(url){
