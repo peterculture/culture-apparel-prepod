@@ -54,6 +54,10 @@
       <i class="ti ti-search" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#4d483f;font-size:15px"></i>
       <input value="{{q}}" onInput="{{ onSearch }}" placeholder="Search order #, customer, account…" style="width:100%;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px 11px 36px;font-size:13px;color:#ECEAE4;outline:none">
     </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <sc-for list="{{weekBtns}}" as="w" hint-placeholder-count="3"><button onClick="{{ w.onPick }}" style="font:600 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:{{w.color}};background:{{w.bg}};border:1px solid {{w.border}};border-radius:8px;padding:9px 11px;cursor:pointer">{{w.label}}</button></sc-for>
+      <sc-if value="{{showPick}}" hint-placeholder-val="{{ false }}"><input type="date" value="{{pickDate}}" onInput="{{ onPickDate }}" style="background:#121215;border:1px solid #242428;border-radius:8px;padding:8px 10px;font-size:12px;color:#ECEAE4;outline:none"></sc-if>
+    </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
       <span style="font:400 11px/1 'Archivo';color:#6C665C">{{shownLabel}}</span>
       <button onClick="{{ onRefresh }}" style="display:inline-flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:8px;padding:9px 12px;cursor:pointer" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-refresh"></i>Refresh</button>
@@ -339,7 +343,7 @@ class Component extends DCLogic {
       { id:'GOA-4853', meth:'hp', num:'GOA-4853', customer:'Fiesta Foods', account:'Fiesta Markets', qty:'200', garment:'Gildan 5000 · White', sizes:'M50 · L70 · XL50 · 2XL30', dueLabel:'Jul 28 · 8d', urg:'ok', worker:null, recv:'none', vendor:'—', plan:'—' },
     ];
     this.state = {
-      now:new Date(), orders:seed, connection:'demo', q:'', openId:null, ppItemsById:{},
+      now:new Date(), orders:seed, connection:'demo', q:'', openId:null, ppItemsById:{}, weekMode:'all', pickDate:'',
       view:'board', inbox:[], inboxLoaded:false, mgrId:null, form:null, vendorResults:[], planResults:[], submitting:false, mgrErr:'', mgrMsg:'',
       checks:{ 'GOA-4842':{'Films printed':true}, 'GOA-4838':{'Films printed':true,'Screens completed':true,'Inks mixed':true}, 'GOA-4845':{'File digitized':true}, 'GOA-4847':{'Transfers received':true} },
       sent:{},
@@ -361,7 +365,7 @@ class Component extends DCLogic {
         else if(meth==='em'){ if(r.Digitize_File__c)g['File digitized']=true; if(r.Thread_Color_Materials__c)g['Thread & materials']=true; }
         else { if(r.Transfers_Received__c)g['Transfers received']=true; if(r.Transfers_Ready__c)g['Transfers ready']=true; }
         checks[id]=g;
-        return { id, meth, num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'', qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel:due.label, urg:due.urg, worker:null, workerName:wn||null, recv:(api.RECV_FROM_SF[r.Receiving_Status__c]||'none'), mockupUrl:r.DesignMockupUrl||null, vendor:'From order', plan:'—' };
+        return { id, meth, num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'', qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel:due.label, urg:due.urg, worker:null, workerName:wn||null, recv:(api.RECV_FROM_SF[r.Receiving_Status__c]||'none'), printDateISO:r.Print_Date__c||null, mockupUrl:r.DesignMockupUrl||null, vendor:'From order', plan:'—' };
       });
       this.setState({ orders, connection:'live', checks, sent:{} });
     } catch(_) { this.setState({connection:'demo'}); }
@@ -433,11 +437,14 @@ class Component extends DCLogic {
     const M={ sp:{label:'Screen Print',color:'#C6372B',icon:'ti-stack-2',prereq:['Films printed','Screens completed','Inks mixed']}, em:{label:'Embroidery',color:'#5E9B9A',icon:'ti-needle',prereq:['File digitized','Thread & materials']}, hp:{label:'Heat Press',color:'#C9923A',icon:'ti-flame',prereq:['Transfers received','Transfers ready']} };
     const W={ MA:{name:'Marcus A.',color:'#C6372B'}, DK:{name:'Dana K.',color:'#5E9B9A'}, PR:{name:'Priya R.',color:'#C9923A'}, JT:{name:'Jules T.',color:'#7FA644'} };
     const U={ over:'#E24A3A', today:'#E24A3A', soon:'#C9923A', ok:'#6C665C' };
-    const RECV={ none:{label:'Not Received',icon:'ti-inbox',textColor:'#E8A89F',bg:'#2A100D',border:'#7A241C'}, partial:{label:'Partial',icon:'ti-progress',textColor:'#E0B870',bg:'#241a09',border:'#5E4214'}, staged:{label:'Staged',icon:'ti-check',textColor:'#BBD382',bg:'#18230D',border:'#3D5418'} };
-    const RECV_STEPS=[['none','Not In','ti-inbox'],['partial','Partial','ti-progress'],['staged','Staged','ti-checkbox']];
+    const RECV={ none:{label:'Not Received',icon:'ti-inbox',textColor:'#E8A89F',bg:'#2A100D',border:'#7A241C'}, partial:{label:'Partial',icon:'ti-progress',textColor:'#E0B870',bg:'#241a09',border:'#5E4214'}, countedin:{label:'Counted In',icon:'ti-checks',textColor:'#8FCBE0',bg:'#0D1F2A',border:'#2E6A8B'}, staged:{label:'Staged',icon:'ti-check',textColor:'#BBD382',bg:'#18230D',border:'#3D5418'} };
+    const RECV_STEPS=[['none','Not In','ti-inbox'],['partial','Partial','ti-progress'],['countedin','Counted','ti-checks'],['staged','Staged','ti-checkbox']];
 
     const q=st.q.trim().toLowerCase();
-    const visible=st.orders.filter(o=>!st.sent[o.id] && (!q || (o.customer+' '+o.num+' '+o.account).toLowerCase().includes(q)));
+    const mondayOf=(iso)=>{ if(!iso) return null; const d=new Date(String(iso).slice(0,10)+'T12:00:00'); if(isNaN(d.getTime())) return null; const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); d.setHours(0,0,0,0); return d.getTime(); };
+    const anchorMon=(st.weekMode==='pick' && st.pickDate)?mondayOf(st.pickDate):mondayOf(new Date().toISOString());
+    const inWeek=(iso)=>{ if(st.weekMode==='all') return true; if(!iso||anchorMon==null) return false; const m=mondayOf(iso); return m!=null && m===anchorMon; };
+    const visible=st.orders.filter(o=>!st.sent[o.id] && inWeek(o.printDateISO) && (!q || (o.customer+' '+o.num+' '+o.account).toLowerCase().includes(q)));
 
     const prereqDone=(o)=>{ const g=st.checks[o.id]||{}; return M[o.meth].prereq.filter(l=>g[l]).length; };
     const isReady=(o)=>prereqDone(o)===M[o.meth].prereq.length && o.recv==='staged';
@@ -458,7 +465,7 @@ class Component extends DCLogic {
 
     const methMeta=['sp','em','hp'].map(k=>Object.assign({key:k},M[k]));
     const columns=methMeta.map(s=>{
-      const items=visible.filter(o=>o.meth===s.key).map(mk);
+      const items=visible.filter(o=>o.meth===s.key).map(mk).sort((a,b)=>(a.urg==='over'?0:1)-(b.urg==='over'?0:1));
       const ready=items.filter(o=>o.ready).length;
       return Object.assign({},s,{ items, count:items.length, isEmpty:items.length===0, readyLabel: ready+' ready to send · '+items.length+' in prep' });
     });
@@ -498,7 +505,7 @@ class Component extends DCLogic {
 
     let wn='Priya R.'; try{ wn=localStorage.getItem('caShopWorkerName')||wn; }catch(_){}
     const live=st.connection==='live';
-    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, connLabel: live?'Live · Salesforce':'Demo data', connColor: live?'#7FA644':'#C9923A', q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}) };
+    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, weekBtns:['week','all','pick'].map(k=>({ key:k, label:({week:'This week',all:'All',pick:'Pick week'})[k], onPick:()=>this.setState({weekMode:k}), bg:st.weekMode===k?'#1a1a1e':'transparent', border:st.weekMode===k?'#C6372B':'#242428', color:st.weekMode===k?'#ECEAE4':'#8a8378' })), showPick:st.weekMode==='pick', pickDate:st.pickDate, onPickDate:(e)=>this.setState({pickDate:e.target.value}), connLabel: live?'Live · Salesforce':'Demo data', connColor: live?'#7FA644':'#C9923A', q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}) };
     return Object.assign(base, this.mgrVals());
   }
 }
