@@ -253,7 +253,7 @@ class Component extends DCLogic {
     try {
       this._api = window.CAApi; if(!this._api) throw new Error('CAApi not loaded');
       const api=this._api;
-      const recs = await api.getOrders();
+      const recs = await api.getProductionOrders();
       const PREREQ={ sp:['Films_Printed__c','Screens_Completed__c','Mix_Inks__c'], em:['Digitize_File__c','Thread_Color_Materials__c'], hp:['Transfers_Received__c','Transfers_Ready__c'] };
       const mapped = recs.map(r=>{
         const stage=api.stageOf(r); if(!stage) return null;
