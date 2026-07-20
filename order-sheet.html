@@ -154,7 +154,7 @@ class Component extends DCLogic {
       rows.forEach(r => {
         const sz = (r.Size__c||'').toUpperCase(); if(!sz) return;
         const c = r.Color__c || '—'; const q = Number(r.Quantity) || 0;
-        const g = (byColor[c] = byColor[c] || { garment:(r.Product2&&r.Product2.Name)||'', qtys:{}, total:0 });
+        const g = (byColor[c] = byColor[c] || { garment:api.text(r.Product2&&r.Product2.Name)||'', qtys:{}, total:0 });
         g.qtys[sz] = (g.qtys[sz]||0) + q; g.total += q; colSet[sz] = true;
       });
       const cols = Object.keys(colSet).sort((a,b)=>{ const ia=api.SIZE_ORDER.indexOf(a), ib=api.SIZE_ORDER.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
@@ -163,10 +163,10 @@ class Component extends DCLogic {
       const grand = grids.reduce((a,g)=>a+g.total,0);
       const pd = rec.Print_Date__c ? new Date(rec.Print_Date__c+'T12:00:00').toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }) : '—';
       const order = {
-        goa: rec.GOA_Order_Number__c || rec.OrderNumber || rec.Id,
-        goaTail: (rec.GOA_Order_Number__c||'').replace(/[^0-9]/g,'') || (rec.OrderNumber||''),
-        customer: rec.Customer_Order_Name__c || (rec.Account&&rec.Account.Name) || '—',
-        account: (rec.Account&&rec.Account.Name) || '', orderNumber: rec.OrderNumber || '',
+        goa: api.text(rec.GOA_Order_Number__c) || rec.OrderNumber || rec.Id,
+        goaTail: (api.text(rec.GOA_Order_Number__c)||rec.OrderNumber||'').replace(/[^0-9-]/g,'') || (rec.OrderNumber||''),
+        customer: api.text(rec.Customer_Order_Name__c) || api.text(rec.Account&&rec.Account.Name) || '—',
+        account: api.text(rec.Account&&rec.Account.Name) || '', orderNumber: rec.OrderNumber || '',
         method: api.methodOf(rec), methodLabelText: M[api.methodOf(rec)],
         printDate: pd, qty: String(grand), coordinator: rec.Last_Updated_By__c || '—',
         placement: rec.Specifications_for_Printing__c || '—',
