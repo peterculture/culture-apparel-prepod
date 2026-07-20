@@ -33,6 +33,9 @@ const ALLOWED_FIELDS = new Set([
   "TotalQtyMisprints__c",
   "Packaging_Count__c",
   "Production_Notes__c",
+  // Editable from the Production drawer: print specs and special/rush notes.
+  "Specifications_for_Printing__c",
+  "Special_Notes__c",
   "Shipping_Delivery__c",
   "Shipping_Label_Printed__c",
   // Audit trail: free-text name of whoever made this change, captured client-side
