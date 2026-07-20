@@ -187,24 +187,20 @@
 
         <a href="{{open.orderSheetUrl}}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 11px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#ECEAE4;background:#141417;border:1px solid #2a2a2f;border-radius:10px;padding:13px;text-decoration:none" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-printer"></i>Open Order Sheet</a>
 
-        <sc-if value="{{open.hasSpecs}}" hint-placeholder-val="{{ false }}">
-          <div>
-            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Specifications for Printing</div>
-            <div style="font:400 13px/1.55 'Archivo';color:#C9C6BF;white-space:pre-wrap;background:#121215;border:1px solid #232327;border-radius:9px;padding:12px 14px">{{open.specs}}</div>
-          </div>
-        </sc-if>
-        <sc-if value="{{open.hasSpecial}}" hint-placeholder-val="{{ false }}">
-          <div>
-            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#E0B870;margin-bottom:9px">Special Notes</div>
-            <div style="font:400 13px/1.55 'Archivo';color:#E0B870;white-space:pre-wrap;background:#241a09;border:1px solid #5E4214;border-radius:9px;padding:12px 14px">{{open.special}}</div>
-          </div>
-        </sc-if>
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Specifications for Printing</div>
+          <textarea value="{{open.specs}}" onInput="{{ open.onSpecs }}" placeholder="Print specs — placement, colors, screens, digitizing notes…" style="width:100%;min-height:72px;font:400 13px/1.55 'Archivo';color:#C9C6BF;white-space:pre-wrap;background:#121215;border:1px solid #232327;border-radius:9px;padding:12px 14px;outline:none;resize:vertical"></textarea>
+        </div>
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#E0B870;margin-bottom:9px">Special Notes</div>
+          <textarea value="{{open.special}}" onInput="{{ open.onSpecial }}" placeholder="Rush notes, VIP handling, anything the floor needs to know…" style="width:100%;min-height:72px;font:400 13px/1.55 'Archivo';color:#E0B870;white-space:pre-wrap;background:#241a09;border:1px solid #5E4214;border-radius:9px;padding:12px 14px;outline:none;resize:vertical"></textarea>
+        </div>
 
         <div>
           <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Items</div>
           <div style="display:flex;flex-direction:column;gap:6px">
             <sc-for list="{{open.ppItemsView}}" as="it" hint-placeholder-count="1">
-              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><span style="font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#5E9B9A;min-width:74px">{{it.type}}</span><span style="font:500 12px/1.3 'Archivo';color:#ECEAE4;flex:1;min-width:0">{{it.detail}}</span><span style="font:600 9px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#9C978C">{{it.status}}</span></div>
+              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><span style="font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#5E9B9A;min-width:74px">{{it.type}}</span><span style="font:500 12px/1.3 'Archivo';color:#ECEAE4;flex:1;min-width:0">{{it.detail}}</span><span style="font:600 9px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#9C978C">{{it.status}}</span><button onClick="{{ it.onRemove }}" title="Remove item" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:transparent;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;flex-shrink:0"><i class="ti ti-trash" style="font-size:13px"></i></button></div>
             </sc-for>
             <sc-if value="{{open.ppItemsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:4px 2px">No production items on this order.</div></sc-if>
           </div>
@@ -225,7 +221,7 @@
           </div>
           <div style="display:flex;flex-direction:column;gap:6px">
             <sc-for list="{{open.packaging}}" as="p" hint-placeholder-count="1">
-              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><i class="ti ti-box" style="color:#5E9B9A;font-size:15px"></i><span style="font:500 12px/1 'Archivo';color:#ECEAE4">{{p.type}}</span><span style="margin-left:auto;font:600 12px/1 'Oswald';color:#9C978C">×{{p.qty}}</span></div>
+              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><i class="ti ti-box" style="color:#5E9B9A;font-size:15px"></i><span style="font:500 12px/1 'Archivo';color:#ECEAE4">{{p.type}}</span><span style="margin-left:auto;font:600 12px/1 'Oswald';color:#9C978C">×{{p.qty}}</span><button onClick="{{ p.onRemove }}" title="Remove packaging" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:transparent;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;flex-shrink:0"><i class="ti ti-trash" style="font-size:13px"></i></button></div>
             </sc-for>
             <sc-if value="{{open.pkgEmpty}}" hint-placeholder-val="{{ false }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:4px 2px">No packaging logged yet.</div></sc-if>
           </div>
@@ -281,9 +277,10 @@ class Component extends DCLogic {
       { id:'GOA-4772', stage:'done', num:'GOA-4772', customer:'Twin Pines Coffee', account:'Twin Pines', meth:'hp', qty:'72', garment:'Comfort Colors · Ivory', sizes:'S12 · M24 · L24 · XL12', dueLabel:'Shipped Jul 19', urg:'done', worker:'JT', mis:0 },
       { id:'GOA-4755', stage:'done', num:'GOA-4755', customer:'Alderwood FC Kits', account:'Alderwood FC', meth:'em', qty:'88', garment:'Augusta Jersey · Green', sizes:'YM10 · YL14 · S20 · M24 · L14 · XL6', dueLabel:'Shipped Jul 17', urg:'done', worker:'MA', mis:0 },
     ];
+    this._demoOrders = seedOrders;
     this.state = {
       now: new Date(),
-      orders: seedOrders, connection:'demo',
+      orders: [], connection:'loading',
       q:'', methods:{ sp:true, em:true, hp:true },
       openId:null, dragId:null, dragOverStage:null,
       checks:{ 'GOA-4809':{'Films printed':true,'Screens burned':true,'Inks mixed':true}, 'GOA-4814':{'File digitized':true,'Threads pulled':true} },
@@ -313,14 +310,18 @@ class Component extends DCLogic {
       mapped.forEach(o=>{ timers[o.id]={setup:{elapsed:o._setup||0,running:false,startedAt:0},prod:{elapsed:o._prod||0,running:false,startedAt:0}}; });
       recs.forEach(r=>{ if(r.Misprint_Details__c) misD[r.Id]=r.Misprint_Details__c; });
       this.setState(st=>({ orders:mapped, connection:'live', timers:Object.assign({},st.timers,timers), misDetails:Object.assign({},st.misDetails,misD) }));
-    } catch(_) { this.setState({connection:'demo'}); }
+    } catch(_) { this.setState({orders:this._demoOrders, connection:'demo'}); }
   }
   push(id,fields){ if(this._api && this.state.connection==='live') this._api.patchOrder(id,fields).catch(()=>{}); }
   subVal(stage){ const label={rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[stage]; return (this._api?this._api.SUBSTATUS_VALUE[label]:label)||label; }
-  openOrder(id){ this.setState({openId:id}); if(this._api && this.state.connection==='live'){ const api=this._api; Promise.all([api.getPackaging(id).catch(()=>null),api.getShipments(id).catch(()=>null),api.getPreProductionItems(id).catch(()=>null)]).then(([pk,sh,it])=>{ this.setState(st=>{ const pkg=Object.assign({},st.pkg), ship=Object.assign({},st.ship), pp=Object.assign({},st.ppItemsById); if(pk) pkg[id]=pk.map(x=>({type:x.Packaging_Type__c,qty:x.Quantity__c})); if(sh) ship[id]=sh.map(x=>({carrier:x.zkmulti__Carrier__c||'Shipment',tracking:x.zkmulti__Tracking_Number__c||''})); if(it) pp[id]=it; return {pkg,ship,ppItemsById:pp}; }); }); } }
+  openOrder(id){ this.setState({openId:id}); if(this._api && this.state.connection==='live'){ const api=this._api; Promise.all([api.getPackaging(id).catch(()=>null),api.getShipments(id).catch(()=>null),api.getPreProductionItems(id).catch(()=>null)]).then(([pk,sh,it])=>{ this.setState(st=>{ const pkg=Object.assign({},st.pkg), ship=Object.assign({},st.ship), pp=Object.assign({},st.ppItemsById); if(pk) pkg[id]=pk.map(x=>({type:x.Packaging_Type__c,qty:x.Quantity__c,id:x.Id})); if(sh) ship[id]=sh.map(x=>({carrier:x.zkmulti__Carrier__c||'Shipment',tracking:x.zkmulti__Tracking_Number__c||''})); if(it) pp[id]=it; return {pkg,ship,ppItemsById:pp}; }); }); } }
+  removePkg(id,idx){ const cur=(this.state.pkg[id]||[])[idx]; this.setState(st=>{ const arr=(st.pkg[id]||[]).slice(); arr.splice(idx,1); const p=Object.assign({},st.pkg); p[id]=arr; return {pkg:p}; }); if(this._api && this.state.connection==='live' && cur && cur.id) this._api.deletePackaging(cur.id).catch(()=>{}); }
+  removePPItem(orderId,itemId){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).filter(x=>x.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{}); }
   setDelivery(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{shipDelivery:v}):o)})); if(v) this.push(id,{Shipping_Delivery__c:v}); }
   toggleLabel(id){ const cur=(this.state.orders.find(o=>o.id===id)||{}).labelPrinted; const nv=!cur; this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{labelPrinted:nv}):o)})); this.push(id,{Shipping_Label_Printed__c:nv}); }
   setMisDetails(id,v){ this.setState(s2=>({misDetails:Object.assign({},s2.misDetails,{[id]:v})})); clearTimeout(this._md); this._md=setTimeout(()=>this.push(id,{Misprint_Details__c:v}),600); }
+  setSpecs(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{printSpecs:v}):o)})); clearTimeout(this._specsT); this._specsT=setTimeout(()=>this.push(id,{Specifications_for_Printing__c:v}),600); }
+  setSpecial(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{specialNotes:v}):o)})); clearTimeout(this._specialT); this._specialT=setTimeout(()=>this.push(id,{Special_Notes__c:v}),600); }
 
   fmtDur(s){ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60; const p=n=>String(n).padStart(2,'0'); return h>0?`${h}:${p(m)}:${p(ss)}`:`${m}:${p(ss)}`; }
   moveOrder(id,stage){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{stage}):o), dragId:null, dragOverStage:null })); this.push(id,{Order_Substatus__c:this.subVal(stage)}); }
@@ -333,7 +334,7 @@ class Component extends DCLogic {
     this.setState(st=>{ const timers=Object.assign({},st.timers); const g=Object.assign({},timers[id]||{}); g[which]=next; timers[id]=g; return {timers}; });
   }
   setMis(id,val){ const v=Math.max(0,val); this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{mis:v}):o) })); this.push(id,{TotalQtyMisprints__c:v, Misprint__c:v>0}); }
-  addPkg(id){ const type=this.state.pkgType||'Standard Culture Box'; const qty=Math.max(1,parseInt(this.state.pkgQty,10)||1); this.setState(st=>{ const p=Object.assign({},st.pkg); p[id]=(p[id]||[]).concat([{type,qty}]); return {pkg:p}; }); if(this._api && this.state.connection==='live') this._api.postPackaging(id,type,qty).catch(()=>{}); }
+  addPkg(id){ const type=this.state.pkgType||'Standard Culture Box'; const qty=Math.max(1,parseInt(this.state.pkgQty,10)||1); const localKey='local-'+Date.now()+'-'+Math.random(); this.setState(st=>{ const p=Object.assign({},st.pkg); p[id]=(p[id]||[]).concat([{type,qty,_local:localKey}]); return {pkg:p}; }); if(this._api && this.state.connection==='live') this._api.postPackaging(id,type,qty).then(res=>{ const newId=res&&res.id; if(!newId) return; this.setState(st=>{ const p=Object.assign({},st.pkg); p[id]=(p[id]||[]).map(x=>x._local===localKey?Object.assign({},x,{id:newId}):x); return {pkg:p}; }); }).catch(()=>{}); }
   zkUrl(o){ const id15=((o&&o.id)||'').slice(0,15); const F='CF00NRi000001mOHB'; const qs=new URLSearchParams({ [F]:(o&&o.num)||'', [F+'_lkid']:id15, navigationLocation:'RELATED_LIST', lexiSObjectName:'zkmulti__MCShipment__c', lexiActionName:'new', 'sfdc.override':'1' }); return 'https://cultureapparel--dev2--zkmulti.sandbox.vf.force.com/apex/Wizard?'+qs.toString(); }
   addShip(id){ this.setState(st=>{ const s=Object.assign({},st.ship); s[id]=(s[id]||[]).concat([{carrier:'FedEx Ground',tracking:'Draft · rate shopping'}]); return {ship:s}; }); if(this._api && this.state.connection==='live') this._api.postShipment(id,{carrier:'FedEx Ground',serviceType:'Ground',tracking:'PENDING'}).catch(()=>{}); }
   assign(id,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{worker: o.worker===w?null:w}):o) })); }
@@ -422,12 +423,12 @@ class Component extends DCLogic {
         assignees, timers, checklist,
         checklistTitle:'Production Checklist', checkDoneLabel:checkedN+' / '+list.length,
         hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode: d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Production mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, zkUrl:this.zkUrl(src),
-        hasSpecs:!!d.printSpecs, specs:d.printSpecs||'', hasSpecial:!!d.specialNotes, special:d.specialNotes||'', orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.id),
+        specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.id,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.id,e.target.value), orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.id),
         delivery:d.shipDelivery||'', deliveryOptions:[{value:'',label:'— not set —'},{value:'Shipping',label:'Shipping'},{value:'Local Dropoff',label:'Local Dropoff'},{value:'Pickup',label:'Pickup'},{value:'Order Fulfillment',label:'Order Fulfillment'},{value:'Split Ship',label:'Split Ship'}], onDelivery:(e)=>this.setDelivery(src.id,e.target.value),
         labelPrinted:!!d.labelPrinted, onToggleLabel:()=>this.toggleLabel(src.id), labelBg:d.labelPrinted?'#18230D':'#16161a', labelBorder:d.labelPrinted?'#3D5418':'#2a2a2f', labelColor:d.labelPrinted?'#BBD382':'#9C978C', labelIcon:d.labelPrinted?'ti-checkbox':'ti-square',
-        ppItemsView:(st.ppItemsById[src.id]||[]).map(function(it){ var ty=it.Type__c||'Item', det=''; if(ty==='Screen') det=(it.Mesh_Count__c?it.Mesh_Count__c+' mesh':''); else if(ty==='Ink') det=it.Pantone_Color__c||''; else if(ty==='Thread') det=[it.Thread_Color__c,it.Thread_Number__c].filter(Boolean).join(' · '); else if(ty==='Digitization') det=(it.Stitch_Count__c?it.Stitch_Count__c+' stitches':''); else if(ty==='Transfer') det=it.Transfer_Type__c||''; return { type:ty, detail:det||'—', status:it.Status__c||'' }; }), ppItemsEmpty:(st.ppItemsById[src.id]||[]).length===0,
-        statusSteps:(function(){ var SS=['Pre-Production','Ready for Print','In Production','Post-Production','Completed']; var curLabel={rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[src.stage]; var ci=SS.indexOf(curLabel); return SS.map(function(label,i){ var done=i<ci, current=i===ci, allowed=(i===ci+1)||(i===0&&ci!==0); return { label, onClick: allowed?(function(){ this.advanceStatus(src.id,label); }).bind(this):null, textColor: current?'#ECEAE4':(done?'#8a8378':(allowed?'#E0B870':'#4d483f')), border: current?'#C6372B':(allowed?'#5E4214':'#242428'), bg: current?'#2a1210':(done?'#18230D':(allowed?'#241a09':'#121215')) }; }.bind(this)); }).call(this),
-        packaging:pkg, pkgEmpty:pkg.length===0, onAddPkg:()=>this.addPkg(src.id), pkgType:st.pkgType, pkgQty:st.pkgQty, onPkgType:(e)=>this.setState({pkgType:e.target.value}), onPkgQty:(e)=>this.setState({pkgQty:e.target.value}), pkgTypeOptions:[{value:'Standard Culture Box',label:'Standard Culture Box'},{value:'Culture Hat Box',label:'Culture Hat Box'},{value:'Poly Bag',label:'Poly Bag'},{value:'Standard Brown Box',label:'Standard Brown Box'}],
+        ppItemsView:(st.ppItemsById[src.id]||[]).map(function(it){ var ty=it.Type__c||'Item', det=''; if(ty==='Screen') det=(it.Mesh_Count__c?it.Mesh_Count__c+' mesh':''); else if(ty==='Ink') det=it.Pantone_Color__c||''; else if(ty==='Thread') det=[it.Thread_Color__c,it.Thread_Number__c].filter(Boolean).join(' · '); else if(ty==='Digitization') det=(it.Stitch_Count__c?it.Stitch_Count__c+' stitches':''); else if(ty==='Transfer') det=it.Transfer_Type__c||''; return { type:ty, detail:det||'—', status:it.Status__c||'', onRemove:(function(){ this.removePPItem(src.id,it.Id); }).bind(this) }; }.bind(this)), ppItemsEmpty:(st.ppItemsById[src.id]||[]).length===0,
+        statusSteps:(function(){ var SS=['Pre-Production','Ready for Print','In Production','Post-Production','Completed']; var curLabel={rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[src.stage]; var ci=SS.indexOf(curLabel); return SS.map(function(label,i){ var done=i<ci, current=i===ci, isNext=(i===ci+1), clickable=isNext||done, allowed=isNext; return { label, onClick: clickable?(function(){ this.advanceStatus(src.id,label); }).bind(this):null, textColor: current?'#ECEAE4':(done?'#8a8378':(allowed?'#E0B870':'#4d483f')), border: current?'#C6372B':(allowed?'#5E4214':'#242428'), bg: current?'#2a1210':(done?'#18230D':(allowed?'#241a09':'#121215')) }; }.bind(this)); }).call(this),
+        packaging:pkg.map((p,idx)=>Object.assign({},p,{onRemove:()=>this.removePkg(src.id,idx)})), pkgEmpty:pkg.length===0, onAddPkg:()=>this.addPkg(src.id), pkgType:st.pkgType, pkgQty:st.pkgQty, onPkgType:(e)=>this.setState({pkgType:e.target.value}), onPkgQty:(e)=>this.setState({pkgQty:e.target.value}), pkgTypeOptions:[{value:'Standard Culture Box',label:'Standard Culture Box'},{value:'Culture Hat Box',label:'Culture Hat Box'},{value:'Poly Bag',label:'Poly Bag'},{value:'Standard Brown Box',label:'Standard Brown Box'}],
         shipments:shp, shipEmpty:shp.length===0, onAddShip:()=>this.addShip(src.id),
         misBorder:(src.mis>0)?'#7A241C':'#232327', misColor:(src.mis>0)?'#E8A89F':'#ECEAE4',
         onMisPlus:()=>this.setMis(src.id,(src.mis||0)+1), onMisMinus:()=>this.setMis(src.id,(src.mis||0)-1),
@@ -438,9 +439,11 @@ class Component extends DCLogic {
 
     let wn='Dana K.'; try{ wn=localStorage.getItem('caShopWorkerName')||wn; }catch(_){}
     const live=st.connection==='live';
+    const connLabel = live?'Live · Salesforce':(st.connection==='loading'?'Connecting…':'Demo data');
+    const connColor = live?'#7FA644':(st.connection==='loading'?'#6C665C':'#C9923A');
     return {
       columns, kpis, methodFilters, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), rushCount:String(rushCount), shownLabel,
-      connLabel: live?'Live · Salesforce':'Demo data', connColor: live?'#7FA644':'#C9923A',
+      connLabel, connColor,
       q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(),
       drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}),
     };
