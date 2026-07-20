@@ -146,8 +146,8 @@ class Component extends DCLogic {
     try {
       const api = window.CAApi; if(!api) return;
       const M = { sp:'Screen Print', em:'Embroidery', hp:'Heat Press' };
-      const [recs, rows] = await Promise.all([ api.getOrders(), api.getOrderSizes(orderId) ]);
-      const rec = recs.find(r => r.Id === orderId);
+      const [o1, o2, rows] = await Promise.all([ api.getOrders().catch(()=>[]), (api.getProductionOrders?api.getProductionOrders():Promise.resolve([])).catch(()=>[]), api.getOrderSizes(orderId) ]);
+      const rec = o1.concat(o2).find(r => r.Id === orderId);
       if(!rec) return;
       // group size rows by color, keep a shared, ordered column list
       const byColor = {}; const colSet = {};
