@@ -1,15 +1,25 @@
 /**
  * GET /api/orders
  *
- * Runs the fixed SOQL query for Pre-Production orders and returns the raw
+ * Runs the fixed SOQL query for production-pipeline orders and returns the raw
  * Salesforce query response to the browser. Because the query is hard-coded
  * here (not passed in from the client), the browser cannot run arbitrary SOQL.
  *
+ * WHY THE FILTER CHANGED (2026-07-20): the dashboards' columns are driven by
+ * Order_Substatus__c (Pre-Production / Ready for Print / In Production /
+ * Post-Production / Completed), NOT by the standard Status field. The old
+ * filter `WHERE Status = 'Pre-Production'` dropped any order whose standard
+ * Status had moved on (e.g. an order sitting at substatus "Post-Production"
+ * whose Status is no longer "Pre-Production") -- so those orders silently
+ * vanished from the board. Filtering on `Order_Substatus__c != null` returns
+ * every order that is anywhere in the production pipeline and lets the front
+ * end place each one by its substatus. If you ever need to scope it tighter,
+ * filter on an explicit set instead, e.g.:
+ *   WHERE Order_Substatus__c IN
+ *     ('Pre-Production','Ready for Print','Production','Post-Production','Completed')
+ * (note: the "In Production" picklist entry's stored value is "Production").
+ *
  * NOTE ON FIELDS: adjust the SELECT list to match your org's exact API names.
- * In particular, the project notes list a `Name` (customer) field on Order --
- * the standard Order object does not have a `Name` field, so if your org errors
- * on it, replace it with whatever field actually holds the customer name
- * (e.g. a lookup like Account.Name, or a custom field).
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 import { fetchMockupsByOpportunity } from "../_mockup.js";
@@ -56,7 +66,7 @@ export async function onRequestGet({ env }) {
   try {
     const soql =
       `SELECT ${FIELDS.join(", ")} FROM Order ` +
-      `WHERE Status = 'Pre-Production' ORDER BY Print_Date__c ASC`;
+      `WHERE Order_Substatus__c != null ORDER BY Print_Date__c ASC`;
     const path =
       `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
     const resp = await sfFetch(env, path);
