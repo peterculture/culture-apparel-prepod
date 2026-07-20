@@ -143,7 +143,8 @@
       <div style="flex:1;overflow-y:auto;padding:20px 22px;display:flex;flex-direction:column;gap:24px">
 
         <div style="display:flex;gap:12px;align-items:center">
-          <div style="width:96px;height:96px;flex-shrink:0;border-radius:11px;background-image:repeating-linear-gradient(45deg,#17171b 0 9px,#131317 9px 18px);border:1px solid #232327;display:flex;align-items:center;justify-content:center;font:500 8px/1 ui-monospace,monospace;letter-spacing:.2em;color:#4d483f;text-transform:uppercase">Mockup</div>
+          <sc-if value="{{open.hasMockup}}" hint-placeholder-val="{{ false }}">{{open.mockupNode}}</sc-if>
+          <sc-if value="{{open.noMockup}}" hint-placeholder-val="{{ true }}"><div style="width:96px;height:96px;flex-shrink:0;border-radius:11px;background-image:repeating-linear-gradient(45deg,#17171b 0 9px,#131317 9px 18px);border:1px solid #232327;display:flex;align-items:center;justify-content:center;font:500 8px/1 ui-monospace,monospace;letter-spacing:.2em;color:#4d483f;text-transform:uppercase">Mockup</div></sc-if>
           <div style="flex:1;display:flex;flex-direction:column;gap:9px">
             <div style="display:flex;align-items:center;gap:8px"><span style="font:600 15px/1 'Oswald';color:#ECEAE4">{{open.qty}} pieces</span><span style="font:400 11px/1 'Archivo';color:#9C978C">{{open.garment}}</span></div>
             <div style="display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font:700 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{open.urgColor}}"><i class="ti ti-clock-hour-4"></i>{{open.dueLabel}}</div>
@@ -176,7 +177,12 @@
         </div>
 
         <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Packaging</span><button onClick="{{ open.onAddPkg }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:7px;padding:6px 9px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-plus"></i>Add</button></div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Packaging</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+            <select value="{{open.pkgType}}" onChange="{{ open.onPkgType }}" style="flex:1;min-width:150px;background:#16161a;border:1px solid #2a2a2f;border-radius:8px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><sc-for list="{{open.pkgTypeOptions}}" as="pt" hint-placeholder-count="4"><option value="{{pt.value}}">{{pt.label}}</option></sc-for></select>
+            <input value="{{open.pkgQty}}" onInput="{{ open.onPkgQty }}" type="number" min="1" style="width:72px;background:#16161a;border:1px solid #2a2a2f;border-radius:8px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none">
+            <button onClick="{{ open.onAddPkg }}" style="display:inline-flex;align-items:center;gap:5px;font:600 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#5E9B9A;background:transparent;border:1px solid #3D5418;border-radius:8px;padding:9px 13px;cursor:pointer" style-hover="background:#18230D"><i class="ti ti-plus"></i>Add</button>
+          </div>
           <div style="display:flex;flex-direction:column;gap:6px">
             <sc-for list="{{open.packaging}}" as="p" hint-placeholder-count="1">
               <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><i class="ti ti-box" style="color:#5E9B9A;font-size:15px"></i><span style="font:500 12px/1 'Archivo';color:#ECEAE4">{{p.type}}</span><span style="margin-left:auto;font:600 12px/1 'Oswald';color:#9C978C">×{{p.qty}}</span></div>
@@ -186,7 +192,7 @@
         </div>
 
         <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Shipments</span><button onClick="{{ open.onAddShip }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:7px;padding:6px 9px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-truck-delivery"></i>New</button></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Shipments</span><a href="{{open.zkUrl}}" target="_blank" rel="noopener" title="Open the Zenkraft Shipment Wizard in Salesforce" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#E0B870;background:transparent;border:1px solid #5E4214;border-radius:7px;padding:6px 9px;text-decoration:none"><i class="ti ti-printer"></i>Print Label</a><button onClick="{{ open.onAddShip }}" style="margin-left:8px;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:7px;padding:6px 9px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-truck-delivery"></i>New</button></div>
           <div style="display:flex;flex-direction:column;gap:6px">
             <sc-for list="{{open.shipments}}" as="s" hint-placeholder-count="1">
               <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><i class="ti ti-truck" style="color:#7FA644;font-size:15px"></i><div style="min-width:0"><div style="font:500 12px/1 'Archivo';color:#ECEAE4">{{s.carrier}}</div><div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:3px">{{s.tracking}}</div></div></div>
@@ -244,7 +250,7 @@ class Component extends DCLogic {
       timers:{ 'GOA-4809':{ setup:{elapsed:1320,running:false,startedAt:0}, prod:{elapsed:2460,running:true,startedAt:Date.now()} }, 'GOA-4814':{ setup:{elapsed:900,running:false,startedAt:0}, prod:{elapsed:1560,running:false,startedAt:0} }, 'GOA-4790':{ setup:{elapsed:1080,running:false,startedAt:0}, prod:{elapsed:3900,running:false,startedAt:0} } },
       pkg:{ 'GOA-4790':[{type:'Poly mailers',qty:6}], 'GOA-4760':[{type:'Master cartons',qty:10},{type:'Poly bags',qty:500}] },
       ship:{ 'GOA-4760':[{carrier:'FedEx Ground',tracking:'7712 4490 1183'}], 'GOA-4755':[{carrier:'UPS Ground',tracking:'1Z 998 A21 55'}], 'GOA-4772':[{carrier:'USPS Priority',tracking:'9405 5118 9922'}] },
-      misDetails:{},
+      misDetails:{}, pkgType:'Standard Culture Box', pkgQty:1,
     };
   }
   componentDidMount(){ this._t = setInterval(()=>this.setState({ now:new Date() }), 1000); this.load(); }
@@ -260,7 +266,7 @@ class Component extends DCLogic {
         const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c), meth=api.methodOf(r), wn=r.Last_Updated_By__c||'';
         let pct, progressLabel;
         if(stage==='ip'||stage==='pp'){ const s=PREREQ[meth]||PREREQ.sp; const done=s.filter(f=>r[f]).length; pct=Math.round(done/s.length*100); progressLabel = stage==='ip'?'On press':'Post-production'; }
-        return { id:r.Id, stage, num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'', meth, qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel: stage==='done'?'Completed':due.label, urg: stage==='done'?'done':due.urg, worker:null, workerName:wn||null, workerInit: wn?api.initials(wn):'—', workerColor: wn?api.colorForName(wn):'#3a3a40', pct, progressLabel, mis:Number(r.TotalQtyMisprints__c)||0, _setup:Number(r.Print_Setup_Timer__c)||0, _prod:Number(r.Production_Timer__c)||0 };
+        return { id:r.Id, stage, num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'', meth, qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel: stage==='done'?'Completed':due.label, urg: stage==='done'?'done':due.urg, worker:null, workerName:wn||null, workerInit: wn?api.initials(wn):'—', workerColor: wn?api.colorForName(wn):'#3a3a40', pct, progressLabel, mis:Number(r.TotalQtyMisprints__c)||0, mockupUrl:r.DesignMockupUrl||null, _setup:Number(r.Print_Setup_Timer__c)||0, _prod:Number(r.Production_Timer__c)||0 };
       }).filter(Boolean);
       const timers={}, misD={};
       mapped.forEach(o=>{ timers[o.id]={setup:{elapsed:o._setup||0,running:false,startedAt:0},prod:{elapsed:o._prod||0,running:false,startedAt:0}}; });
@@ -284,7 +290,8 @@ class Component extends DCLogic {
     this.setState(st=>{ const timers=Object.assign({},st.timers); const g=Object.assign({},timers[id]||{}); g[which]=next; timers[id]=g; return {timers}; });
   }
   setMis(id,val){ const v=Math.max(0,val); this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{mis:v}):o) })); this.push(id,{TotalQtyMisprints__c:v, Misprint__c:v>0}); }
-  addPkg(id){ this.setState(st=>{ const p=Object.assign({},st.pkg); p[id]=(p[id]||[]).concat([{type:'Poly Bag',qty:1}]); return {pkg:p}; }); if(this._api && this.state.connection==='live') this._api.postPackaging(id,'Poly Bag',1).catch(()=>{}); }
+  addPkg(id){ const type=this.state.pkgType||'Standard Culture Box'; const qty=Math.max(1,parseInt(this.state.pkgQty,10)||1); this.setState(st=>{ const p=Object.assign({},st.pkg); p[id]=(p[id]||[]).concat([{type,qty}]); return {pkg:p}; }); if(this._api && this.state.connection==='live') this._api.postPackaging(id,type,qty).catch(()=>{}); }
+  zkUrl(o){ const id15=((o&&o.id)||'').slice(0,15); const F='CF00NRi000001mOHB'; const qs=new URLSearchParams({ [F]:(o&&o.num)||'', [F+'_lkid']:id15, navigationLocation:'RELATED_LIST', lexiSObjectName:'zkmulti__MCShipment__c', lexiActionName:'new', 'sfdc.override':'1' }); return 'https://cultureapparel--dev2--zkmulti.sandbox.vf.force.com/apex/Wizard?'+qs.toString(); }
   addShip(id){ this.setState(st=>{ const s=Object.assign({},st.ship); s[id]=(s[id]||[]).concat([{carrier:'FedEx Ground',tracking:'Draft · rate shopping'}]); return {ship:s}; }); if(this._api && this.state.connection==='live') this._api.postShipment(id,{carrier:'FedEx Ground',serviceType:'Ground',tracking:'PENDING'}).catch(()=>{}); }
   assign(id,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{worker: o.worker===w?null:w}):o) })); }
 
@@ -371,7 +378,8 @@ class Component extends DCLogic {
       open=Object.assign({}, d, {
         assignees, timers, checklist,
         checklistTitle:'Production Checklist', checkDoneLabel:checkedN+' / '+list.length,
-        packaging:pkg, pkgEmpty:pkg.length===0, onAddPkg:()=>this.addPkg(src.id),
+        hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode: d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Production mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, zkUrl:this.zkUrl(src),
+        packaging:pkg, pkgEmpty:pkg.length===0, onAddPkg:()=>this.addPkg(src.id), pkgType:st.pkgType, pkgQty:st.pkgQty, onPkgType:(e)=>this.setState({pkgType:e.target.value}), onPkgQty:(e)=>this.setState({pkgQty:e.target.value}), pkgTypeOptions:[{value:'Standard Culture Box',label:'Standard Culture Box'},{value:'Culture Hat Box',label:'Culture Hat Box'},{value:'Poly Bag',label:'Poly Bag'},{value:'Standard Brown Box',label:'Standard Brown Box'}],
         shipments:shp, shipEmpty:shp.length===0, onAddShip:()=>this.addShip(src.id),
         misBorder:(src.mis>0)?'#7A241C':'#232327', misColor:(src.mis>0)?'#E8A89F':'#ECEAE4',
         onMisPlus:()=>this.setMis(src.id,(src.mis||0)+1), onMisMinus:()=>this.setMis(src.id,(src.mis||0)-1),
