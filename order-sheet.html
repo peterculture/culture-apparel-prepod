@@ -162,7 +162,8 @@ class Component extends DCLogic {
       const colorKeys = Object.keys(byColor);
       const grids = colorKeys.map((c,i)=>({ colorLabel:c, dark:i%2===1, garment:byColor[c].garment, qtys:byColor[c].qtys, total:byColor[c].total }));
       const grand = grids.reduce((a,g)=>a+g.total,0);
-      const pd = rec.Print_Date__c ? new Date(rec.Print_Date__c+'T12:00:00').toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }) : '—';
+      const pdDate = api.parseSfDate(rec.Print_Date__c);
+      const pd = pdDate ? pdDate.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }) : '—';
       const order = {
         goa: api.text(rec.GOA_Order_Number__c) || rec.OrderNumber || rec.Id,
         goaTail: (api.text(rec.GOA_Order_Number__c)||rec.OrderNumber||'').replace(/[^0-9-]/g,'') || (rec.OrderNumber||''),
