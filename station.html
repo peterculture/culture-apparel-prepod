@@ -188,10 +188,10 @@ class Component extends DCLogic {
       let items;
       if(cfg.source==='order'){
         const recs=await api.getOrders();
-        items = recs.filter(r=>(r.Receiving_Status__c||'Not Received')!=='Staged').map(r=>{ const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c); return { id:r.Id, order:r.GOA_Order_Number__c||r.OrderNumber||r.Id, customer:r.Customer_Order_Name__c||(r.Account&&r.Account.Name)||'—', ident:piv.garment, qty:piv.qty+' pcs', dueLabel:due.label, urg:due.urg, stage:(r.Receiving_Status__c||'Not Received') }; });
+        items = recs.filter(r=>(r.Receiving_Status__c||'Not Received')!=='Staged').map(r=>{ const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c); return { id:r.Id, order:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', ident:piv.garment, qty:piv.qty+' pcs', dueLabel:due.label, urg:due.urg, stage:(r.Receiving_Status__c||'Not Received') }; });
       } else {
         const recs=await api.getStationItems(station);
-        items = recs.map(r=>{ const o=(r.Production_Method__r&&r.Production_Method__r.Order__r)||{}; const due=api.dueInfo(o.Print_Date__c); const idv=r[cfg.identField]||''; return { id:r.Id, order:o.GOA_Order_Number__c||'', customer:o.Customer_Order_Name__c||o.Name||'—', ident:(idv?String(idv)+(cfg.identSuffix||''):cfg.stages[0]), qty:'', dueLabel:due.label, urg:due.urg, stage:(r[cfg.subField]||cfg.stages[0]) }; });
+        items = recs.map(r=>{ const o=(r.Production_Method__r&&r.Production_Method__r.Order__r)||{}; const due=api.dueInfo(o.Print_Date__c); const idv=r[cfg.identField]||''; return { id:r.Id, order:api.text(o.GOA_Order_Number__c)||'', customer:api.text(o.Customer_Order_Name__c)||api.text(o.Name)||'—', ident:(idv?api.text(idv)+(cfg.identSuffix||''):cfg.stages[0]), qty:'', dueLabel:due.label, urg:due.urg, stage:(r[cfg.subField]||cfg.stages[0]) }; });
       }
       this.setState(st=>({ items:Object.assign({},st.items,{[station]:items}), connection:'live' }));
       if(cfg.inventory){ try { const inv=await api.getInventory(cfg.inventory); this.setState(st=>({ inv:Object.assign({},st.inv,{[cfg.inventory]:inv}) })); } catch(_){} }
