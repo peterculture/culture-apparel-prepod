@@ -224,6 +224,22 @@
   </sc-if>
 </div>
 
+<sc-if value="{{nameGateOpen}}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:90;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:100%;max-width:420px;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;padding:34px 30px;text-align:center;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#C6372B"></div>
+      <div style="width:52px;height:52px;border-radius:14px;background:#1a1a1e;border:1px solid #2a2a2f;display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-user" style="color:#C6372B;font-size:26px"></i></div>
+      <div style="font:600 21px/1.1 'Oswald';color:#ECEAE4;margin-bottom:8px">Who's this?</div>
+      <div style="font:400 12px/1.5 'Archivo';color:#8a8378;margin-bottom:22px">Pick your name so changes made this shift can be traced back to you.</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+        <sc-for list="{{names}}" as="n" hint-placeholder-count="12">
+          <button onClick="{{ n.onPick }}" style="font:600 13px/1 'Oswald';letter-spacing:.02em;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:10px;padding:13px 6px;cursor:pointer" style-hover="border-color:#C6372B;color:#C6372B">{{n.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
 <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C6372B"/><text x="50" y="60" font-family="Oswald,Arial" font-size="30" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="2">CA</text><text x="50" y="78" font-family="Arial" font-size="7" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="1">PRE-PROD</text></svg></template>
 <sc-if value="{{mgrView}}" hint-placeholder-val="{{ false }}">
   <div style="position:fixed;inset:0;z-index:55;background:radial-gradient(circle at 30% -10%,#101013,#08080A 55%);overflow-y:auto">
@@ -347,6 +363,10 @@
   </div>
 </sc-if></x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#C6372B&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;}}">
+// The only names the app accepts for shift attribution -- keep in sync with
+// the copies in login.html and index.html if this list ever changes.
+const VALID_NAMES = ['Anthony','Asher','Beau','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
+
 class Component extends DCLogic {
   constructor(props){
     super(props);
@@ -360,8 +380,9 @@ class Component extends DCLogic {
       { id:'GOA-4853', meth:'hp', num:'GOA-4853', customer:'Fiesta Foods', account:'Fiesta Markets', qty:'200', garment:'Gildan 5000 · White', sizes:'M50 · L70 · XL50 · 2XL30', dueLabel:'Jul 28 · 8d', urg:'ok', worker:null, recv:'none', vendor:'—', plan:'—' },
     ];
     this._demoOrders = seed;
+    let storedName=''; try{ storedName=localStorage.getItem('caShopWorkerName')||''; }catch(_){}
     this.state = {
-      now:new Date(), orders:[], connection:'loading', q:'', openId:null, ppItemsById:{}, weekMode:'all', pickDate:'',
+      now:new Date(), nameOk: VALID_NAMES.includes(storedName), orders:[], connection:'loading', q:'', openId:null, ppItemsById:{}, weekMode:'all', pickDate:'',
       view:'board', inbox:[], inboxLoaded:false, mgrId:null, form:null, vendorResults:[], planResults:[], submitting:false, mgrErr:'', mgrMsg:'',
       checks:{ 'GOA-4842':{'Films printed':true}, 'GOA-4838':{'Films printed':true,'Screens completed':true,'Inks mixed':true}, 'GOA-4845':{'File digitized':true}, 'GOA-4847':{'Transfers received':true} },
       sent:{},
@@ -389,6 +410,7 @@ class Component extends DCLogic {
     } catch(_) { this.setState({orders:this._demoOrders, connection:'demo'}); }
   }
   toggleCheck(id,label){ const willBe=!( (this.state.checks[id]||{})[label] ); this.setState(st=>{ const c=Object.assign({},st.checks); const g=Object.assign({},c[id]||{}); if(g[label]) delete g[label]; else g[label]=true; c[id]=g; return {checks:c}; }); const f=this._api&&this._api.CHECK_FIELD[label]; if(f && this._api && this.state.connection==='live') this._api.patchOrder(id,{[f]:willBe}).catch(()=>{}); }
+  pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
   setRecv(id,v){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{recv:v}):o) })); if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Receiving_Status__c:(this._api.RECV_TO_SF[v]||'Not Received')}).catch(()=>{}); }
   setSpecs(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{printSpecs:v}):o)})); clearTimeout(this._specsT); this._specsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
   setSpecial(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{specialNotes:v}):o)})); clearTimeout(this._specialT); this._specialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Special_Notes__c:v}).catch(()=>{}); },600); }
@@ -537,7 +559,8 @@ class Component extends DCLogic {
     const live=st.connection==='live';
     const connLabel = live?'Live · Salesforce':(st.connection==='loading'?'Connecting…':'Demo data');
     const connColor = live?'#7FA644':(st.connection==='loading'?'#6C665C':'#C9923A');
-    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, weekBtns:['week','all','pick'].map(k=>({ key:k, label:({week:'This week',all:'All',pick:'Pick week'})[k], onPick:()=>this.setState({weekMode:k}), bg:st.weekMode===k?'#1a1a1e':'transparent', border:st.weekMode===k?'#C6372B':'#242428', color:st.weekMode===k?'#ECEAE4':'#8a8378' })), showPick:st.weekMode==='pick', pickDate:st.pickDate, onPickDate:(e)=>this.setState({pickDate:e.target.value}), connLabel, connColor, q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}) };
+    const names = VALID_NAMES.map(n=>({ label:n, onPick:()=>this.pickName(n) }));
+    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, weekBtns:['week','all','pick'].map(k=>({ key:k, label:({week:'This week',all:'All',pick:'Pick week'})[k], onPick:()=>this.setState({weekMode:k}), bg:st.weekMode===k?'#1a1a1e':'transparent', border:st.weekMode===k?'#C6372B':'#242428', color:st.weekMode===k?'#ECEAE4':'#8a8378' })), showPick:st.weekMode==='pick', pickDate:st.pickDate, onPickDate:(e)=>this.setState({pickDate:e.target.value}), connLabel, connColor, q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}), nameGateOpen:!st.nameOk, names };
     return Object.assign(base, this.mgrVals());
   }
 }
