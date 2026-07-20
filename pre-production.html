@@ -177,6 +177,15 @@
         </div>
 
         <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Specifications for Printing</div>
+          <textarea value="{{open.specs}}" onInput="{{ open.onSpecs }}" placeholder="Print specs — placement, colors, screens, digitizing notes…" style="width:100%;min-height:72px;font:400 13px/1.55 'Archivo';color:#C9C6BF;white-space:pre-wrap;background:#121215;border:1px solid #232327;border-radius:9px;padding:12px 14px;outline:none;resize:vertical"></textarea>
+        </div>
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#E0B870;margin-bottom:9px">Special Notes</div>
+          <textarea value="{{open.special}}" onInput="{{ open.onSpecial }}" placeholder="Rush notes, VIP handling, anything the floor needs to know…" style="width:100%;min-height:72px;font:400 13px/1.55 'Archivo';color:#E0B870;white-space:pre-wrap;background:#241a09;border:1px solid #5E4214;border-radius:9px;padding:12px 14px;outline:none;resize:vertical"></textarea>
+        </div>
+
+        <div>
           <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Items</div>
           <div style="display:flex;flex-direction:column;gap:8px">
             <sc-for list="{{open.ppItemsView}}" as="it" hint-placeholder-count="1">
@@ -253,6 +262,14 @@
         </div>
 
         <div style="display:flex;flex-direction:column;gap:22px">
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Specifications for Printing</div>
+            <textarea value="{{mgrSpecs}}" onInput="{{ onMgrSpecs }}" placeholder="Print specs — placement, colors, screens, digitizing notes…" style="width:100%;min-height:72px;font:400 13px/1.55 'Archivo';color:#C9C6BF;white-space:pre-wrap;background:#121215;border:1px solid #232327;border-radius:9px;padding:12px 14px;outline:none;resize:vertical"></textarea>
+          </div>
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#E0B870;margin-bottom:9px">Special Notes</div>
+            <textarea value="{{mgrNotes}}" onInput="{{ onMgrSpecial }}" placeholder="Rush notes, VIP handling, anything the floor needs to know…" style="width:100%;min-height:72px;font:400 13px/1.55 'Archivo';color:#E0B870;white-space:pre-wrap;background:#241a09;border:1px solid #5E4214;border-radius:9px;padding:12px 14px;outline:none;resize:vertical"></textarea>
+          </div>
           <div>
             <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Print Method</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -366,13 +383,15 @@ class Component extends DCLogic {
         else if(meth==='em'){ if(r.Digitize_File__c)g['File digitized']=true; if(r.Thread_Color_Materials__c)g['Thread & materials']=true; }
         else { if(r.Transfers_Received__c)g['Transfers received']=true; if(r.Transfers_Ready__c)g['Transfers ready']=true; }
         checks[id]=g;
-        return { id, meth, num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'', qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel:due.label, urg:due.urg, worker:null, workerName:wn||null, recv:(api.RECV_FROM_SF[r.Receiving_Status__c]||'none'), printDateISO:r.Print_Date__c||null, mockupUrl:r.DesignMockupUrl||null, vendor:'From order', plan:'—' };
+        return { id, meth, num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'', qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel:due.label, urg:due.urg, worker:null, workerName:wn||null, recv:(api.RECV_FROM_SF[r.Receiving_Status__c]||'none'), printDateISO:r.Print_Date__c||null, mockupUrl:r.DesignMockupUrl||null, printSpecs:api.text(r.Specifications_for_Printing__c)||'', specialNotes:api.text(r.Special_Notes__c)||'', vendor:'From order', plan:'—' };
       });
       this.setState({ orders, connection:'live', checks, sent:{} });
     } catch(_) { this.setState({orders:this._demoOrders, connection:'demo'}); }
   }
   toggleCheck(id,label){ const willBe=!( (this.state.checks[id]||{})[label] ); this.setState(st=>{ const c=Object.assign({},st.checks); const g=Object.assign({},c[id]||{}); if(g[label]) delete g[label]; else g[label]=true; c[id]=g; return {checks:c}; }); const f=this._api&&this._api.CHECK_FIELD[label]; if(f && this._api && this.state.connection==='live') this._api.patchOrder(id,{[f]:willBe}).catch(()=>{}); }
   setRecv(id,v){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{recv:v}):o) })); if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Receiving_Status__c:(this._api.RECV_TO_SF[v]||'Not Received')}).catch(()=>{}); }
+  setSpecs(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{printSpecs:v}):o)})); clearTimeout(this._specsT); this._specsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
+  setSpecial(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{specialNotes:v}):o)})); clearTimeout(this._specialT); this._specialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Special_Notes__c:v}).catch(()=>{}); },600); }
   assign(id,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{worker:o.worker===w?null:w}):o) })); }
   send(id){ this.setState(st=>({ sent:Object.assign({},st.sent,{[id]:true}), openId:null })); if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Order_Substatus__c:this._api.SUBSTATUS_VALUE['Ready for Print']}).catch(()=>{}); }
 
@@ -380,7 +399,14 @@ class Component extends DCLogic {
   openMgr(){ this.setState({view:'mgr', mgrId:null, mgrErr:'', mgrMsg:''}); this.loadInbox(); }
   closeMgr(){ this.setState({view:'board', mgrId:null}); }
   async loadInbox(){ if(!this._api) this._api=window.CAApi; if(!this._api || this.state.connection!=='live'){ this.setState({inbox:[], inboxLoaded:true}); return; } try{ const recs=await this._api.getInbox(); this.setState({inbox:recs, inboxLoaded:true}); }catch(_){ this.setState({inbox:[], inboxLoaded:true}); } }
-  pickInbox(id){ this.setState({mgrId:id, form:this.defaultForm(), vendorResults:[], planResults:[], mgrErr:'', mgrMsg:''}); }
+  pickInbox(id){
+    const rec=(this.state.inbox||[]).find(r=>r.Id===id)||{};
+    const api=this._api||window.CAApi; const t=(v)=>(api&&api.text?api.text(v):(v||''));
+    const form=Object.assign(this.defaultForm(),{ specs:t(rec.Specifications_for_Printing__c)||'', notes:t(rec.Special_Notes__c)||'' });
+    this.setState({mgrId:id, form, vendorResults:[], planResults:[], mgrErr:'', mgrMsg:''});
+  }
+  setMgrSpecs(v){ const oid=this.state.mgrId; this.setForm({specs:v}); if(!oid) return; clearTimeout(this._mgrSpecsT); this._mgrSpecsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
+  setMgrSpecial(v){ const oid=this.state.mgrId; this.setForm({notes:v}); if(!oid) return; clearTimeout(this._mgrSpecialT); this._mgrSpecialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Special_Notes__c:v}).catch(()=>{}); },600); }
   backToInbox(){ this.setState({mgrId:null, mgrErr:'', mgrMsg:''}); }
   openOrder(id){ this.setState({openId:id}); if(this._api && this.state.connection==='live'){ this._api.getPreProductionItems(id).then(items=>{ this.setState(st=>({ppItemsById:Object.assign({},st.ppItemsById,{[id]:items})})); }).catch(()=>{}); } }
   setItemField(oid,itemId,field,val){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[oid]=(pp[oid]||[]).map(it=>it.Id===itemId?Object.assign({},it,{[field]:val}):it); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live') this._api.patchItem(itemId,{[field]:val}).catch(()=>{}); }
@@ -423,7 +449,8 @@ class Component extends DCLogic {
       mgrView, mgrShowInbox: mgrView && !hasOrder, mgrShowForm: mgrView && hasOrder,
       inbox, inboxEmpty:(st.inbox||[]).length===0 && st.inboxLoaded,
       onOpenMgr:()=>this.openMgr(), onCloseMgr:()=>this.closeMgr(), onBackToInbox:()=>this.backToInbox(),
-      mgrOrder, formMethodOptions:methodOptions, statusOptions, formStatus:f?f.status:'Pre-Production', onStatus:(e)=>this.setForm({status:e.target.value}),
+      mgrOrder, mgrSpecs:f?f.specs:'', onMgrSpecs:(e)=>this.setMgrSpecs(e.target.value), mgrNotes:f?f.notes:'', onMgrSpecial:(e)=>this.setMgrSpecial(e.target.value),
+      formMethodOptions:methodOptions, statusOptions, formStatus:f?f.status:'Pre-Production', onStatus:(e)=>this.setForm({status:e.target.value}),
       vendorQ:f?f.vendorQ:'', onVendorSearch:(e)=>this.vendorSearch(e.target.value), vendorResults, vendorPicked:!!(f&&f.vendorId), vendorName:f?f.vendorName:'',
       planIsNew:!f||f.planMode==='new', planIsExisting:!!(f&&f.planMode==='existing'), onPlanNew:()=>this.setForm({planMode:'new'}), onPlanExisting:()=>this.setForm({planMode:'existing'}),
       planNewBg:(!f||f.planMode==='new')?'#2a1210':'#121215', planNewBorder:(!f||f.planMode==='new')?'#C6372B':'#242428', planNewColor:(!f||f.planMode==='new')?'#ECEAE4':'#8a8378',
@@ -502,6 +529,7 @@ class Component extends DCLogic {
       const ready=isReady(src);
       const missing=[]; if(prereqDone(src)!==m.prereq.length) missing.push('prep incomplete'); if(src.recv!=='staged') missing.push('garments not staged');
       open=Object.assign({},d,{ checklist, recvSteps, assignees, sizeCells, vendor:src.vendor, plan:src.plan, ready, notReady:!ready, notReadyLabel:'Blocked — '+missing.join(' · '), onSend:()=>this.send(src.id), hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode:d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.id),
+        specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.id,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.id,e.target.value),
         ppItemsView:(st.ppItemsById[src.id]||[]).map(it=>{ const ty=it.Type__c||'Item'; return { id:it.Id, type:ty, isScreen:ty==='Screen', isInk:ty==='Ink', isThread:ty==='Thread', isDigit:ty==='Digitization', isTransfer:ty==='Transfer', status:it.Status__c||'Not Started', statusOptions:[{value:'Not Started',label:'Not Started'},{value:'In Progress',label:'In Progress'},{value:'Ready',label:'Ready'}], onStatus:(e)=>this.setItemField(src.id,it.Id,'Status__c',e.target.value), mesh:it.Mesh_Count__c||'', meshOptions:['110','125','156','180','196','230','305'].map(m=>({value:m,label:m+' mesh'})), onMesh:(e)=>this.setItemField(src.id,it.Id,'Mesh_Count__c',e.target.value), pantone:it.Pantone_Color__c||'', onPantone:(e)=>this.setItemField(src.id,it.Id,'Pantone_Color__c',e.target.value), threadColor:it.Thread_Color__c||'', onThreadColor:(e)=>this.setItemField(src.id,it.Id,'Thread_Color__c',e.target.value), threadNumber:it.Thread_Number__c||'', onThreadNumber:(e)=>this.setItemField(src.id,it.Id,'Thread_Number__c',e.target.value), stitch:it.Stitch_Count__c||'', onStitch:(e)=>this.setItemField(src.id,it.Id,'Stitch_Count__c',e.target.value), transferType:it.Transfer_Type__c||'', ttOptions:['Screen Transfer','Digital Transfer','Sublimation','Vinyl'].map(m=>({value:m,label:m})), onTransfer:(e)=>this.setItemField(src.id,it.Id,'Transfer_Type__c',e.target.value), onRemove:()=>this.removePPItem(src.id,it.Id) }; }), ppItemsEmpty:(st.ppItemsById[src.id]||[]).length===0 });
     }
 
