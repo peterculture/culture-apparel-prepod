@@ -40,6 +40,7 @@
       <span style="font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#ECEAE4;background:#1a1a1e;border:1px solid #2f2a24;border-radius:8px;padding:9px 12px">Pre-Production</span>
       <a href="index.html" style="font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#8a8378;border:1px solid #242428;border-radius:8px;padding:9px 12px">Production →</a>
       <a href="station.html" style="font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#8a8378;border:1px solid #242428;border-radius:8px;padding:9px 12px">Station</a>
+      <button onClick="{{ onOpenMgr }}" style="display:inline-flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#8a8378;background:transparent;border:1px solid #242428;border-radius:8px;padding:9px 12px;cursor:pointer" style-hover="border-color:#C6372B;color:#ECEAE4"><i class="ti ti-settings"></i>Management</button>
     </nav>
     <div style="margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end">
       <div style="font:600 13px/1 'Oswald';letter-spacing:.1em;color:#9C978C;white-space:nowrap">{{clock}} <span style="color:#4d483f">·</span> {{dateStr}}</div>
@@ -191,7 +192,120 @@
   </sc-if>
 </div>
 
-<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C6372B"/><text x="50" y="60" font-family="Oswald,Arial" font-size="30" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="2">CA</text><text x="50" y="78" font-family="Arial" font-size="7" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="1">PRE-PROD</text></svg></template></x-dc>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C6372B"/><text x="50" y="60" font-family="Oswald,Arial" font-size="30" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="2">CA</text><text x="50" y="78" font-family="Arial" font-size="7" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="1">PRE-PROD</text></svg></template>
+<sc-if value="{{mgrView}}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:55;background:radial-gradient(circle at 30% -10%,#101013,#08080A 55%);overflow-y:auto">
+    <header style="position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:14px;padding:15px 26px;background:rgba(6,6,7,.94);backdrop-filter:blur(10px);border-bottom:1px solid rgba(198,55,43,.4)">
+      <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true" style="flex-shrink:0"><g fill="#C6372B"><rect x="12" y="9" width="24" height="3.1" rx="1.5"/><rect x="8" y="14" width="32" height="3.1" rx="1.5"/><rect x="5" y="19" width="38" height="3.1" rx="1.5"/><rect x="5" y="24" width="38" height="3.1" rx="1.5"/><rect x="6" y="29" width="36" height="3.1" rx="1.5"/><rect x="9" y="34" width="30" height="3.1" rx="1.5"/><rect x="13" y="39" width="22" height="3.1" rx="1.5"/></g></svg>
+      <div style="font:700 15px/1 'Oswald';letter-spacing:.1em;color:#ECEAE4">PRE-PRODUCTION MANAGEMENT</div>
+      <span style="font:700 9px/1 'Oswald';letter-spacing:.1em;color:#08080A;background:#C6372B;border-radius:5px;padding:4px 7px">MGR</span>
+      <button onClick="{{ onCloseMgr }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#ECEAE4;background:#141417;border:1px solid #2a2a2f;border-radius:9px;padding:10px 14px;cursor:pointer"><i class="ti ti-arrow-left"></i>Back to Board</button>
+    </header>
+
+    <div style="max-width:920px;margin:0 auto;padding:24px 26px 70px">
+      <sc-if value="{{mgrShowInbox}}" hint-placeholder-val="{{ true }}">
+        <div style="font:600 12px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Incoming orders</div>
+        <div style="font:400 12px/1.4 'Archivo';color:#6C665C;margin-bottom:18px">Orders in pre-production with no production method yet. Set one up to create its production plan.</div>
+        <sc-if value="{{mgrHasMsg}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:10px 13px;margin-bottom:16px"><i class="ti ti-check"></i>{{mgrMsg}}</div></sc-if>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+          <sc-for list="{{inbox}}" as="o" hint-placeholder-count="3">
+            <div style="display:flex;background:#141417;border:1px solid #232327;border-radius:12px;overflow:hidden">
+              <div style="width:5px;background:{{o.urgColor}};flex-shrink:0"></div>
+              <div style="padding:15px 16px;flex:1;min-width:0;display:flex;flex-direction:column;gap:11px">
+                <div><div style="font:600 16px/1.1 'Oswald';color:#ECEAE4">{{o.customer}}</div><div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:5px">{{o.num}} · {{o.account}}</div></div>
+                <div style="display:flex;align-items:center;gap:8px"><span style="font:600 12px/1 'Oswald';color:#ECEAE4;background:#1e1e22;border-radius:5px;padding:4px 8px">{{o.qty}} pcs</span><span style="display:inline-flex;align-items:center;gap:5px;font:600 10px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{o.urgColor}}"><i class="ti ti-clock-hour-4"></i>{{o.dueLabel}}</span></div>
+                <button onClick="{{ o.onPick }}" style="margin-top:2px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 11px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:9px;padding:12px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-tools"></i>Begin Set-up</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{inboxEmpty}}" hint-placeholder-val="{{ false }}"><div style="border:1px dashed #2a2a2f;border-radius:12px;padding:40px 20px;text-align:center;font:400 13px/1.5 'Archivo';color:#4d483f">No orders waiting for a production method. (Empty in demo mode — live once deployed against Salesforce.)</div></sc-if>
+      </sc-if>
+
+      <sc-if value="{{mgrShowForm}}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ onBackToInbox }}" style="display:inline-flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#8a8378;background:transparent;border:1px solid #242428;border-radius:8px;padding:8px 12px;cursor:pointer;margin-bottom:16px"><i class="ti ti-chevron-left"></i>All incoming</button>
+        <div style="background:#0D0D0F;border:1px solid #1f1f23;border-left:4px solid #C6372B;border-radius:12px;padding:16px 18px;margin-bottom:22px">
+          <div style="font:600 19px/1.1 'Oswald';color:#ECEAE4">{{mgrOrder.customer}}</div>
+          <div style="font:400 12px/1 'Archivo';color:#6C665C;margin-top:6px">{{mgrOrder.num}} · {{mgrOrder.account}} · {{mgrOrder.qty}} pcs</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:22px">
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Print Method</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{formMethodOptions}}" as="m" hint-placeholder-count="4">
+                <button onClick="{{ m.onPick }}" style="font:600 12px/1 'Oswald';letter-spacing:.04em;color:{{m.color}};background:{{m.bg}};border:1px solid {{m.border}};border-radius:9px;padding:11px 15px;cursor:pointer">{{m.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Vendor</div>
+            <input value="{{vendorQ}}" onInput="{{ onVendorSearch }}" placeholder="Search accounts…" style="width:100%;max-width:420px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+            <sc-if value="{{vendorPicked}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:6px;font:600 11px/1 'Oswald';letter-spacing:.04em;color:#BBD382;margin-top:9px"><i class="ti ti-check"></i>{{vendorName}}</div></sc-if>
+            <div style="display:flex;flex-direction:column;gap:5px;margin-top:9px;max-width:420px">
+              <sc-for list="{{vendorResults}}" as="v" hint-placeholder-count="0">
+                <button onClick="{{ v.onPick }}" style="text-align:left;font:500 12px/1.2 'Archivo';color:#ECEAE4;background:#141417;border:1px solid #232327;border-radius:8px;padding:10px 12px;cursor:pointer" style-hover="border-color:#C6372B">{{v.name}}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Plan</div>
+            <div style="display:flex;gap:8px;margin-bottom:11px">
+              <button onClick="{{ onPlanNew }}" style="flex:1;max-width:200px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{planNewColor}};background:{{planNewBg}};border:1px solid {{planNewBorder}};border-radius:9px;padding:11px;cursor:pointer">Create new plan</button>
+              <button onClick="{{ onPlanExisting }}" style="flex:1;max-width:200px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{planExColor}};background:{{planExBg}};border:1px solid {{planExBorder}};border-radius:9px;padding:11px;cursor:pointer">Attach existing</button>
+            </div>
+            <sc-if value="{{planIsNew}}" hint-placeholder-val="{{ true }}"><div style="font:400 12px/1.4 'Archivo';color:#6C665C">A new Production Requirement + Plan will be created from this order automatically.</div></sc-if>
+            <sc-if value="{{planIsExisting}}" hint-placeholder-val="{{ false }}">
+              <input value="{{planQ}}" onInput="{{ onPlanSearch }}" placeholder="Search plans (e.g. PP-0018)…" style="width:100%;max-width:420px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+              <sc-if value="{{planPicked}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:6px;font:600 11px/1 'Oswald';letter-spacing:.04em;color:#BBD382;margin-top:9px"><i class="ti ti-check"></i>{{planName}}</div></sc-if>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:9px;max-width:420px">
+                <sc-for list="{{planResults}}" as="p" hint-placeholder-count="0">
+                  <button onClick="{{ p.onPick }}" style="text-align:left;font:500 12px/1.2 'Archivo';color:#ECEAE4;background:#141417;border:1px solid #232327;border-radius:8px;padding:10px 12px;cursor:pointer" style-hover="border-color:#C6372B">{{p.name}}</button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Method Status</div>
+            <select value="{{formStatus}}" onChange="{{ onStatus }}" style="width:100%;max-width:280px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+              <sc-for list="{{statusOptions}}" as="s" hint-placeholder-count="7"><option value="{{s.value}}">{{s.label}}</option></sc-for>
+            </select>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Pre-Production Items</span></div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
+              <sc-for list="{{itemTypeButtons}}" as="b" hint-placeholder-count="5">
+                <button onClick="{{ b.onAdd }}" style="display:inline-flex;align-items:center;gap:5px;font:600 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px dashed #3a3a40;border-radius:8px;padding:9px 12px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-plus"></i>{{b.label}}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{itemsView}}" as="it" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:9px;padding:10px 12px;flex-wrap:wrap">
+                  <span style="font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#5E9B9A;min-width:76px">{{it.type}}</span>
+                  <sc-if value="{{it.isScreen}}" hint-placeholder-val="{{ false }}"><select value="{{it.mesh}}" onChange="{{ it.onMesh }}" style="flex:1;min-width:120px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Mesh count…</option><sc-for list="{{it.meshOptions}}" as="m" hint-placeholder-count="7"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+                  <sc-if value="{{it.isInk}}" hint-placeholder-val="{{ false }}"><input value="{{it.pantone}}" onInput="{{ it.onPantone }}" placeholder="Pantone / color" style="flex:1;min-width:120px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                  <sc-if value="{{it.isThread}}" hint-placeholder-val="{{ false }}"><input value="{{it.threadColor}}" onInput="{{ it.onThreadColor }}" placeholder="Thread color" style="flex:1;min-width:110px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><input value="{{it.threadNumber}}" onInput="{{ it.onThreadNumber }}" placeholder="Thread #" style="width:100px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                  <sc-if value="{{it.isDigit}}" hint-placeholder-val="{{ false }}"><input value="{{it.stitch}}" onInput="{{ it.onStitch }}" type="number" placeholder="Stitch count" style="flex:1;min-width:120px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                  <sc-if value="{{it.isTransfer}}" hint-placeholder-val="{{ false }}"><select value="{{it.transferType}}" onChange="{{ it.onTransferType }}" style="flex:1;min-width:140px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Transfer type…</option><sc-for list="{{it.ttOptions}}" as="m" hint-placeholder-count="4"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+                  <button onClick="{{ it.onRemove }}" style="margin-left:auto;width:32px;height:32px;border-radius:7px;background:#16161a;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;font-size:14px" style-hover="color:#E8A89F;border-color:#7A241C"><i class="ti ti-x"></i></button>
+                </div>
+              </sc-for>
+              <sc-if value="{{itemsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f;padding:2px">No items yet — add the screens, inks, threads, digitization or transfers this method needs (optional).</div></sc-if>
+            </div>
+          </div>
+
+          <sc-if value="{{mgrHasErr}}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;font:600 11px/1.3 'Oswald';letter-spacing:.03em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:9px;padding:12px 14px"><i class="ti ti-alert-triangle"></i>{{mgrErr}}</div></sc-if>
+
+          <button onClick="{{ onSubmitMethod }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;font:700 13px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-file-plus"></i>Create Production Plan &amp; Send</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if></x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#C6372B&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;}}">
 class Component extends DCLogic {
   constructor(props){
@@ -207,6 +321,7 @@ class Component extends DCLogic {
     ];
     this.state = {
       now:new Date(), orders:seed, connection:'demo', q:'', openId:null,
+      view:'board', inbox:[], inboxLoaded:false, mgrId:null, form:null, vendorResults:[], planResults:[], submitting:false, mgrErr:'', mgrMsg:'',
       checks:{ 'GOA-4842':{'Films printed':true}, 'GOA-4838':{'Films printed':true,'Screens completed':true,'Inks mixed':true}, 'GOA-4845':{'File digitized':true}, 'GOA-4847':{'Transfers received':true} },
       sent:{},
     };
@@ -236,6 +351,61 @@ class Component extends DCLogic {
   setRecv(id,v){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{recv:v}):o) })); if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Receiving_Status__c:(this._api.RECV_TO_SF[v]||'Not Received')}).catch(()=>{}); }
   assign(id,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{worker:o.worker===w?null:w}):o) })); }
   send(id){ this.setState(st=>({ sent:Object.assign({},st.sent,{[id]:true}), openId:null })); if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Order_Substatus__c:this._api.SUBSTATUS_VALUE['Ready for Print']}).catch(()=>{}); }
+
+  defaultForm(){ return { method:'', vendorId:null, vendorName:'', vendorQ:'', planMode:'new', planId:null, planName:'', planQ:'', status:'Pre-Production', items:[] }; }
+  openMgr(){ this.setState({view:'mgr', mgrId:null, mgrErr:'', mgrMsg:''}); this.loadInbox(); }
+  closeMgr(){ this.setState({view:'board', mgrId:null}); }
+  async loadInbox(){ if(!this._api) this._api=window.CAApi; if(!this._api || this.state.connection!=='live'){ this.setState({inbox:[], inboxLoaded:true}); return; } try{ const recs=await this._api.getInbox(); this.setState({inbox:recs, inboxLoaded:true}); }catch(_){ this.setState({inbox:[], inboxLoaded:true}); } }
+  pickInbox(id){ this.setState({mgrId:id, form:this.defaultForm(), vendorResults:[], planResults:[], mgrErr:'', mgrMsg:''}); }
+  backToInbox(){ this.setState({mgrId:null, mgrErr:'', mgrMsg:''}); }
+  setForm(patch){ this.setState(st=>({form:Object.assign({}, st.form||this.defaultForm(), patch)})); }
+  vendorSearch(q){ this.setForm({vendorQ:q, vendorId:null, vendorName:''}); if(!this._api) return; clearTimeout(this._vt); this._vt=setTimeout(()=>{ this._api.searchVendors(q).then(r=>this.setState({vendorResults:r})).catch(()=>{}); },250); }
+  pickVendor(id,name){ this.setForm({vendorId:id, vendorName:name, vendorQ:name}); this.setState({vendorResults:[]}); }
+  planSearch(q){ this.setForm({planQ:q, planId:null, planName:''}); if(!this._api) return; clearTimeout(this._pt); this._pt=setTimeout(()=>{ this._api.searchPlans(q).then(r=>this.setState({planResults:r})).catch(()=>{}); },250); }
+  pickPlan(id,name){ this.setForm({planId:id, planName:name, planQ:name}); this.setState({planResults:[]}); }
+  addItem(type){ this.setState(st=>{ const f=Object.assign({},st.form||this.defaultForm()); f.items=(f.items||[]).concat([{type:type}]); return {form:f}; }); }
+  removeItem(i){ this.setState(st=>{ const f=Object.assign({},st.form); f.items=(f.items||[]).filter((_,ix)=>ix!==i); return {form:f}; }); }
+  setItem(i,field,val){ this.setState(st=>{ const f=Object.assign({},st.form); f.items=(f.items||[]).map((it,ix)=>ix===i?Object.assign({},it,{[field]:val}):it); return {form:f}; }); }
+  async submitMethod(){ const st=this.state, f=st.form; if(!f) return; const oid=st.mgrId; if(!f.method){ this.setState({mgrErr:'Pick a print method'}); return; } if(!f.vendorId){ this.setState({mgrErr:'Pick a vendor'}); return; } if(f.planMode==='existing' && !f.planId){ this.setState({mgrErr:'Pick an existing plan'}); return; } if(!this._api || this.state.connection!=='live'){ this.setState({mgrErr:'Not connected to Salesforce (demo mode) — deploy to create plans'}); return; } this.setState({submitting:true, mgrErr:''}); const body={ orderId:oid, vendorId:f.vendorId, status:f.status, type:f.method, items:f.items||[] }; if(f.planMode==='existing' && f.planId) body.planId=f.planId; try{ const by=(this._api.workerName&&this._api.workerName())||''; if(by) body.by=by; }catch(_){} try{ const res=await this._api.createMethod(body); if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed'); this.setState(s2=>({ submitting:false, mgrId:null, inbox:(s2.inbox||[]).filter(o=>o.Id!==oid), mgrMsg:'Production plan created' })); }catch(e){ this.setState({submitting:false, mgrErr:'Create failed — check vendor / plan and try again'}); } }
+  mgrVals(){
+    const st=this.state, api=this._api||window.CAApi;
+    const t=(v)=>(api&&api.text?api.text(v):(v||''));
+    const UC={ over:'#E24A3A', today:'#E24A3A', soon:'#C9923A', ok:'#6C665C' };
+    const inbox=(st.inbox||[]).map(r=>{
+      const piv=api&&api.pivotItems?api.pivotItems(r):{qty:''}; const due=api&&api.dueInfo?api.dueInfo(r.Print_Date__c):{label:'',urg:'ok'}; const id=r.Id;
+      return { id, num:t(r.GOA_Order_Number__c)||r.OrderNumber||id, customer:t(r.Customer_Order_Name__c)||t(r.Account&&r.Account.Name)||'—', account:t(r.Account&&r.Account.Name)||'', qty:piv.qty, dueLabel:due.label, urgColor:UC[due.urg]||UC.ok, onPick:()=>this.pickInbox(id) };
+    });
+    const f=st.form, hasOrder=!!st.mgrId && !!f, mgrView=st.view==='mgr';
+    let mgrOrder={num:'',customer:'',account:'',qty:''}, methodOptions=[], statusOptions=[], vendorResults=[], planResults=[], itemsView=[], itemTypeButtons=[];
+    if(hasOrder){
+      const ord=inbox.find(o=>o.id===st.mgrId); if(ord) mgrOrder={num:ord.num,customer:ord.customer,account:ord.account,qty:ord.qty};
+      methodOptions=['Screen Print','Embroidery','Heat Press','Promotional Items'].map(x=>({ label:x, onPick:()=>this.setForm({method:x}), bg:f.method===x?'#2a1210':'#121215', border:f.method===x?'#C6372B':'#242428', color:f.method===x?'#ECEAE4':'#8a8378' }));
+      statusOptions=['Pre-Production','Ready for Print','In Production','Post-Production','Completed','Cancelled','On Hold'].map(s=>({ value:s, label:s }));
+      vendorResults=(st.vendorResults||[]).map(v=>({ id:v.Id, name:v.Name, onPick:()=>this.pickVendor(v.Id,v.Name) }));
+      planResults=(st.planResults||[]).map(p=>({ id:p.Id, name:p.Name, onPick:()=>this.pickPlan(p.Id,p.Name) }));
+      const MESH=['110','125','156','180','196','230','305'], TT=['Screen Transfer','Digital Transfer','Sublimation','Vinyl'];
+      itemsView=(f.items||[]).map((it,i)=>({
+        type:it.type, isScreen:it.type==='Screen', isInk:it.type==='Ink', isThread:it.type==='Thread', isDigit:it.type==='Digitization', isTransfer:it.type==='Transfer',
+        mesh:it.mesh||'', pantone:it.pantone||'', threadColor:it.threadColor||'', threadNumber:it.threadNumber||'', stitch:it.stitchCount||'', transferType:it.transferType||'',
+        meshOptions:MESH.map(m=>({value:m,label:m+' mesh'})), ttOptions:TT.map(m=>({value:m,label:m})),
+        onMesh:(e)=>this.setItem(i,'mesh',e.target.value), onPantone:(e)=>this.setItem(i,'pantone',e.target.value), onThreadColor:(e)=>this.setItem(i,'threadColor',e.target.value), onThreadNumber:(e)=>this.setItem(i,'threadNumber',e.target.value), onStitch:(e)=>this.setItem(i,'stitchCount',e.target.value), onTransferType:(e)=>this.setItem(i,'transferType',e.target.value), onRemove:()=>this.removeItem(i)
+      }));
+      itemTypeButtons=['Screen','Ink','Thread','Digitization','Transfer'].map(x=>({ label:x, onAdd:()=>this.addItem(x) }));
+    }
+    return {
+      mgrView, mgrShowInbox: mgrView && !hasOrder, mgrShowForm: mgrView && hasOrder,
+      inbox, inboxEmpty:(st.inbox||[]).length===0 && st.inboxLoaded,
+      onOpenMgr:()=>this.openMgr(), onCloseMgr:()=>this.closeMgr(), onBackToInbox:()=>this.backToInbox(),
+      mgrOrder, formMethodOptions:methodOptions, statusOptions, formStatus:f?f.status:'Pre-Production', onStatus:(e)=>this.setForm({status:e.target.value}),
+      vendorQ:f?f.vendorQ:'', onVendorSearch:(e)=>this.vendorSearch(e.target.value), vendorResults, vendorPicked:!!(f&&f.vendorId), vendorName:f?f.vendorName:'',
+      planIsNew:!f||f.planMode==='new', planIsExisting:!!(f&&f.planMode==='existing'), onPlanNew:()=>this.setForm({planMode:'new'}), onPlanExisting:()=>this.setForm({planMode:'existing'}),
+      planNewBg:(!f||f.planMode==='new')?'#2a1210':'#121215', planNewBorder:(!f||f.planMode==='new')?'#C6372B':'#242428', planNewColor:(!f||f.planMode==='new')?'#ECEAE4':'#8a8378',
+      planExBg:(f&&f.planMode==='existing')?'#2a1210':'#121215', planExBorder:(f&&f.planMode==='existing')?'#C6372B':'#242428', planExColor:(f&&f.planMode==='existing')?'#ECEAE4':'#8a8378',
+      planQ:f?f.planQ:'', onPlanSearch:(e)=>this.planSearch(e.target.value), planResults, planPicked:!!(f&&f.planId), planName:f?f.planName:'',
+      itemsView, itemTypeButtons, itemsEmpty:!f||!(f.items&&f.items.length),
+      onSubmitMethod:()=>this.submitMethod(), submitting:st.submitting, mgrErr:st.mgrErr, mgrMsg:st.mgrMsg, mgrHasMsg:!!st.mgrMsg, mgrHasErr:!!st.mgrErr,
+    };
+  }
 
   renderVals(){
     const st=this.state;
@@ -306,7 +476,8 @@ class Component extends DCLogic {
 
     let wn='Priya R.'; try{ wn=localStorage.getItem('caShopWorkerName')||wn; }catch(_){}
     const live=st.connection==='live';
-    return { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, connLabel: live?'Live · Salesforce':'Demo data', connColor: live?'#7FA644':'#C9923A', q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}) };
+    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, connLabel: live?'Live · Salesforce':'Demo data', connColor: live?'#7FA644':'#C9923A', q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}) };
+    return Object.assign(base, this.mgrVals());
   }
 }
 </script>
