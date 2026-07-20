@@ -173,6 +173,23 @@
         </div>
 
         <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Items</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{open.ppItemsView}}" as="it" hint-placeholder-count="1">
+              <div style="background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;align-items:center;gap:10px"><span style="font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#5E9B9A;min-width:74px">{{it.type}}</span><select value="{{it.status}}" onChange="{{ it.onStatus }}" style="margin-left:auto;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:7px 10px;font-size:12px;color:#ECEAE4;outline:none"><sc-for list="{{it.statusOptions}}" as="o" hint-placeholder-count="3"><option value="{{o.value}}">{{o.label}}</option></sc-for></select></div>
+                <sc-if value="{{it.isScreen}}" hint-placeholder-val="{{ false }}"><select value="{{it.mesh}}" onChange="{{ it.onMesh }}" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Mesh count…</option><sc-for list="{{it.meshOptions}}" as="m" hint-placeholder-count="7"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+                <sc-if value="{{it.isInk}}" hint-placeholder-val="{{ false }}"><input value="{{it.pantone}}" onInput="{{ it.onPantone }}" placeholder="Pantone / color" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                <sc-if value="{{it.isThread}}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:7px"><input value="{{it.threadColor}}" onInput="{{ it.onThreadColor }}" placeholder="Thread color" style="flex:1;min-width:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><input value="{{it.threadNumber}}" onInput="{{ it.onThreadNumber }}" placeholder="Thread #" style="width:96px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></div></sc-if>
+                <sc-if value="{{it.isDigit}}" hint-placeholder-val="{{ false }}"><input value="{{it.stitch}}" onInput="{{ it.onStitch }}" type="number" placeholder="Stitch count" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                <sc-if value="{{it.isTransfer}}" hint-placeholder-val="{{ false }}"><select value="{{it.transferType}}" onChange="{{ it.onTransfer }}" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Transfer type…</option><sc-for list="{{it.ttOptions}}" as="m" hint-placeholder-count="4"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+              </div>
+            </sc-for>
+            <sc-if value="{{open.ppItemsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:2px">No production items on this order yet — create them in Management.</div></sc-if>
+          </div>
+        </div>
+
+        <div>
           <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Vendor &amp; Plan</div>
           <div style="display:flex;flex-direction:column;gap:7px">
             <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:11px 13px"><i class="ti ti-building-warehouse" style="color:{{open.color}};font-size:15px"></i><span style="font:400 11px/1 'Archivo';color:#6C665C">Vendor</span><span style="margin-left:auto;font:500 12px/1 'Archivo';color:#ECEAE4">{{open.vendor}}</span></div>
@@ -322,7 +339,7 @@ class Component extends DCLogic {
       { id:'GOA-4853', meth:'hp', num:'GOA-4853', customer:'Fiesta Foods', account:'Fiesta Markets', qty:'200', garment:'Gildan 5000 · White', sizes:'M50 · L70 · XL50 · 2XL30', dueLabel:'Jul 28 · 8d', urg:'ok', worker:null, recv:'none', vendor:'—', plan:'—' },
     ];
     this.state = {
-      now:new Date(), orders:seed, connection:'demo', q:'', openId:null,
+      now:new Date(), orders:seed, connection:'demo', q:'', openId:null, ppItemsById:{},
       view:'board', inbox:[], inboxLoaded:false, mgrId:null, form:null, vendorResults:[], planResults:[], submitting:false, mgrErr:'', mgrMsg:'',
       checks:{ 'GOA-4842':{'Films printed':true}, 'GOA-4838':{'Films printed':true,'Screens completed':true,'Inks mixed':true}, 'GOA-4845':{'File digitized':true}, 'GOA-4847':{'Transfers received':true} },
       sent:{},
@@ -360,6 +377,8 @@ class Component extends DCLogic {
   async loadInbox(){ if(!this._api) this._api=window.CAApi; if(!this._api || this.state.connection!=='live'){ this.setState({inbox:[], inboxLoaded:true}); return; } try{ const recs=await this._api.getInbox(); this.setState({inbox:recs, inboxLoaded:true}); }catch(_){ this.setState({inbox:[], inboxLoaded:true}); } }
   pickInbox(id){ this.setState({mgrId:id, form:this.defaultForm(), vendorResults:[], planResults:[], mgrErr:'', mgrMsg:''}); }
   backToInbox(){ this.setState({mgrId:null, mgrErr:'', mgrMsg:''}); }
+  openOrder(id){ this.setState({openId:id}); if(this._api && this.state.connection==='live'){ this._api.getPreProductionItems(id).then(items=>{ this.setState(st=>({ppItemsById:Object.assign({},st.ppItemsById,{[id]:items})})); }).catch(()=>{}); } }
+  setItemField(oid,itemId,field,val){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[oid]=(pp[oid]||[]).map(it=>it.Id===itemId?Object.assign({},it,{[field]:val}):it); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live') this._api.patchItem(itemId,{[field]:val}).catch(()=>{}); }
   setForm(patch){ this.setState(st=>({form:Object.assign({}, st.form||this.defaultForm(), patch)})); }
   vendorSearch(q){ this.setForm({vendorQ:q, vendorId:null, vendorName:''}); if(!this._api) return; clearTimeout(this._vt); this._vt=setTimeout(()=>{ this._api.searchVendors(q).then(r=>this.setState({vendorResults:r})).catch(()=>{}); },250); }
   pickVendor(id,name){ this.setForm({vendorId:id, vendorName:name, vendorQ:name}); this.setState({vendorResults:[]}); }
@@ -433,7 +452,7 @@ class Component extends DCLogic {
         checkLabel:done+' / '+total, checkWidth:Math.round(done/total*100)+'%',
         recvLabel:r.label, recvIcon:r.icon, recvTextColor:r.textColor, recvBg:r.bg, recvBorder:r.border,
         ready:isReady(o),
-        onOpen:()=>this.setState({openId:o.id}),
+        onOpen:()=>this.openOrder(o.id),
       });
     };
 
@@ -473,7 +492,8 @@ class Component extends DCLogic {
       const sizeCells=src.sizes.split('·').map(t=>t.trim()).filter(Boolean).map(tok=>{ const mm=tok.match(/^([A-Za-z0-9]+?)(\d+)$/); return mm?{label:mm[1],qty:mm[2]}:{label:tok,qty:''}; });
       const ready=isReady(src);
       const missing=[]; if(prereqDone(src)!==m.prereq.length) missing.push('prep incomplete'); if(src.recv!=='staged') missing.push('garments not staged');
-      open=Object.assign({},d,{ checklist, recvSteps, assignees, sizeCells, vendor:src.vendor, plan:src.plan, ready, notReady:!ready, notReadyLabel:'Blocked — '+missing.join(' · '), onSend:()=>this.send(src.id), hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode:d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.id) });
+      open=Object.assign({},d,{ checklist, recvSteps, assignees, sizeCells, vendor:src.vendor, plan:src.plan, ready, notReady:!ready, notReadyLabel:'Blocked — '+missing.join(' · '), onSend:()=>this.send(src.id), hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode:d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.id),
+        ppItemsView:(st.ppItemsById[src.id]||[]).map(it=>{ const ty=it.Type__c||'Item'; return { id:it.Id, type:ty, isScreen:ty==='Screen', isInk:ty==='Ink', isThread:ty==='Thread', isDigit:ty==='Digitization', isTransfer:ty==='Transfer', status:it.Status__c||'Not Started', statusOptions:[{value:'Not Started',label:'Not Started'},{value:'In Progress',label:'In Progress'},{value:'Ready',label:'Ready'}], onStatus:(e)=>this.setItemField(src.id,it.Id,'Status__c',e.target.value), mesh:it.Mesh_Count__c||'', meshOptions:['110','125','156','180','196','230','305'].map(m=>({value:m,label:m+' mesh'})), onMesh:(e)=>this.setItemField(src.id,it.Id,'Mesh_Count__c',e.target.value), pantone:it.Pantone_Color__c||'', onPantone:(e)=>this.setItemField(src.id,it.Id,'Pantone_Color__c',e.target.value), threadColor:it.Thread_Color__c||'', onThreadColor:(e)=>this.setItemField(src.id,it.Id,'Thread_Color__c',e.target.value), threadNumber:it.Thread_Number__c||'', onThreadNumber:(e)=>this.setItemField(src.id,it.Id,'Thread_Number__c',e.target.value), stitch:it.Stitch_Count__c||'', onStitch:(e)=>this.setItemField(src.id,it.Id,'Stitch_Count__c',e.target.value), transferType:it.Transfer_Type__c||'', ttOptions:['Screen Transfer','Digital Transfer','Sublimation','Vinyl'].map(m=>({value:m,label:m})), onTransfer:(e)=>this.setItemField(src.id,it.Id,'Transfer_Type__c',e.target.value) }; }), ppItemsEmpty:(st.ppItemsById[src.id]||[]).length===0 });
     }
 
     let wn='Priya R.'; try{ wn=localStorage.getItem('caShopWorkerName')||wn; }catch(_){}
