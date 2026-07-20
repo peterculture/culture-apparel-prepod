@@ -45,7 +45,7 @@
     <div style="margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end">
       <div style="font:600 13px/1 'Oswald';letter-spacing:.1em;color:#9C978C;white-space:nowrap">{{clock}} <span style="color:#4d483f">·</span> {{dateStr}}</div>
       <div style="display:flex;align-items:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#9C978C;white-space:nowrap"><span style="width:8px;height:8px;border-radius:50%;background:{{connColor}};box-shadow:0 0 7px {{connColor}}"></span>{{connLabel}}</div>
-      <div style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#C9923A;color:#08080A;font:700 10px/28px 'Oswald';text-align:center">{{workerInit}}</span><span style="font:400 12px/1 'Archivo';color:#9C978C;white-space:nowrap">{{worker}}</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#C9923A;color:#08080A;font:700 10px/28px 'Oswald';text-align:center">{{workerInit}}</span><span style="font:400 12px/1 'Archivo';color:#9C978C;white-space:nowrap">{{worker}}</span><button onClick="{{ onSwitchUser }}" title="Switch user" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:transparent;border:1px solid #2a2a2f;color:#6C665C;cursor:pointer;flex-shrink:0" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-repeat" style="font-size:12px"></i></button></div>
     </div>
   </header>
 
@@ -411,6 +411,7 @@ class Component extends DCLogic {
   }
   toggleCheck(id,label){ const willBe=!( (this.state.checks[id]||{})[label] ); this.setState(st=>{ const c=Object.assign({},st.checks); const g=Object.assign({},c[id]||{}); if(g[label]) delete g[label]; else g[label]=true; c[id]=g; return {checks:c}; }); const f=this._api&&this._api.CHECK_FIELD[label]; if(f && this._api && this.state.connection==='live') this._api.patchOrder(id,{[f]:willBe}).catch(()=>{}); }
   pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
+  switchUser(){ try{localStorage.removeItem('caShopWorkerName');}catch(_){} this.setState({nameOk:false}); }
   setRecv(id,v){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{recv:v}):o) })); if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Receiving_Status__c:(this._api.RECV_TO_SF[v]||'Not Received')}).catch(()=>{}); }
   setSpecs(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{printSpecs:v}):o)})); clearTimeout(this._specsT); this._specsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
   setSpecial(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{specialNotes:v}):o)})); clearTimeout(this._specialT); this._specialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Special_Notes__c:v}).catch(()=>{}); },600); }
@@ -560,7 +561,7 @@ class Component extends DCLogic {
     const connLabel = live?'Live · Salesforce':(st.connection==='loading'?'Connecting…':'Demo data');
     const connColor = live?'#7FA644':(st.connection==='loading'?'#6C665C':'#C9923A');
     const names = VALID_NAMES.map(n=>({ label:n, onPick:()=>this.pickName(n) }));
-    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, weekBtns:['week','all','pick'].map(k=>({ key:k, label:({week:'This week',all:'All',pick:'Pick week'})[k], onPick:()=>this.setState({weekMode:k}), bg:st.weekMode===k?'#1a1a1e':'transparent', border:st.weekMode===k?'#C6372B':'#242428', color:st.weekMode===k?'#ECEAE4':'#8a8378' })), showPick:st.weekMode==='pick', pickDate:st.pickDate, onPickDate:(e)=>this.setState({pickDate:e.target.value}), connLabel, connColor, q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}), nameGateOpen:!st.nameOk, names };
+    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, weekBtns:['week','all','pick'].map(k=>({ key:k, label:({week:'This week',all:'All',pick:'Pick week'})[k], onPick:()=>this.setState({weekMode:k}), bg:st.weekMode===k?'#1a1a1e':'transparent', border:st.weekMode===k?'#C6372B':'#242428', color:st.weekMode===k?'#ECEAE4':'#8a8378' })), showPick:st.weekMode==='pick', pickDate:st.pickDate, onPickDate:(e)=>this.setState({pickDate:e.target.value}), connLabel, connColor, q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}), nameGateOpen:!st.nameOk, names, onSwitchUser:()=>this.switchUser() };
     return Object.assign(base, this.mgrVals());
   }
 }
