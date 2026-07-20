@@ -56,6 +56,7 @@
   function getOrders(){ return jget('/api/orders').then(function (d) { return d.records || []; }); }
   function getProductionOrders(){ return jget('/api/production-orders').then(function (d) { return d.records || []; }); }
   function getInbox(){ return jget('/api/inbox').then(function (d) { return d.records || []; }); }
+  function getPreProductionItems(orderId){ return jget('/api/pre-production-items?orderId=' + encodeURIComponent(orderId)).then(function (d) { return d.records || []; }); }
   function searchVendors(q){ return jget('/api/vendors?q=' + encodeURIComponent(q || '')).then(function (d) { return d.records || []; }); }
   function searchPlans(q){ return jget('/api/plans?q=' + encodeURIComponent(q || '')).then(function (d) { return d.records || []; }); }
   function createMethod(body){ return jsend('/api/production-methods', 'POST', body); }
@@ -144,7 +145,7 @@
     ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout,
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
-    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, searchVendors: searchVendors, searchPlans: searchPlans, createMethod: createMethod, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
+    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, searchVendors: searchVendors, searchPlans: searchPlans, createMethod: createMethod, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
     getPackaging: getPackaging, postPackaging: postPackaging,
     getShipments: getShipments, postShipment: postShipment,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
