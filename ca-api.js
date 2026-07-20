@@ -81,6 +81,7 @@
   var SIZE_ORDER = ['YXS','YS','YM','YL','YXL','OS','XS','S','M','L','XL','2XL','3XL','4XL','5XL'];
   var WORKER_COLORS = ['#C6372B','#5E9B9A','#C9923A','#7FA644','#8E6FB0','#3E7CB1'];
 
+  function text(v){ if (v == null) return ''; var s = String(v); if (s.indexOf('<') >= 0) { var el = document.createElement('div'); el.innerHTML = s; s = el.textContent || el.innerText || ''; } return s.replace(/\s+/g, ' ').trim(); }
   function initials(name){
     var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
     if (!parts.length) return '\u2014';
@@ -103,6 +104,7 @@
   function dueInfo(printDateISO){
     if (!printDateISO) return { label:'No date', urg:'ok' };
     var d = new Date(printDateISO + 'T12:00:00');
+    if (isNaN(d.getTime())) return { label:'No date', urg:'ok' };
     var today = new Date(); today.setHours(12,0,0,0);
     var days = Math.round((d - today) / 86400000);
     var md = d.toLocaleDateString([], { month:'short', day:'numeric' });
@@ -119,7 +121,7 @@
       var sz = (it.Size__c || '').toUpperCase(); var q = Number(it.Quantity) || 0;
       if (!sz) continue;
       bySize[sz] = (bySize[sz] || 0) + q; total += q;
-      if (!garment && it.Product2 && it.Product2.Name) garment = it.Product2.Name + (it.Color__c ? ' \u00b7 ' + it.Color__c : '');
+      if (!garment && it.Product2 && it.Product2.Name) garment = text(it.Product2.Name) + (it.Color__c ? ' \u00b7 ' + text(it.Color__c) : '');
     }
     var keys = Object.keys(bySize).sort(function (a, b) {
       var ia = SIZE_ORDER.indexOf(a), ib = SIZE_ORDER.indexOf(b);
@@ -142,6 +144,6 @@
     getShipments: getShipments, postShipment: postShipment,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
     getInventory: getInventory, postInventory: postInventory, stationLogin: stationLogin,
-    SIZE_ORDER: SIZE_ORDER, initials: initials, colorForName: colorForName, methodOf: methodOf, dueInfo: dueInfo, pivotItems: pivotItems
+    SIZE_ORDER: SIZE_ORDER, text: text, initials: initials, colorForName: colorForName, methodOf: methodOf, dueInfo: dueInfo, pivotItems: pivotItems
   };
 })();
