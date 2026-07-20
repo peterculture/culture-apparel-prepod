@@ -258,10 +258,30 @@
       </div>
     </aside>
   </sc-if>
+
+  <sc-if value="{{nameGateOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:90;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
+      <div style="width:100%;max-width:420px;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;padding:34px 30px;text-align:center;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#C6372B"></div>
+        <div style="width:52px;height:52px;border-radius:14px;background:#1a1a1e;border:1px solid #2a2a2f;display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-user" style="color:#C6372B;font-size:26px"></i></div>
+        <div style="font:600 21px/1.1 'Oswald';color:#ECEAE4;margin-bottom:8px">Who's this?</div>
+        <div style="font:400 12px/1.5 'Archivo';color:#8a8378;margin-bottom:22px">Pick your name so changes made this shift can be traced back to you.</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+          <sc-for list="{{names}}" as="n" hint-placeholder-count="12">
+            <button onClick="{{ n.onPick }}" style="font:600 13px/1 'Oswald';letter-spacing:.02em;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:10px;padding:13px 6px;cursor:pointer" style-hover="border-color:#C6372B;color:#C6372B">{{n.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
 </div>
 
 <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C6372B"/><text x="50" y="60" font-family="Oswald,Arial" font-size="30" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="2">CA</text><text x="50" y="78" font-family="Arial" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="1">PRODUCTION</text></svg></template></x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#C6372B&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;}}">
+// The only names the app accepts for shift attribution -- keep in sync with
+// the copies in login.html and pre-production.html if this list ever changes.
+const VALID_NAMES = ['Anthony','Asher','Beau','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
+
 class Component extends DCLogic {
   constructor(props){
     super(props);
@@ -278,8 +298,10 @@ class Component extends DCLogic {
       { id:'GOA-4755', stage:'done', num:'GOA-4755', customer:'Alderwood FC Kits', account:'Alderwood FC', meth:'em', qty:'88', garment:'Augusta Jersey · Green', sizes:'YM10 · YL14 · S20 · M24 · L14 · XL6', dueLabel:'Shipped Jul 17', urg:'done', worker:'MA', mis:0 },
     ];
     this._demoOrders = seedOrders;
+    let storedName=''; try{ storedName=localStorage.getItem('caShopWorkerName')||''; }catch(_){}
     this.state = {
       now: new Date(),
+      nameOk: VALID_NAMES.includes(storedName),
       orders: [], connection:'loading',
       q:'', methods:{ sp:true, em:true, hp:true },
       openId:null, dragId:null, dragOverStage:null,
@@ -312,6 +334,7 @@ class Component extends DCLogic {
       this.setState(st=>({ orders:mapped, connection:'live', timers:Object.assign({},st.timers,timers), misDetails:Object.assign({},st.misDetails,misD) }));
     } catch(_) { this.setState({orders:this._demoOrders, connection:'demo'}); }
   }
+  pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
   push(id,fields){ if(this._api && this.state.connection==='live') this._api.patchOrder(id,fields).catch(()=>{}); }
   subVal(stage){ const label={rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[stage]; return (this._api?this._api.SUBSTATUS_VALUE[label]:label)||label; }
   openOrder(id){ this.setState({openId:id}); if(this._api && this.state.connection==='live'){ const api=this._api; Promise.all([api.getPackaging(id).catch(()=>null),api.getShipments(id).catch(()=>null),api.getPreProductionItems(id).catch(()=>null)]).then(([pk,sh,it])=>{ this.setState(st=>{ const pkg=Object.assign({},st.pkg), ship=Object.assign({},st.ship), pp=Object.assign({},st.ppItemsById); if(pk) pkg[id]=pk.map(x=>({type:x.Packaging_Type__c,qty:x.Quantity__c,id:x.Id})); if(sh) ship[id]=sh.map(x=>({carrier:x.zkmulti__Carrier__c||'Shipment',tracking:x.zkmulti__Tracking_Number__c||''})); if(it) pp[id]=it; return {pkg,ship,ppItemsById:pp}; }); }); } }
@@ -441,11 +464,13 @@ class Component extends DCLogic {
     const live=st.connection==='live';
     const connLabel = live?'Live · Salesforce':(st.connection==='loading'?'Connecting…':'Demo data');
     const connColor = live?'#7FA644':(st.connection==='loading'?'#6C665C':'#C9923A');
+    const names = VALID_NAMES.map(n=>({ label:n, onPick:()=>this.pickName(n) }));
     return {
       columns, kpis, methodFilters, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), rushCount:String(rushCount), shownLabel,
       connLabel, connColor,
       q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(),
       drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}),
+      nameGateOpen:!st.nameOk, names,
     };
   }
 }
