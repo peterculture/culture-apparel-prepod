@@ -43,6 +43,33 @@ function isSfId(s) {
   return typeof s === "string" && /^[a-zA-Z0-9]{15,18}$/.test(s);
 }
 
+/**
+ * DELETE /api/pre-production-items/<itemId>
+ *
+ * Removes one Pre_Production_Item__c record -- lets a worker/manager undo an
+ * item that was created by mistake (wrong type, duplicate, etc.). Salesforce
+ * returns 204 No Content on a successful delete.
+ */
+export async function onRequestDelete({ env, params }) {
+  try {
+    const id = params && params.id;
+    if (!isSfId(id)) return jsonError("bad_item_id", 400);
+
+    const path = `/services/data/${apiVersion(env)}/sobjects/${ITEM_OBJECT}/${encodeURIComponent(id)}`;
+    const resp = await sfFetch(env, path, { method: "DELETE" });
+
+    if (resp.status === 204) {
+      return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+    }
+    const detail = await resp.text();
+    console.error("Item delete failed", resp.status, detail);
+    return jsonError("delete_failed", resp.status);
+  } catch (err) {
+    console.error(err);
+    return jsonError("internal_error", 500);
+  }
+}
+
 export async function onRequestPatch({ env, request, params }) {
   const id = params && params.id;
   if (!isSfId(id)) return jsonError("bad_item_id", 400);
