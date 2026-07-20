@@ -14,6 +14,16 @@
  * creation). Sub-status fields are validated only against their own picklist.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { rollupItemToOrder } from "../_ppi-checklist.js";
+
+// If any of these change, the item may have just become (or stopped being)
+// "ready" -- worth recomputing the parent Order's checklist boxes.
+const ROLLUP_TRIGGER_FIELDS = new Set([
+  "Status__c",
+  "Screen_Sub_Status__c",
+  "Ink_Sub_Status__c",
+  "Transfers_Sub_Status__c",
+]);
 
 // Restricted picklists — exact active values, confirmed 2026-07-02.
 const PICKLISTS = {
@@ -122,7 +132,16 @@ export async function onRequestPatch({ env, request, params }) {
     });
     // SF returns 204 No Content on a successful update.
     if (resp.status === 204) {
-      return Response.json({ ok: true, id, updated: Object.keys(body) }, { headers: { "Cache-Control": "no-store" } });
+      // If this write touched a status/sub-status field, the item may have
+      // just crossed into (or out of) "ready" -- recompute the parent Order's
+      // checklist box(es) from ALL sibling items of this type. Best-effort:
+      // awaited so the order is in sync by the next fetch, but never fails
+      // the item write that already succeeded.
+      let rollup = null;
+      if (Object.keys(body).some((f) => ROLLUP_TRIGGER_FIELDS.has(f))) {
+        rollup = await rollupItemToOrder(env, id).catch((e) => { console.error("item rollup failed", e); return null; });
+      }
+      return Response.json({ ok: true, id, updated: Object.keys(body), rollup }, { headers: { "Cache-Control": "no-store" } });
     }
     let detail = null;
     try { detail = await resp.json(); } catch (_) {}
