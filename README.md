@@ -45,19 +45,23 @@ deploy, open DevTools → Network → reload → check `/api/orders`:
 - **Assignee / Coordinator picker removed** from the order drawers (it showed
   placeholder names). The small avatar on a card still reflects the real
   `Last_Updated_By__c` when present — pure attribution, no assignment action.
+- **Pre-Production Management** is back: the **Management** button (top-right of
+  the Pre-Production board) opens the manager inbox (`/api/inbox`) — orders with
+  no production method yet. Pick one → set method, vendor (`/api/vendors`), a new
+  or existing plan (`/api/plans`), status, and items → **Create Production Plan**
+  posts to `/api/production-methods` (builds Requirement → Plan → Method → Items).
 - **Print method** inferred from `Printer__r.Name`; edit `methodOf()` in
   `ca-api.js` to tune the keywords.
 - **Timers** stored as seconds, shown adaptively (`SS`/`M:SS`/`H:MM:SS`).
 - **Specifications for Printing** left as the single field.
 
 ## Order tracking / stage placement
-Fixed: `functions/api/orders/index.js` in this folder changes the query from
-`WHERE Status = 'Pre-Production'` to `WHERE Order_Substatus__c != null`, so
-orders whose standard `Status` has moved on (e.g. one sitting at substatus
-**Post-Production**) still return and land in the right column. **Overwrite your
-repo's `functions/api/orders/index.js` with the one in `functions/api/orders/`
-here.** If your org's field API name isn't `Order_Substatus__c`, change that one
-identifier in the `WHERE` clause.
+The Production Dashboard reads your existing **`/api/production-orders`**
+endpoint (filters by `Order_Substatus__c`), not `/api/orders`. That's the one
+your repo already built for exactly this, so **no backend change is needed** —
+an order whose standard `Status` has advanced (e.g. to "Enter Tracking") still
+shows in the right column. The Pre-Production board and the Garment station keep
+using `/api/orders` (Status = 'Pre-Production'), unchanged.
 
 ## Auth & offline
 `login.html` stores role + name in `localStorage` (`caShopRole`,
