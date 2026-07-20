@@ -152,6 +152,15 @@
         </div>
 
         <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Status</div>
+          <div style="display:flex;gap:4px">
+            <sc-for list="{{open.statusSteps}}" as="s" hint-placeholder-count="5">
+              <button onClick="{{ s.onClick }}" style="flex:1;min-width:0;font:600 8px/1.25 'Oswald';letter-spacing:.02em;text-transform:uppercase;color:{{s.textColor}};background:{{s.bg}};border:1px solid {{s.border}};border-radius:6px;padding:9px 3px;cursor:pointer;text-align:center">{{s.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
           <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Time Logged</div>
           <div style="display:flex;gap:10px">
             <sc-for list="{{open.timers}}" as="t" hint-placeholder-count="2">
@@ -284,8 +293,9 @@ class Component extends DCLogic {
       misDetails:{}, pkgType:'Standard Culture Box', pkgQty:1, ppItemsById:{},
     };
   }
-  componentDidMount(){ this._t = setInterval(()=>this.setState({ now:new Date() }), 1000); this.load(); }
-  componentWillUnmount(){ clearInterval(this._t); }
+  componentDidMount(){ this._t = setInterval(()=>this.setState({ now:new Date() }), 1000); this.load(); this._ar = setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && !this.state.dragId) this.load(); }, 15000); }
+  componentWillUnmount(){ clearInterval(this._t); clearInterval(this._ar); }
+  advanceStatus(id,label){ const stageOf={'Ready for Print':'rfp','In Production':'ip','Post-Production':'pp','Completed':'done'}[label]; const val=(this._api?this._api.SUBSTATUS_VALUE[label]:label)||label; if(label==='Pre-Production'){ this.setState(st=>({orders:st.orders.filter(o=>o.id!==id), openId:null})); this.push(id,{Order_Substatus__c:val}); return; } this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{stage:stageOf}):o)})); this.push(id,{Order_Substatus__c:val}); }
   async load(){
     try {
       this._api = window.CAApi; if(!this._api) throw new Error('CAApi not loaded');
@@ -416,6 +426,7 @@ class Component extends DCLogic {
         delivery:d.shipDelivery||'', deliveryOptions:[{value:'',label:'— not set —'},{value:'Shipping',label:'Shipping'},{value:'Local Dropoff',label:'Local Dropoff'},{value:'Pickup',label:'Pickup'},{value:'Order Fulfillment',label:'Order Fulfillment'},{value:'Split Ship',label:'Split Ship'}], onDelivery:(e)=>this.setDelivery(src.id,e.target.value),
         labelPrinted:!!d.labelPrinted, onToggleLabel:()=>this.toggleLabel(src.id), labelBg:d.labelPrinted?'#18230D':'#16161a', labelBorder:d.labelPrinted?'#3D5418':'#2a2a2f', labelColor:d.labelPrinted?'#BBD382':'#9C978C', labelIcon:d.labelPrinted?'ti-checkbox':'ti-square',
         ppItemsView:(st.ppItemsById[src.id]||[]).map(function(it){ var ty=it.Type__c||'Item', det=''; if(ty==='Screen') det=(it.Mesh_Count__c?it.Mesh_Count__c+' mesh':''); else if(ty==='Ink') det=it.Pantone_Color__c||''; else if(ty==='Thread') det=[it.Thread_Color__c,it.Thread_Number__c].filter(Boolean).join(' · '); else if(ty==='Digitization') det=(it.Stitch_Count__c?it.Stitch_Count__c+' stitches':''); else if(ty==='Transfer') det=it.Transfer_Type__c||''; return { type:ty, detail:det||'—', status:it.Status__c||'' }; }), ppItemsEmpty:(st.ppItemsById[src.id]||[]).length===0,
+        statusSteps:(function(){ var SS=['Pre-Production','Ready for Print','In Production','Post-Production','Completed']; var curLabel={rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[src.stage]; var ci=SS.indexOf(curLabel); return SS.map(function(label,i){ var done=i<ci, current=i===ci, allowed=(i===ci+1)||(i===0&&ci!==0); return { label, onClick: allowed?(function(){ this.advanceStatus(src.id,label); }).bind(this):null, textColor: current?'#ECEAE4':(done?'#8a8378':(allowed?'#E0B870':'#4d483f')), border: current?'#C6372B':(allowed?'#5E4214':'#242428'), bg: current?'#2a1210':(done?'#18230D':(allowed?'#241a09':'#121215')) }; }.bind(this)); }).call(this),
         packaging:pkg, pkgEmpty:pkg.length===0, onAddPkg:()=>this.addPkg(src.id), pkgType:st.pkgType, pkgQty:st.pkgQty, onPkgType:(e)=>this.setState({pkgType:e.target.value}), onPkgQty:(e)=>this.setState({pkgQty:e.target.value}), pkgTypeOptions:[{value:'Standard Culture Box',label:'Standard Culture Box'},{value:'Culture Hat Box',label:'Culture Hat Box'},{value:'Poly Bag',label:'Poly Bag'},{value:'Standard Brown Box',label:'Standard Brown Box'}],
         shipments:shp, shipEmpty:shp.length===0, onAddShip:()=>this.addShip(src.id),
         misBorder:(src.mis>0)?'#7A241C':'#232327', misColor:(src.mis>0)?'#E8A89F':'#ECEAE4',
