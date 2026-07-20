@@ -60,7 +60,8 @@
   </div>
 
   <div style="display:flex;gap:18px;margin-bottom:26px;break-inside:avoid">
-    <div style="width:190px;height:190px;flex-shrink:0;border:1.5px solid #141210;border-radius:8px;background-image:repeating-linear-gradient(45deg,#efeae2 0 11px,#f7f3ec 11px 22px);display:flex;align-items:center;justify-content:center;font:500 9px/1.4 ui-monospace,monospace;letter-spacing:.18em;color:#a79f92;text-transform:uppercase;text-align:center">Production<br>Mockup</div>
+    <sc-if value="{{hasMockup}}" hint-placeholder-val="{{ false }}">{{mockupNode}}</sc-if>
+    <sc-if value="{{noMockup}}" hint-placeholder-val="{{ true }}"><div style="width:190px;height:190px;flex-shrink:0;border:1.5px solid #141210;border-radius:8px;background-image:repeating-linear-gradient(45deg,#efeae2 0 11px,#f7f3ec 11px 22px);display:flex;align-items:center;justify-content:center;font:500 9px/1.4 ui-monospace,monospace;letter-spacing:.18em;color:#a79f92;text-transform:uppercase;text-align:center">Production<br>Mockup</div></sc-if>
     <div style="flex:1;min-width:0">
       <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#6b645c;margin-bottom:12px">Print Details</div>
       <div style="display:flex;flex-direction:column;gap:10px">
@@ -174,6 +175,7 @@ class Component extends DCLogic {
         meshInk: rec.Specifications_for_Printing__c || '—',
         garmentLine: Array.from(new Set(grids.map(g=>g.garment).filter(Boolean))).join(' · ') || '—',
         notes: rec.Production_Notes__c || rec.Special_Notes__c || '',
+        mockupUrl: rec.DesignMockupUrl || null,
         cols, grids, grand: String(grand),
       };
       this.setState({ live:true, order });
@@ -193,6 +195,8 @@ class Component extends DCLogic {
       methodLabel:m.label, methodColor:m.color, printDate:o.printDate, qty:o.qty, coordinator:o.coordinator,
       placement:o.placement, colors:o.colors, meshInk:o.meshInk, garmentLine:o.garmentLine, notes:o.notes,
       cols:o.cols, grids, grand:o.grand,
+      hasMockup:!!o.mockupUrl, noMockup:!o.mockupUrl,
+      mockupNode: o.mockupUrl ? React.createElement('img',{src:o.mockupUrl,alt:'Production mockup',style:{width:190,height:190,flexShrink:0,borderRadius:8,border:'1.5px solid #141210',objectFit:'cover',background:'#efeae2'}}) : null,
       footNote: this.state.live ? 'Generated live from Salesforce' : 'Sample order sheet',
     };
   }
