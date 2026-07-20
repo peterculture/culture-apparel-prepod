@@ -51,6 +51,12 @@
       return r.status === 204 ? null : r.json().catch(function () { return null; });
     });
   }
+  function jdel(url){
+    return fetch(url, { method: 'DELETE' }).then(function (r) {
+      if (!r.ok && r.status !== 204) throw new Error('DELETE ' + url + ' -> ' + r.status);
+      return r.status === 204 ? null : r.json().catch(function () { return null; });
+    });
+  }
 
   /* ── orders ── */
   function getOrders(){ return jget('/api/orders').then(function (d) { return d.records || []; }); }
@@ -58,6 +64,7 @@
   function getInbox(){ return jget('/api/inbox').then(function (d) { return d.records || []; }); }
   function getPreProductionItems(orderId){ return jget('/api/pre-production-items?orderId=' + encodeURIComponent(orderId)).then(function (d) { return d.records || []; }); }
   function patchItem(itemId, fields){ var b = Object.assign({}, fields); var by = workerName(); if (by) b.Last_Updated_By__c = by; return jsend('/api/pre-production-items/' + encodeURIComponent(itemId), 'PATCH', b); }
+  function deleteItem(itemId){ return jdel('/api/pre-production-items/' + encodeURIComponent(itemId)); }
   function searchVendors(q){ return jget('/api/vendors?q=' + encodeURIComponent(q || '')).then(function (d) { return d.records || []; }); }
   function searchPlans(q){ return jget('/api/plans?q=' + encodeURIComponent(q || '')).then(function (d) { return d.records || []; }); }
   function createMethod(body){ return jsend('/api/production-methods', 'POST', body); }
@@ -71,6 +78,7 @@
   /* ── packaging (Order_Packaging__c) ── */
   function getPackaging(orderId){ return jget('/api/packaging?orderId=' + encodeURIComponent(orderId)).then(function (d) { return d.records || []; }); }
   function postPackaging(orderId, type, qty){ return jsend('/api/packaging', 'POST', { orderId: orderId, Packaging_Type__c: type, Quantity__c: qty }); }
+  function deletePackaging(pkgId){ return jdel('/api/packaging/' + encodeURIComponent(pkgId)); }
 
   /* ── shipments (zkmulti__MCShipment__c) ── */
   function getShipments(orderId){ return jget('/api/shipments?orderId=' + encodeURIComponent(orderId)).then(function (d) { return d.records || []; }); }
@@ -146,8 +154,8 @@
     ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout,
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
-    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, searchVendors: searchVendors, searchPlans: searchPlans, createMethod: createMethod, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
-    getPackaging: getPackaging, postPackaging: postPackaging,
+    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, createMethod: createMethod, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
+    getPackaging: getPackaging, postPackaging: postPackaging, deletePackaging: deletePackaging,
     getShipments: getShipments, postShipment: postShipment,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
     getInventory: getInventory, postInventory: postInventory, stationLogin: stationLogin,
