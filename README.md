@@ -1,16 +1,16 @@
 # Culture Apparel — Redesigned dashboards (drop-in for the Pages repo)
 
-Self-contained static pages that replace/augment the HTML in your
-`culture-apparel-prepod` Cloudflare Pages repo. They call your **existing**
-`functions/api/*` proxy over same-origin `fetch` — no backend changes.
+Static pages that replace/augment the HTML in your `culture-apparel-prepod`
+Cloudflare Pages repo. They call your **existing** `functions/api/*` proxy over
+same-origin `fetch` — no backend changes.
 
-## IMPORTANT — re-upload if you deployed the earlier build
-These pages are now **fully self-contained**: the API client is embedded
-directly inside each HTML file. There is **no separate `ca-api.js` to upload**
-anymore. If you uploaded an earlier build, replace the five HTML files below and
-you can delete any `ca-api.js` you added — it's no longer referenced.
+## This build removes the loading splash
+Earlier files were single self-contained bundles that showed a brief unpack
+splash (the "CA" box) on every navigation. These are **plain pages** instead:
+each HTML loads a shared `support.js` runtime — no unpack, no splash. That means
+two small shared files ship alongside the HTML.
 
-## Files → repo placement (all at repo root, next to `functions/`)
+## Files → all at repo root, next to `functions/`
 
 | File | Purpose | Action |
 |------|---------|--------|
@@ -19,52 +19,45 @@ you can delete any `ca-api.js` you added — it's no longer referenced.
 | `station.html` | Station tablet board | replace existing |
 | `login.html` | PIN + name capture gate | new |
 | `order-sheet.html` | Printable order sheet (`order-sheet.html?orderId=<SF Id>`) | new |
+| `support.js` | shared UI runtime — **required by all pages** | new |
+| `ca-api.js` | Salesforce API client — **required by index / pre-production / station / order-sheet** | new |
+| `doc-page.js` | print helper — **required by `order-sheet.html`** | new |
 
-Keep `functions/`, `wrangler.toml`, env vars, and secrets exactly as they are.
-Commit + push these five files; Pages redeploys.
+Upload all eight to the repo root. Keep `functions/`, `wrangler.toml`, env vars
+and secrets as-is. Commit + push; Pages redeploys.
 
-## How the live link works
-On load each page calls `GET /api/orders` (and the other routes as you use the
-screens). When that responds, the header badge shows **Live · Salesforce**
-(green) and real records fill the board. If the call fails it shows **Demo data**
-(amber) and uses built-in sample orders — so the page never renders blank.
+> `support.js` and `ca-api.js` must sit at the site root next to the HTML (each
+> page loads `./support.js` and `./ca-api.js` from its `<head>`). If a page
+> renders blank, `support.js` is missing; if it's stuck on **Demo data**,
+> `ca-api.js` is missing or the API isn't responding (see below).
 
-If you still see **Demo data** after deploying:
-1. Open the page, DevTools → **Network**, reload, and look at `/api/orders`.
-   - **200** with records → you're live (hard-refresh; the badge follows the data).
-   - **401 / 500** → the Function can't reach Salesforce: check the Pages env
-     vars `SF_LOGIN_URL`, `SF_CLIENT_ID`, `SF_CLIENT_SECRET` (and that the
-     External Client App's Client-Credentials "Run As" user has API access).
-   - **404** → the `functions/` folder isn't deployed at the project root.
-2. DevTools → **Console** for any red errors on load.
+## Live link / troubleshooting
+On load each page calls `GET /api/orders`; the header badge shows
+**Live · Salesforce** (green) when it responds, or **Demo data** (amber) with
+sample orders if it can't reach the API. If you still see Demo data after
+deploy, open DevTools → Network → reload → check `/api/orders`:
+- **200 + records** → live (hard-refresh).
+- **401 / 500** → Function can't reach Salesforce; check `SF_LOGIN_URL`,
+  `SF_CLIENT_ID`, `SF_CLIENT_SECRET` and the Client-Credentials "Run As" user.
+- **404** → `functions/` isn't deployed at the project root.
 
-The same `/api/orders` powers your original pages, so if the old dashboard
-showed real data, these will too once the five files are in place.
+## Notes on this update
+- **Assignee / Coordinator picker removed** from the order drawers (it showed
+  placeholder names). The small avatar on a card still reflects the real
+  `Last_Updated_By__c` when present — pure attribution, no assignment action.
+- **Print method** inferred from `Printer__r.Name`; edit `methodOf()` in
+  `ca-api.js` to tune the keywords.
+- **Timers** stored as seconds, shown adaptively (`SS`/`M:SS`/`H:MM:SS`).
+- **Specifications for Printing** left as the single field.
 
-## Endpoints used (verified against `functions/api/*`)
-`/api/orders` (GET + PATCH `:id`), `/api/order-sizes`, `/api/packaging` (GET/POST),
-`/api/shipments` (GET/POST), `/api/station-items`, `/api/update-item-status`,
-`/api/update-order-receiving`, `/api/inventory` (GET/POST), `/api/station-login`.
-Every write stamps `Last_Updated_By__c` from the logged-in name.
-
-Field mapping highlights: `Order_Substatus__c` (with the "In Production" →
-stored `Production` value handled), `Receiving_Status__c`, the pre-prod booleans
-(`Films_Printed__c`, `Screens_Completed__c`, `Mix_Inks__c`, `Digitize_File__c`,
-`Thread_Color_Materials__c`, `Transfers_Received__c`, `Transfers_Ready__c`),
-`TotalQtyMisprints__c`/`Misprint__c`/`Misprint_Details__c`,
-`Print_Setup_Timer__c`/`Production_Timer__c`, Station stage lists from
-`_station.js`, and `Order_Packaging__c` / `zkmulti__MCShipment__c`.
-
-## Decisions applied
-- **Print method** inferred from `Printer__r.Name` (screen / embroidery / heat
-  keywords). To change the keywords, edit `methodOf()` — it's the inline
-  `window.CAApi` block near the top of each HTML file (search `function methodOf`).
-- **Timers** stored as canonical **seconds**, displayed adaptively (`SS`/`M:SS`/`H:MM:SS`).
-- **Specifications for Printing** left as the single `Specifications_for_Printing__c` field.
+## Order tracking / stage placement
+If orders land in the wrong column vs. Salesforce, it's the
+`Order_Substatus__c` → stage mapping or the `/api/orders` query filter
+(`Status = 'Pre-Production'`). Send your current repo + Salesforce access and
+this can be verified field-by-field against your dev2 org.
 
 ## Auth & offline
 `login.html` stores role + name in `localStorage` (`caShopRole`,
 `caShopWorkerName`) — client-side PIN only (worker `1234` / manager `6767`), not
-security. Keep **Cloudflare Access** in front of the project and `/api/*` per
-your repo README. Fonts + Tabler icons load from a CDN, so the pages need
-internet (same as any web app).
+security. Keep **Cloudflare Access** in front of the project and `/api/*`. Fonts
++ Tabler icons load from a CDN, so the pages need internet.
