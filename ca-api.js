@@ -116,10 +116,21 @@
     if (rec.Transfers_Received__c || rec.Transfers_Ready__c) return 'hp';
     return 'sp';
   }
+  // Salesforce Date fields come back as plain "YYYY-MM-DD" (needs a noon time
+  // appended so it doesn't parse as UTC midnight and roll back a day in local
+  // time). Salesforce DateTime fields come back already carrying a "T" and an
+  // offset (e.g. "2026-07-25T00:00:00.000+0000") -- appending another "T12:00:00"
+  // to those corrupts the string and makes every date fail to parse. Detect
+  // which shape we got before deciding whether to append anything.
+  function parseSfDate(iso){
+    if (!iso) return null;
+    var s = String(iso);
+    var d = s.indexOf('T') >= 0 ? new Date(s) : new Date(s + 'T12:00:00');
+    return isNaN(d.getTime()) ? null : d;
+  }
   function dueInfo(printDateISO){
-    if (!printDateISO) return { label:'No date', urg:'ok' };
-    var d = new Date(printDateISO + 'T12:00:00');
-    if (isNaN(d.getTime())) return { label:'No date', urg:'ok' };
+    var d = parseSfDate(printDateISO);
+    if (!d) return { label:'No date', urg:'ok' };
     var today = new Date(); today.setHours(12,0,0,0);
     var days = Math.round((d - today) / 86400000);
     var md = d.toLocaleDateString([], { month:'short', day:'numeric' });
@@ -159,6 +170,6 @@
     getShipments: getShipments, postShipment: postShipment,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
     getInventory: getInventory, postInventory: postInventory, stationLogin: stationLogin,
-    SIZE_ORDER: SIZE_ORDER, text: text, initials: initials, colorForName: colorForName, methodOf: methodOf, dueInfo: dueInfo, pivotItems: pivotItems
+    SIZE_ORDER: SIZE_ORDER, text: text, initials: initials, colorForName: colorForName, methodOf: methodOf, dueInfo: dueInfo, parseSfDate: parseSfDate, pivotItems: pivotItems
   };
 })();
