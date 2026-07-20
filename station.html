@@ -106,12 +106,17 @@
       </div>
       <div style="max-width:620px;margin:0 auto;padding:28px 24px 60px">
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:26px">
-          <div style="width:64px;height:64px;border-radius:14px;background-image:repeating-linear-gradient(45deg,#17171b 0 9px,#131317 9px 18px);border:1px solid #232327;flex-shrink:0"></div>
+          <sc-if value="{{modal.hasMockup}}" hint-placeholder-val="{{ false }}">{{modal.mockupNode}}</sc-if>
+          <sc-if value="{{modal.noMockup}}" hint-placeholder-val="{{ true }}"><div style="width:64px;height:64px;border-radius:14px;background-image:repeating-linear-gradient(45deg,#17171b 0 9px,#131317 9px 18px);border:1px solid #232327;flex-shrink:0"></div></sc-if>
           <div style="min-width:0"><div style="font:600 30px/1 'Oswald';color:#ECEAE4">{{modal.ident}}</div><div style="font:400 13px/1 'Archivo';color:#8a8378;margin-top:8px">{{modal.order}} · {{modal.customer}} · {{modal.qty}}</div></div>
         </div>
 
         <div style="display:inline-flex;align-items:center;gap:8px;font:700 13px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{modal.urgColor}};margin-bottom:26px"><i class="ti ti-clock-hour-4"></i>{{modal.dueLabel}}</div>
 
+        <sc-if value="{{modal.hasNotes}}" hint-placeholder-val="{{ false }}">
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Notes</div>
+          <div style="font:400 14px/1.55 'Archivo';color:#C9C6BF;white-space:pre-wrap;background:#121215;border:1px solid #232327;border-radius:11px;padding:14px 16px;margin-bottom:26px">{{modal.notes}}</div>
+        </sc-if>
         <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:16px">Station Pipeline</div>
         <div style="display:flex;flex-direction:column;gap:0;margin-bottom:30px">
           <sc-for list="{{modal.stages}}" as="s" hint-placeholder-count="4">
@@ -179,8 +184,8 @@ class Component extends DCLogic {
       },
     };
   }
-  componentDidMount(){ this._t=setInterval(()=>this.setState({now:new Date()}),1000); this.loadStation(this.state.station); }
-  componentWillUnmount(){ clearInterval(this._t); }
+  componentDidMount(){ this._t=setInterval(()=>this.setState({now:new Date()}),1000); this.loadStation(this.state.station); this._ar=setInterval(()=>{ if(this.state.connection==='live' && !this.state.modalId) this.loadStation(this.state.station); },15000); }
+  componentWillUnmount(){ clearInterval(this._t); clearInterval(this._ar); }
   async loadStation(station){
     try {
       this._api = window.CAApi; if(!this._api) throw new Error('CAApi not loaded');
@@ -188,10 +193,10 @@ class Component extends DCLogic {
       let items;
       if(cfg.source==='order'){
         const recs=await api.getOrders();
-        items = recs.filter(r=>(r.Receiving_Status__c||'Not Received')!=='Staged').map(r=>{ const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c); return { id:r.Id, order:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', ident:piv.garment, qty:piv.qty+' pcs', dueLabel:due.label, urg:due.urg, stage:(r.Receiving_Status__c||'Not Received') }; });
+        items = recs.filter(r=>(r.Receiving_Status__c||'Not Received')!=='Staged').map(r=>{ const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c); return { id:r.Id, order:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', ident:piv.garment, qty:piv.qty+' pcs', dueLabel:due.label, urg:due.urg, stage:(r.Receiving_Status__c||'Not Received'), mockupUrl:r.DesignMockupUrl||null, notes:'' }; });
       } else {
         const recs=await api.getStationItems(station);
-        items = recs.map(r=>{ const o=(r.Production_Method__r&&r.Production_Method__r.Order__r)||{}; const due=api.dueInfo(o.Print_Date__c); const idv=r[cfg.identField]||''; return { id:r.Id, order:api.text(o.GOA_Order_Number__c)||'', customer:api.text(o.Customer_Order_Name__c)||api.text(o.Name)||'—', ident:(idv?api.text(idv)+(cfg.identSuffix||''):cfg.stages[0]), qty:'', dueLabel:due.label, urg:due.urg, stage:(r[cfg.subField]||cfg.stages[0]) }; });
+        items = recs.map(r=>{ const o=(r.Production_Method__r&&r.Production_Method__r.Order__r)||{}; const due=api.dueInfo(o.Print_Date__c); const idv=r[cfg.identField]||''; return { id:r.Id, order:api.text(o.GOA_Order_Number__c)||'', customer:api.text(o.Customer_Order_Name__c)||api.text(o.Name)||'—', ident:(idv?api.text(idv)+(cfg.identSuffix||''):cfg.stages[0]), qty:'', dueLabel:due.label, urg:due.urg, stage:(r[cfg.subField]||cfg.stages[0]), mockupUrl:(o.DesignMockupUrl||null), notes:api.text(r.Notes__c)||'' }; });
       }
       this.setState(st=>({ items:Object.assign({},st.items,{[station]:items}), connection:'live' }));
       if(cfg.inventory){ try { const inv=await api.getInventory(cfg.inventory); this.setState(st=>({ inv:Object.assign({},st.inv,{[cfg.inventory]:inv}) })); } catch(_){} }
@@ -251,7 +256,7 @@ class Component extends DCLogic {
       const curIdx=cfg.stages.indexOf(src.stage);
       const stages=cfg.stages.map((label,i)=>{ const done=i<curIdx, cur=i===curIdx; return { label, icon:done?'ti-check':(cur?'ti-point-filled':''), dotBg:done?accent:(cur?accent:'transparent'), dotBorder:done||cur?accent:'#3a3a40', lineColor:i<curIdx?accent:'#242428', textColor:done?'#8a8378':(cur?'#ECEAE4':'#5a554c') }; });
       const isDone=src.stage===doneStage;
-      modal=Object.assign({},mk(src),{ stages, canAdvance:!isDone, isDone, advanceLabel:isDone?'':('Mark '+cfg.stages[curIdx+1]), doneLabel:cfg.stages[cfg.stages.length-1]+' — leaves board', errorLabel:cfg.errorLabel, onAdvance:()=>this.advance(src.id), onError:()=>this.resetStage(src.id) });
+      modal=Object.assign({},mk(src),{ stages, canAdvance:!isDone, isDone, advanceLabel:isDone?'':('Mark '+cfg.stages[curIdx+1]), doneLabel:cfg.stages[cfg.stages.length-1]+' — leaves board', errorLabel:cfg.errorLabel, onAdvance:()=>this.advance(src.id), onError:()=>this.resetStage(src.id), hasMockup:!!src.mockupUrl, noMockup:!src.mockupUrl, mockupNode: src.mockupUrl?React.createElement('img',{src:src.mockupUrl,alt:'Mockup',style:{width:64,height:64,borderRadius:14,border:'1px solid #232327',objectFit:'cover',flexShrink:0}}):null, hasNotes:!!src.notes, notes:src.notes||'' });
     }
 
     const clock=st.now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
