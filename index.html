@@ -46,7 +46,7 @@
       <div style="font:600 13px/1 'Oswald';letter-spacing:.1em;color:#9C978C;white-space:nowrap">{{clock}} <span style="color:#4d483f">·</span> {{dateStr}}</div>
       <sc-if value="{{rushCount}}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#E0B870;background:#241a09;border:1px solid #5E4214;border-radius:8px;padding:8px 11px;white-space:nowrap"><i class="ti ti-alert-triangle"></i>{{rushCount}} rush</div></sc-if>
       <div style="display:flex;align-items:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#9C978C;white-space:nowrap"><span style="width:8px;height:8px;border-radius:50%;background:{{connColor}};box-shadow:0 0 7px {{connColor}}"></span>{{connLabel}}</div>
-      <div style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#5E9B9A;color:#08080A;font:700 10px/28px 'Oswald';text-align:center">{{workerInit}}</span><span style="font:400 12px/1 'Archivo';color:#9C978C;white-space:nowrap">{{worker}}</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#5E9B9A;color:#08080A;font:700 10px/28px 'Oswald';text-align:center">{{workerInit}}</span><span style="font:400 12px/1 'Archivo';color:#9C978C;white-space:nowrap">{{worker}}</span><button onClick="{{ onSwitchUser }}" title="Switch user" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:transparent;border:1px solid #2a2a2f;color:#6C665C;cursor:pointer;flex-shrink:0" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-repeat" style="font-size:12px"></i></button></div>
     </div>
   </header>
 
@@ -335,6 +335,7 @@ class Component extends DCLogic {
     } catch(_) { this.setState({orders:this._demoOrders, connection:'demo'}); }
   }
   pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
+  switchUser(){ try{localStorage.removeItem('caShopWorkerName');}catch(_){} this.setState({nameOk:false}); }
   push(id,fields){ if(this._api && this.state.connection==='live') this._api.patchOrder(id,fields).catch(()=>{}); }
   subVal(stage){ const label={rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[stage]; return (this._api?this._api.SUBSTATUS_VALUE[label]:label)||label; }
   openOrder(id){ this.setState({openId:id}); if(this._api && this.state.connection==='live'){ const api=this._api; Promise.all([api.getPackaging(id).catch(()=>null),api.getShipments(id).catch(()=>null),api.getPreProductionItems(id).catch(()=>null)]).then(([pk,sh,it])=>{ this.setState(st=>{ const pkg=Object.assign({},st.pkg), ship=Object.assign({},st.ship), pp=Object.assign({},st.ppItemsById); if(pk) pkg[id]=pk.map(x=>({type:x.Packaging_Type__c,qty:x.Quantity__c,id:x.Id})); if(sh) ship[id]=sh.map(x=>({carrier:x.zkmulti__Carrier__c||'Shipment',tracking:x.zkmulti__Tracking_Number__c||''})); if(it) pp[id]=it; return {pkg,ship,ppItemsById:pp}; }); }); } }
@@ -470,7 +471,7 @@ class Component extends DCLogic {
       connLabel, connColor,
       q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(),
       drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}),
-      nameGateOpen:!st.nameOk, names,
+      nameGateOpen:!st.nameOk, names, onSwitchUser:()=>this.switchUser(),
     };
   }
 }
