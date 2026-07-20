@@ -51,10 +51,13 @@ deploy, open DevTools → Network → reload → check `/api/orders`:
 - **Specifications for Printing** left as the single field.
 
 ## Order tracking / stage placement
-If orders land in the wrong column vs. Salesforce, it's the
-`Order_Substatus__c` → stage mapping or the `/api/orders` query filter
-(`Status = 'Pre-Production'`). Send your current repo + Salesforce access and
-this can be verified field-by-field against your dev2 org.
+Fixed: `functions/api/orders/index.js` in this folder changes the query from
+`WHERE Status = 'Pre-Production'` to `WHERE Order_Substatus__c != null`, so
+orders whose standard `Status` has moved on (e.g. one sitting at substatus
+**Post-Production**) still return and land in the right column. **Overwrite your
+repo's `functions/api/orders/index.js` with the one in `functions/api/orders/`
+here.** If your org's field API name isn't `Order_Substatus__c`, change that one
+identifier in the `WHERE` clause.
 
 ## Auth & offline
 `login.html` stores role + name in `localStorage` (`caShopRole`,
