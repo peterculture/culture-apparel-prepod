@@ -15,11 +15,23 @@
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 import { rollupItemToOrder } from "../_ppi-checklist.js";
+import { statusForSubStatus } from "../_station.js";
 
 // If any of these change, the item may have just become (or stopped being)
 // "ready" -- worth recomputing the parent Order's checklist boxes.
 const ROLLUP_TRIGGER_FIELDS = new Set([
   "Status__c",
+  "Screen_Sub_Status__c",
+  "Ink_Sub_Status__c",
+  "Transfers_Sub_Status__c",
+]);
+
+// Sub-status fields that drive a Status__c roll-up (see statusForSubStatus in
+// _station.js). This board edits one field at a time (see setItemField in
+// pre-production.html), so a PATCH here never carries both a sub-status AND
+// an explicit Status__c -- but the explicit-Status__c check below guards it
+// either way.
+const SUBSTATUS_FIELDS = new Set([
   "Screen_Sub_Status__c",
   "Ink_Sub_Status__c",
   "Transfers_Sub_Status__c",
@@ -119,6 +131,17 @@ export async function onRequestPatch({ env, request, params }) {
       }
     }
     // else: field not allowed -> silently ignored
+  }
+
+  // If a sub-status just changed and the client didn't also explicitly send
+  // Status__c, derive it here so it never drifts depending on which board
+  // made the edit (station tablet vs. this worker/management board) -- single
+  // source of truth is _station.js's STATION_CONFIG.statusMap.
+  for (const field of Object.keys(body)) {
+    if (SUBSTATUS_FIELDS.has(field) && body[field] != null && !("Status__c" in body)) {
+      const derived = statusForSubStatus(field, body[field]);
+      if (derived) body.Status__c = derived;
+    }
   }
 
   if (Object.keys(body).length === 0) return jsonError("no_valid_fields", 400);
