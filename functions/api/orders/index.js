@@ -107,8 +107,14 @@ export async function onRequestGet({ env }) {
         // checkboxes between two unrelated jobs. Order-level copies stay in
         // the FIELDS list above for backward compat / other reports, but
         // pre-production.html reads the per-method ones exclusively now.
+        // Placements__c (multi-select, added 2026-07-21) replaces the old
+        // single-select Placement__c -- one method/plan can now cover
+        // several print locations at once. Both are selected: Placements__c
+        // is preferred, Placement__c is the fallback for any older record
+        // that was created before the multi-select field existed and never
+        // got migrated.
         const soqlPM =
-          `SELECT Id, Order__c, Type__c, Placement__c, Status__c, Vendor__r.Name, ` +
+          `SELECT Id, Order__c, Type__c, Placement__c, Placements__c, Status__c, Vendor__r.Name, ` +
           `Films_Printed__c, Screens_Completed__c, Mix_Inks__c, Digitize_File__c, ` +
           `Thread_Color_Materials__c, Transfers_Received__c, Transfers_Ready__c ` +
           `FROM Production_Method__c WHERE Order__c IN (${quoted})`;
@@ -123,6 +129,13 @@ export async function onRequestGet({ env }) {
               Id: pm.Id,
               Type__c: pm.Type__c,
               Placement__c: pm.Placement__c || null,
+              // Placements__c comes back from Salesforce as a ";"-joined
+              // string (multi-select picklist wire format). Split it into a
+              // clean array for the client; fall back to the single old
+              // Placement__c value for records never migrated to the new field.
+              Placements: pm.Placements__c
+                ? pm.Placements__c.split(";").filter(Boolean)
+                : (pm.Placement__c ? [pm.Placement__c] : []),
               Status__c: pm.Status__c,
               Vendor: (pm.Vendor__r && pm.Vendor__r.Name) || null,
               Films_Printed__c: !!pm.Films_Printed__c,
