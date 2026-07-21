@@ -142,6 +142,32 @@
     if (days === 1) return { label:'Due tomorrow', urg:'soon', days:days };
     return { label: md + ' \u00b7 ' + days + 'd', urg: days <= 2 ? 'soon' : 'ok', days:days };
   }
+  // ── multi-method / multi-placement orders ──
+  // An order can have more than one Production_Method__c child: one per
+  // decoration location (e.g. "Front - Screen Print", "Back - Screen Print",
+  // "Tag - Heat Press" all under the same order). /api/orders and
+  // /api/production-orders attach the raw list as rec.ProductionMethods; this
+  // turns it into small, render-ready chips so boards don't have to re-derive
+  // labels/colors themselves.
+  var METHOD_META = {
+    'Screen Print': { key:'sp', short:'Screen', color:'#C6372B' },
+    'Embroidery':   { key:'em', short:'Embroid', color:'#5E9B9A' },
+    'Heat Press':   { key:'hp', short:'Heat',    color:'#C9923A' },
+    'Promotional Items': { key:'promo', short:'Promo', color:'#8E6FB0' }
+  };
+  function methodsList(rec){
+    var raw = (rec && rec.ProductionMethods) || [];
+    return raw.map(function (pm) {
+      var meta = METHOD_META[pm.Type__c] || { key:'sp', short:pm.Type__c||'Method', color:'#8a8378' };
+      var placement = pm.Placement__c || null;
+      return {
+        id: pm.Id, type: pm.Type__c, key: meta.key, color: meta.color,
+        placement: placement,
+        label: placement ? (pm.Type__c + ' – ' + placement) : (pm.Type__c || 'Method'),
+        vendor: pm.Vendor || null, status: pm.Status__c || null
+      };
+    });
+  }
   function pivotItems(rec){
     var items = (rec.OrderItems && rec.OrderItems.records) || [];
     var bySize = {}, total = 0, garment = '';
@@ -164,10 +190,21 @@
     };
   }
 
+  // Placement__c picklist values. MUST match Salesforce (Setup -> Object
+  // Manager -> Production Method -> Fields -> Placement) and the server-side
+  // ALLOWED_PLACEMENTS in functions/api/production-methods/index.js -- all
+  // three copies have to move together if the shop adds a new print location.
+  var PLACEMENTS = [
+    'Front', 'Back', 'Left Sleeve', 'Right Sleeve',
+    'Left Chest', 'Right Chest', 'Full Front', 'Full Back',
+    'Tag', 'Hood', 'Pocket'
+  ];
+
   window.CAApi = {
     ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout,
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
+    PLACEMENTS: PLACEMENTS, methodsList: methodsList,
     getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, createMethod: createMethod, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
     getPackaging: getPackaging, postPackaging: postPackaging, deletePackaging: deletePackaging,
     getShipments: getShipments, postShipment: postShipment,
