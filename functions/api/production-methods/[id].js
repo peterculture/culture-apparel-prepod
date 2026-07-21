@@ -1,22 +1,33 @@
 /**
  * PATCH /api/production-methods/:id
  *
- * Updates ONE Production_Method__c's Status__c. This is what lets the
- * Production floor board (index.html) move a single method (e.g. the Heat
- * Press job on an order) through Ready for Print -> In Production ->
- * Post-Production -> Completed independently of that same order's other
- * methods, instead of the whole order sharing one shared stage.
+ * Updates ONE Production_Method__c: its Status__c (the Production floor
+ * board, index.html) and/or its own copy of the 7 pre-production checklist
+ * booleans (the pre-production worker board, pre-production.html).
  *
- * Body:
+ * These booleans used to live ONLY on Order -- one shared set for the whole
+ * order, no matter how many methods it had. An order with a screen print
+ * method AND a heat press method had exactly one "Screens Completed"
+ * checkbox for both, and two screen-print methods on the same order (front
+ * + back) couldn't be tracked independently at all. Production_Method__c
+ * now carries its own copy of each field (created 2026-07-21), so every
+ * method gets its own checklist.
+ *
+ * Body (send any subset of these):
  *   {
- *     "Status__c": "In Production",  // required, validated against ALLOWED_STATUSES
- *     "orderId":   "801..."          // optional -- NOT written to Salesforce itself,
- *                                     //   just used afterward to look up this method's
- *                                     //   siblings so the parent Order's
- *                                     //   Order_Substatus__c can be rolled up to match
- *                                     //   whichever method is least advanced. See
- *                                     //   ../_pm-rollup.js. Omit it and only this
- *                                     //   method's own status gets written.
+ *     "Status__c": "In Production",       // validated against ALLOWED_STATUSES
+ *     "orderId":   "801...",               // NOT written to Salesforce -- only used,
+ *                                           //   when Status__c is also present, to roll
+ *                                           //   the parent Order's Order_Substatus__c up
+ *                                           //   to whichever sibling method is least
+ *                                           //   advanced. See ../_pm-rollup.js.
+ *     "Films_Printed__c": true,
+ *     "Screens_Completed__c": true,
+ *     "Mix_Inks__c": false,
+ *     "Digitize_File__c": true,
+ *     "Thread_Color_Materials__c": true,
+ *     "Transfers_Received__c": false,
+ *     "Transfers_Ready__c": false
  *   }
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
@@ -29,6 +40,20 @@ const PM_OBJECT = "Production_Method__c";
 const ALLOWED_STATUSES = new Set([
   "Pre-Production", "Ready for Print", "In Production",
   "Post-Production", "Completed", "Cancelled", "On Hold",
+]);
+
+// Per-method pre-production checklist booleans (mirrors the Order-level
+// fields of the same name -- see orders/[id].js CHECKLIST_FIELDS). All 7
+// exist on every Production_Method__c regardless of its own Type__c; the
+// UI only shows/toggles the 2-3 relevant to that method's own method type.
+const CHECKLIST_FIELDS = new Set([
+  "Films_Printed__c",
+  "Screens_Completed__c",
+  "Mix_Inks__c",
+  "Digitize_File__c",
+  "Thread_Color_Materials__c",
+  "Transfers_Received__c",
+  "Transfers_Ready__c",
 ]);
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
@@ -44,33 +69,46 @@ export async function onRequestPatch({ params, request, env }) {
     } catch {
       return jsonError("invalid_json", 400);
     }
+    if (!body || typeof body !== "object") return jsonError("invalid_body", 400);
 
-    const status = body && body.Status__c;
-    const orderId = body && body.orderId;
-    if (!status || typeof status !== "string" || !ALLOWED_STATUSES.has(status)) {
-      return jsonError("bad_status", 400);
-    }
+    const orderId = body.orderId;
     if (orderId != null && !SF_ID.test(orderId)) {
       return jsonError("invalid_orderId", 400);
     }
+
+    const payload = {};
+
+    if ("Status__c" in body) {
+      const status = body.Status__c;
+      if (!status || typeof status !== "string" || !ALLOWED_STATUSES.has(status)) {
+        return jsonError("bad_status", 400);
+      }
+      payload.Status__c = status;
+    }
+
+    for (const field of CHECKLIST_FIELDS) {
+      if (field in body) payload[field] = !!body[field];
+    }
+
+    if (Object.keys(payload).length === 0) return jsonError("no_valid_fields", 400);
 
     const path = `/services/data/${apiVersion(env)}/sobjects/${PM_OBJECT}/${id}`;
     const resp = await sfFetch(env, path, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Status__c: status }),
+      body: JSON.stringify(payload),
     });
 
     if (resp.status !== 204) {
       const detail = await resp.text();
-      console.error("Production method status update failed", resp.status, detail);
+      console.error("Production method update failed", resp.status, detail);
       return jsonError("update_failed", resp.status);
     }
 
     // Best-effort: keep Order_Substatus__c an honest summary of its methods.
-    // Never fails this response -- the method write already succeeded.
+    // Only relevant when Status__c just changed; never fails this response.
     let rolledUpSubstatus = null;
-    if (orderId) {
+    if (orderId && "Status__c" in payload) {
       rolledUpSubstatus = await rollupOrderSubstatus(env, orderId).catch((e) => {
         console.error("order substatus rollup failed", e);
         return null;
@@ -78,7 +116,7 @@ export async function onRequestPatch({ params, request, env }) {
     }
 
     return Response.json(
-      { ok: true, id, Status__c: status, rolledUpSubstatus },
+      { ok: true, id, updated: Object.keys(payload), rolledUpSubstatus },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (err) {
