@@ -84,6 +84,36 @@ export async function onRequestGet({ env }) {
       r.DesignMockupUrl = mockups.get(r.OpportunityId) || null;
     });
 
+    // Annotate whether each order already has a Production_Method__c. Orders
+    // in Pre-Production with none yet should only be worked from the
+    // Management inbox (see /api/inbox) -- pre-production.html's worker board
+    // uses this flag to hide them until a manager sets one up. Same
+    // second-query-then-Map pattern as the mockup lookup above; fails open
+    // (defaults to visible) so a transient query error never hides real orders.
+    const orderIds = (data.records || []).map((r) => r.Id).filter(Boolean);
+    if (orderIds.length) {
+      try {
+        const quoted = orderIds.map((oid) => `'${oid}'`).join(",");
+        const soqlPM =
+          `SELECT Order__c FROM Production_Method__c WHERE Order__c IN (${quoted})`;
+        const pathPM = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soqlPM)}`;
+        const respPM = await sfFetch(env, pathPM);
+        const dataPM = await respPM.json();
+        if (respPM.ok) {
+          const withMethod = new Set((dataPM.records || []).map((r) => r.Order__c));
+          (data.records || []).forEach((r) => {
+            r.HasProductionMethod = withMethod.has(r.Id);
+          });
+        } else {
+          console.error("Production method check failed", respPM.status, JSON.stringify(dataPM));
+          (data.records || []).forEach((r) => { r.HasProductionMethod = true; });
+        }
+      } catch (e) {
+        console.error("Production method check error", e);
+        (data.records || []).forEach((r) => { r.HasProductionMethod = true; });
+      }
+    }
+
     return Response.json(data, {
       headers: { "Cache-Control": "no-store" },
     });
