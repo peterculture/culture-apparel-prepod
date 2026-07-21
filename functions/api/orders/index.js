@@ -84,33 +84,52 @@ export async function onRequestGet({ env }) {
       r.DesignMockupUrl = mockups.get(r.OpportunityId) || null;
     });
 
-    // Annotate whether each order already has a Production_Method__c. Orders
-    // in Pre-Production with none yet should only be worked from the
-    // Management inbox (see /api/inbox) -- pre-production.html's worker board
-    // uses this flag to hide them until a manager sets one up. Same
-    // second-query-then-Map pattern as the mockup lookup above; fails open
-    // (defaults to visible) so a transient query error never hides real orders.
+    // Annotate each order with its Production_Method__c children (Type__c +
+    // Placement__c + Status__c + vendor name) -- an order can have MORE THAN
+    // ONE of these: a shop order with a front+back screen print and a heat-
+    // press tag is three Production_Method__c records under one Order__c
+    // (master-detail), one per placement+method combo. r.HasProductionMethod
+    // stays for backward compat (pre-production.html's worker-board filter);
+    // r.ProductionMethods is the new array the UI reads to show what's
+    // already staffed on an order before a manager adds another location.
+    // Same second-query-then-Map pattern as the mockup lookup above; fails
+    // open (defaults to visible / empty) so a transient query error never
+    // hides a real order.
     const orderIds = (data.records || []).map((r) => r.Id).filter(Boolean);
     if (orderIds.length) {
       try {
         const quoted = orderIds.map((oid) => `'${oid}'`).join(",");
         const soqlPM =
-          `SELECT Order__c FROM Production_Method__c WHERE Order__c IN (${quoted})`;
+          `SELECT Id, Order__c, Type__c, Placement__c, Status__c, Vendor__r.Name ` +
+          `FROM Production_Method__c WHERE Order__c IN (${quoted})`;
         const pathPM = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soqlPM)}`;
         const respPM = await sfFetch(env, pathPM);
         const dataPM = await respPM.json();
         if (respPM.ok) {
-          const withMethod = new Set((dataPM.records || []).map((r) => r.Order__c));
+          const byOrder = new Map();
+          (dataPM.records || []).forEach((pm) => {
+            const arr = byOrder.get(pm.Order__c) || [];
+            arr.push({
+              Id: pm.Id,
+              Type__c: pm.Type__c,
+              Placement__c: pm.Placement__c || null,
+              Status__c: pm.Status__c,
+              Vendor: (pm.Vendor__r && pm.Vendor__r.Name) || null,
+            });
+            byOrder.set(pm.Order__c, arr);
+          });
           (data.records || []).forEach((r) => {
-            r.HasProductionMethod = withMethod.has(r.Id);
+            const methods = byOrder.get(r.Id) || [];
+            r.HasProductionMethod = methods.length > 0;
+            r.ProductionMethods = methods;
           });
         } else {
           console.error("Production method check failed", respPM.status, JSON.stringify(dataPM));
-          (data.records || []).forEach((r) => { r.HasProductionMethod = true; });
+          (data.records || []).forEach((r) => { r.HasProductionMethod = true; r.ProductionMethods = []; });
         }
       } catch (e) {
         console.error("Production method check error", e);
-        (data.records || []).forEach((r) => { r.HasProductionMethod = true; });
+        (data.records || []).forEach((r) => { r.HasProductionMethod = true; r.ProductionMethods = []; });
       }
     }
 
