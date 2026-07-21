@@ -183,11 +183,15 @@
     var raw = (rec && rec.ProductionMethods) || [];
     return raw.map(function (pm) {
       var meta = METHOD_META[pm.Type__c] || { key:'sp', short:pm.Type__c||'Method', color:'#8a8378' };
-      var placement = pm.Placement__c || null;
+      // Placements (array, from the Placements__c multi-select field) is the
+      // current shape; pm.Placement__c is a single-value fallback for any
+      // record the server hasn't resolved into Placements yet.
+      var placements = (pm.Placements && pm.Placements.length) ? pm.Placements : (pm.Placement__c ? [pm.Placement__c] : []);
+      var placementLabel = placements.join(' + ');
       return {
         id: pm.Id, type: pm.Type__c, key: meta.key, color: meta.color,
-        placement: placement,
-        label: placement ? (pm.Type__c + ' – ' + placement) : (pm.Type__c || 'Method'),
+        placements: placements, placement: placements[0] || null,
+        label: placements.length ? (pm.Type__c + ' – ' + placementLabel) : (pm.Type__c || 'Method'),
         vendor: pm.Vendor || null, status: pm.Status__c || null
       };
     });
