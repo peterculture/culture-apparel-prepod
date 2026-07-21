@@ -128,16 +128,19 @@
     var d = s.indexOf('T') >= 0 ? new Date(s) : new Date(s + 'T12:00:00');
     return isNaN(d.getTime()) ? null : d;
   }
+  // `days` (integer, or null when there's no date) is exposed alongside the
+  // display label/urgency so callers that list many items (station boards)
+  // can sort by actual due date instead of re-parsing the label text.
   function dueInfo(printDateISO){
     var d = parseSfDate(printDateISO);
-    if (!d) return { label:'No date', urg:'ok' };
+    if (!d) return { label:'No date', urg:'ok', days:null };
     var today = new Date(); today.setHours(12,0,0,0);
     var days = Math.round((d - today) / 86400000);
     var md = d.toLocaleDateString([], { month:'short', day:'numeric' });
-    if (days < 0) return { label:'Overdue \u00b7 ' + (-days) + 'd', urg:'over' };
-    if (days === 0) return { label:'Due today', urg:'today' };
-    if (days === 1) return { label:'Due tomorrow', urg:'soon' };
-    return { label: md + ' \u00b7 ' + days + 'd', urg: days <= 2 ? 'soon' : 'ok' };
+    if (days < 0) return { label:'Overdue \u00b7 ' + (-days) + 'd', urg:'over', days:days };
+    if (days === 0) return { label:'Due today', urg:'today', days:days };
+    if (days === 1) return { label:'Due tomorrow', urg:'soon', days:days };
+    return { label: md + ' \u00b7 ' + days + 'd', urg: days <= 2 ? 'soon' : 'ok', days:days };
   }
   function pivotItems(rec){
     var items = (rec.OrderItems && rec.OrderItems.records) || [];
