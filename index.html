@@ -358,8 +358,9 @@ class Component extends DCLogic {
           const meth = meta.key;
           let pct, progressLabel;
           if(stage==='ip'||stage==='pp'){ const s=PREREQ[meth]||PREREQ.sp; const done=s.filter(f=>r[f]).length; pct=Math.round(done/s.length*100); progressLabel = stage==='ip'?'On press':'Post-production'; }
+          const placements=(pm.Placements&&pm.Placements.length)?pm.Placements:(pm.Placement__c?[pm.Placement__c]:[]);
           cards.push({
-            id:pm.Id, orderId:r.Id, stage, status:pm.Status__c, meth, placement:pm.Placement__c||null,
+            id:pm.Id, orderId:r.Id, stage, status:pm.Status__c, meth, placements:placements,
             num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'',
             qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel: stage==='done'?'Completed':due.label, urg: stage==='done'?'done':due.urg,
             worker:null, workerName:wn||null, workerInit: wn?api.initials(wn):'—', workerColor: wn?api.colorForName(wn):'#3a3a40',
@@ -459,7 +460,7 @@ class Component extends DCLogic {
     const mk = o => {
       const m=M[o.meth]||M.sp, w=o.worker?W[o.worker]:null; const wname=o.workerName||(w&&w.name)||null;
       return Object.assign({}, o, {
-        methLabel:m.label, methShort: o.placement ? (m.short+' · '+o.placement) : m.short, methColor:m.color,
+        methLabel:m.label, methShort: (o.placements&&o.placements.length) ? (m.short+' · '+o.placements.join(' + ')) : m.short, methColor:m.color,
         hasWorker:!!wname, noWorker:!wname, workerName:wname||'Unassigned', workerInit:o.workerInit||o.worker||(wname?wname.trim().slice(0,2).toUpperCase():'—'), workerColor:o.workerColor||(w&&w.color)||'#3a3a40',
         urgColor:U[o.urg]||U.ok, hasProgress:typeof o.pct==='number', progressWidth:(o.pct||0)+'%', hasMisprints:(o.mis||0)>0,
         cardOpacity: st.dragId===o.id ? 0.35 : 1,
