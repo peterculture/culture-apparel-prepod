@@ -303,8 +303,8 @@
           </div>
 
           <div>
-            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Placement</div>
-            <div style="font:400 11px/1.4 'Archivo';color:#6C665C;margin-bottom:11px">Where this method prints. An order with more than one location (e.g. front + back screen print, tag heat press) gets one method per placement — use "Add another method" from the order's drawer to add the next one.</div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Placements</div>
+            <div style="font:400 11px/1.4 'Archivo';color:#6C665C;margin-bottom:11px">Every location this method prints — pick as many as apply (e.g. front + back for one screen print plan). A genuinely different print method (like a heat-press tag) still gets its own plan — use "Add another method" from the order's drawer for that.</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <sc-for list="{{formPlacementOptions}}" as="p" hint-placeholder-count="4">
                 <button onClick="{{ p.onPick }}" style="font:600 12px/1 'Oswald';letter-spacing:.04em;color:{{p.color}};background:{{p.bg}};border:1px solid {{p.border}};border-radius:9px;padding:11px 15px;cursor:pointer">{{p.label}}</button>
@@ -438,8 +438,9 @@ class Component extends DCLogic {
         methods.forEach(pm=>{
           if(pm.Status__c!=='Pre-Production') return;
           const meta=(api.METHOD_META && api.METHOD_META[pm.Type__c]) || {key:'sp'};
+          const placements=(pm.Placements&&pm.Placements.length)?pm.Placements:(pm.Placement__c?[pm.Placement__c]:[]);
           cards.push({
-            id:pm.Id, orderId:r.Id, meth:meta.key, placement:pm.Placement__c||null,
+            id:pm.Id, orderId:r.Id, meth:meta.key, placements:placements,
             num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'',
             qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel:due.label, urg:due.urg,
             worker:null, workerName:wn||null, recv:(api.RECV_FROM_SF[r.Receiving_Status__c]||'none'), printDateISO:r.Print_Date__c||null,
@@ -486,7 +487,9 @@ class Component extends DCLogic {
     this._api.patchMethodStatus(cardId,'Ready for Print',card.orderId).catch(()=>{});
   }
 
-  defaultForm(){ return { method:'', placement:'', vendorId:null, vendorName:'', vendorQ:'', planMode:'new', planId:null, planName:'', planQ:'', status:'Pre-Production', items:[] }; }
+  defaultForm(){ return { method:'', placements:[], vendorId:null, vendorName:'', vendorQ:'', planMode:'new', planId:null, planName:'', planQ:'', status:'Pre-Production', items:[] }; }
+  // Toggles one location in/out of the form's multi-select Placements list.
+  togglePlacement(x){ this.setState(st=>{ const f=Object.assign({},st.form||this.defaultForm()); const cur=f.placements||[]; f.placements = cur.includes(x) ? cur.filter(v=>v!==x) : cur.concat([x]); return {form:f}; }); }
   openMgr(){ this.setState({view:'mgr', mgrId:null, mgrErr:'', mgrMsg:''}); this.loadInbox(); }
   closeMgr(){ this.setState({view:'board', mgrId:null}); }
   async loadInbox(){ if(!this._api) this._api=window.CAApi; if(!this._api || this.state.connection!=='live'){ this.setState({inbox:[], inboxLoaded:true}); return; } try{ const recs=await this._api.getInbox(); this.setState({inbox:recs, inboxLoaded:true}); }catch(_){ this.setState({inbox:[], inboxLoaded:true}); } }
@@ -534,12 +537,12 @@ class Component extends DCLogic {
   async submitMethod(){
     const st=this.state, f=st.form; if(!f) return; const oid=st.mgrId;
     if(!f.method){ this.setState({mgrErr:'Pick a print method'}); return; }
-    if(!f.placement){ this.setState({mgrErr:'Pick a placement (where this method prints)'}); return; }
+    if(!f.placements || !f.placements.length){ this.setState({mgrErr:'Pick at least one placement (where this method prints)'}); return; }
     if(!f.vendorId){ this.setState({mgrErr:'Pick a vendor'}); return; }
     if(f.planMode==='existing' && !f.planId){ this.setState({mgrErr:'Pick an existing plan'}); return; }
     if(!this._api || this.state.connection!=='live'){ this.setState({mgrErr:'Not connected to Salesforce (demo mode) — deploy to create plans'}); return; }
     this.setState({submitting:true, mgrErr:''});
-    const body={ orderId:oid, vendorId:f.vendorId, status:f.status, type:f.method, placement:f.placement, items:f.items||[] };
+    const body={ orderId:oid, vendorId:f.vendorId, status:f.status, type:f.method, placements:f.placements, items:f.items||[] };
     if(f.planMode==='existing' && f.planId) body.planId=f.planId;
     try{ const by=(this._api.workerName&&this._api.workerName())||''; if(by) body.by=by; }catch(_){}
     try{
@@ -574,7 +577,7 @@ class Component extends DCLogic {
       const ord=inbox.find(o=>o.id===st.mgrId) || (st.orders||[]).find(o=>o.orderId===st.mgrId);
       if(ord) mgrOrder={num:ord.num,customer:ord.customer,account:ord.account,qty:ord.qty};
       methodOptions=['Screen Print','Embroidery','Heat Press','Promotional Items'].map(x=>({ label:x, onPick:()=>this.setForm({method:x}), bg:f.method===x?'#2a1210':'#121215', border:f.method===x?'#C6372B':'#242428', color:f.method===x?'#ECEAE4':'#8a8378' }));
-      placementOptions=(api&&api.PLACEMENTS?api.PLACEMENTS:['Front','Back','Left Sleeve','Right Sleeve','Left Chest','Right Chest','Full Front','Full Back','Tag','Hood','Pocket']).map(x=>({ label:x, onPick:()=>this.setForm({placement:x}), bg:f.placement===x?'#2a1210':'#121215', border:f.placement===x?'#C6372B':'#242428', color:f.placement===x?'#ECEAE4':'#8a8378' }));
+      placementOptions=(api&&api.PLACEMENTS?api.PLACEMENTS:['Front','Back','Left Sleeve','Right Sleeve','Left Chest','Right Chest','Full Front','Full Back','Tag','Hood','Pocket']).map(x=>{ const on=(f.placements||[]).includes(x); return { label:x, onPick:()=>this.togglePlacement(x), bg:on?'#2a1210':'#121215', border:on?'#C6372B':'#242428', color:on?'#ECEAE4':'#8a8378' }; });
       statusOptions=['Pre-Production','Ready for Print','In Production','Post-Production','Completed','Cancelled','On Hold'].map(s=>({ value:s, label:s }));
       vendorResults=(st.vendorResults||[]).map(v=>({ id:v.Id, name:v.Name, onPick:()=>this.pickVendor(v.Id,v.Name) }));
       planResults=(st.planResults||[]).map(p=>({ id:p.Id, name:p.Name, onPick:()=>this.pickPlan(p.Id,p.Name) }));
@@ -630,7 +633,7 @@ class Component extends DCLogic {
       const m=M[o.meth]||M.sp, w=o.worker?W[o.worker]:null, r=RECV[o.recv]||RECV.none; const wname=o.workerName||(w&&w.name)||null;
       const done=prereqDone(o), total=m.prereq.length;
       return Object.assign({},o,{
-        methLabel: o.placement ? (m.label+' · '+o.placement) : m.label, color:m.color,
+        methLabel: (o.placements&&o.placements.length) ? (m.label+' · '+o.placements.join(' + ')) : m.label, color:m.color,
         hasWorker:!!wname, noWorker:!wname, workerName:wname||'Unassigned', workerInit:o.worker||(wname?wname.trim().slice(0,2).toUpperCase():'—'), workerColor:o.workerColor||(w&&w.color)||'#3a3a40',
         urgColor:U[o.urg]||U.ok,
         checkLabel:done+' / '+total, checkWidth: total?(Math.round(done/total*100)+'%'):'100%',
