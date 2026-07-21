@@ -396,12 +396,20 @@ class Component extends DCLogic {
       { id:'GOA-4847', meth:'hp', num:'GOA-4847', customer:'Junior Rangers Camp', account:'City Parks Dept.', qty:'120', garment:'Bella+Canvas Youth · Green', sizes:'YS30 · YM40 · YL30 · YXL20', dueLabel:'Jul 26 · 6d', urg:'ok', worker:'MA', recv:'partial', vendor:'HeatCo Transfers', plan:'PP-2293 · new' },
       { id:'GOA-4853', meth:'hp', num:'GOA-4853', customer:'Fiesta Foods', account:'Fiesta Markets', qty:'200', garment:'Gildan 5000 · White', sizes:'M50 · L70 · XL50 · 2XL30', dueLabel:'Jul 28 · 8d', urg:'ok', worker:null, recv:'none', vendor:'—', plan:'—' },
     ];
-    this._demoOrders = seed;
+    // Each demo card is one Production_Method__c's worth of pre-production
+    // work (not a whole order); orderId matches id since demo data doesn't
+    // model multiple methods per order, and the checklist booleans live
+    // directly on the card now instead of a separate `checks` dict, matching
+    // the live per-method fields on Production_Method__c.
+    this._demoOrders = seed.map(o=>Object.assign({orderId:o.id}, o));
+    this._demoOrders[0].Films_Printed__c=true; // GOA-4842
+    this._demoOrders[2].Films_Printed__c=true; this._demoOrders[2].Screens_Completed__c=true; this._demoOrders[2].Mix_Inks__c=true; // GOA-4838
+    this._demoOrders[3].Digitize_File__c=true; // GOA-4845
+    this._demoOrders[5].Transfers_Received__c=true; // GOA-4847
     let storedName=''; try{ storedName=localStorage.getItem('caShopWorkerName')||''; }catch(_){}
     this.state = {
       now:new Date(), nameOk: VALID_NAMES.includes(storedName), orders:[], connection:'loading', q:'', openId:null, ppItemsById:{}, weekMode:'all', pickDate:'',
       view:'board', inbox:[], inboxLoaded:false, mgrId:null, mgrSource:null, form:null, vendorResults:[], planResults:[], submitting:false, mgrErr:'', mgrMsg:'',
-      checks:{ 'GOA-4842':{'Films printed':true}, 'GOA-4838':{'Films printed':true,'Screens completed':true,'Inks mixed':true}, 'GOA-4845':{'File digitized':true}, 'GOA-4847':{'Transfers received':true} },
       sent:{},
     };
   }
@@ -412,52 +420,70 @@ class Component extends DCLogic {
       this._api = window.CAApi; if(!this._api) throw new Error('CAApi not loaded');
       const api=this._api;
       const recs = await api.getOrders();
-      // Orders in Pre-Production with no Production_Method__c yet only belong
-      // in the Management inbox (see openMgr/loadInbox below) -- they haven't
-      // been staffed with a method, vendor, or items, so there's nothing here
-      // for a worker to act on. r.HasProductionMethod is set server-side by
-      // /api/orders (defaults to true if that check ever fails, so a hiccup
-      // there never hides a real in-progress order).
-      const pre = recs.filter(r=>(api.SUBSTATUS_LABEL[r.Order_Substatus__c]||r.Order_Substatus__c)==='Pre-Production' && r.HasProductionMethod!==false);
-      const checks={};
-      const orders = pre.map(r=>{
-        const id=r.Id, meth=api.methodOf(r), piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c), wn=r.Last_Updated_By__c||'';
-        const g={};
-        if(meth==='sp'){ if(r.Films_Printed__c)g['Films printed']=true; if(r.Screens_Completed__c)g['Screens completed']=true; if(r.Mix_Inks__c)g['Inks mixed']=true; }
-        else if(meth==='em'){ if(r.Digitize_File__c)g['File digitized']=true; if(r.Thread_Color_Materials__c)g['Thread & materials']=true; }
-        else { if(r.Transfers_Received__c)g['Transfers received']=true; if(r.Transfers_Ready__c)g['Transfers ready']=true; }
-        checks[id]=g;
-        return { id, meth, num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'', qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel:due.label, urg:due.urg, worker:null, workerName:wn||null, recv:(api.RECV_FROM_SF[r.Receiving_Status__c]||'none'), printDateISO:r.Print_Date__c||null, mockupUrl:r.DesignMockupUrl||null, printSpecs:api.text(r.Specifications_for_Printing__c)||'', specialNotes:api.text(r.Special_Notes__c)||'', methods:(api.methodsList?api.methodsList(r):[]) };
+      // One card per Production_Method__c that's STILL in Pre-Production --
+      // not one per order. An order with a screen print method and a heat
+      // press method now shows two separate cards here, each reading its
+      // OWN copy of the 7 checklist booleans (created directly on
+      // Production_Method__c) instead of guessing a single method for the
+      // whole order and sharing one set of checkboxes between unrelated
+      // jobs. A method whose Status__c has already moved past
+      // Pre-Production has left this board -- it now lives on the
+      // Production floor board (index.html) instead. Orders with zero
+      // methods yet (still in the Management inbox) simply contribute no
+      // cards here.
+      const cards=[];
+      recs.forEach(r=>{
+        const methods=r.ProductionMethods||[];
+        const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c), wn=r.Last_Updated_By__c||'';
+        methods.forEach(pm=>{
+          if(pm.Status__c!=='Pre-Production') return;
+          const meta=(api.METHOD_META && api.METHOD_META[pm.Type__c]) || {key:'sp'};
+          cards.push({
+            id:pm.Id, orderId:r.Id, meth:meta.key, placement:pm.Placement__c||null,
+            num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'',
+            qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel:due.label, urg:due.urg,
+            worker:null, workerName:wn||null, recv:(api.RECV_FROM_SF[r.Receiving_Status__c]||'none'), printDateISO:r.Print_Date__c||null,
+            mockupUrl:r.DesignMockupUrl||null, printSpecs:api.text(r.Specifications_for_Printing__c)||'', specialNotes:api.text(r.Special_Notes__c)||'',
+            methods:(api.methodsList?api.methodsList(r):[]),
+            Films_Printed__c: !!pm.Films_Printed__c, Screens_Completed__c: !!pm.Screens_Completed__c, Mix_Inks__c: !!pm.Mix_Inks__c,
+            Digitize_File__c: !!pm.Digitize_File__c, Thread_Color_Materials__c: !!pm.Thread_Color_Materials__c,
+            Transfers_Received__c: !!pm.Transfers_Received__c, Transfers_Ready__c: !!pm.Transfers_Ready__c,
+          });
+        });
       });
-      this.setState({ orders, connection:'live', checks, sent:{} });
+      this.setState({ orders:cards, connection:'live', sent:{} });
     } catch(_) { this.setState({orders:this._demoOrders, connection:'demo'}); }
   }
-  toggleCheck(id,label){ const willBe=!( (this.state.checks[id]||{})[label] ); this.setState(st=>{ const c=Object.assign({},st.checks); const g=Object.assign({},c[id]||{}); if(g[label]) delete g[label]; else g[label]=true; c[id]=g; return {checks:c}; }); const f=this._api&&this._api.CHECK_FIELD[label]; if(f && this._api && this.state.connection==='live') this._api.patchOrder(id,{[f]:willBe}).catch(()=>{}); }
+  // Toggles one of this CARD's (method's) own checklist booleans -- writes
+  // straight to Production_Method__c, not Order, via patchMethodChecklist.
+  toggleCheck(cardId,label){
+    const field=this._api&&this._api.CHECK_FIELD[label]; if(!field) return;
+    const card=(this.state.orders||[]).find(o=>o.id===cardId); if(!card) return;
+    const nv=!card[field];
+    this.setState(st=>({orders:st.orders.map(o=>o.id===cardId?Object.assign({},o,{[field]:nv}):o)}));
+    if(this._api && this.state.connection==='live') this._api.patchMethodChecklist(cardId,{[field]:nv}).catch(()=>{});
+  }
   pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
   switchUser(){ try{localStorage.removeItem('caShopWorkerName');}catch(_){} this.setState({nameOk:false}); }
-  setRecv(id,v){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{recv:v}):o) })); if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Receiving_Status__c:(this._api.RECV_TO_SF[v]||'Not Received')}).catch(()=>{}); }
-  setSpecs(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{printSpecs:v}):o)})); clearTimeout(this._specsT); this._specsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
-  setSpecial(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{specialNotes:v}):o)})); clearTimeout(this._specialT); this._specialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Special_Notes__c:v}).catch(()=>{}); },600); }
-  assign(id,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{worker:o.worker===w?null:w}):o) })); }
-  // "Send to Production" -- leaves the pre-production inbox/board. The floor
-  // board (index.html) now reads each Production_Method__c's OWN Status__c
-  // to decide whether it shows a card, so this has to advance every method
-  // on the order out of Pre-Production, not just the order's own
-  // Order_Substatus__c. Each PATCH rolls Order_Substatus__c up afterward
-  // (see functions/api/_pm-rollup.js), so once all methods have been
-  // advanced the order-level field ends up at "Ready for Print" too --
-  // patching it directly here is only a fallback for the (legacy) case of
-  // an order somehow leaving pre-production with zero methods attached.
-  send(id){
-    this.setState(st=>({ sent:Object.assign({},st.sent,{[id]:true}), openId:null }));
-    if(!this._api || this.state.connection!=='live') return;
-    const order=(this.state.orders||[]).find(o=>o.id===id);
-    const pending=((order&&order.methods)||[]).filter(m=>m.status==='Pre-Production');
-    if(pending.length){
-      pending.forEach(m=>this._api.patchMethodStatus(m.id,'Ready for Print',id).catch(()=>{}));
-    } else {
-      this._api.patchOrder(id,{Order_Substatus__c:this._api.SUBSTATUS_VALUE['Ready for Print']}).catch(()=>{});
-    }
+  // Garment receiving, specs, and special notes are still Order-level fields
+  // -- shared across every card from the same order, so these apply the
+  // change to ALL sibling cards, not just the one whose drawer is open.
+  updateOrderFieldLocally(orderId,fields){ this.setState(st=>({ orders: st.orders.map(o=>o.orderId===orderId?Object.assign({},o,fields):o) })); }
+  setRecv(orderId,v){ this.updateOrderFieldLocally(orderId,{recv:v}); if(this._api && this.state.connection==='live') this._api.patchOrder(orderId,{Receiving_Status__c:(this._api.RECV_TO_SF[v]||'Not Received')}).catch(()=>{}); }
+  setSpecs(orderId,v){ this.updateOrderFieldLocally(orderId,{printSpecs:v}); clearTimeout(this._specsT); this._specsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(orderId,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
+  setSpecial(orderId,v){ this.updateOrderFieldLocally(orderId,{specialNotes:v}); clearTimeout(this._specialT); this._specialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(orderId,{Special_Notes__c:v}).catch(()=>{}); },600); }
+  assign(cardId,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===cardId?Object.assign({},o,{worker:o.worker===w?null:w}):o) })); }
+  // "Send to Production" -- advances THIS ONE method's Status__c to Ready
+  // for Print, so it leaves this board and shows up on the Production floor
+  // board independently of its sibling methods (e.g. the front+back screen
+  // print can go out while the tag's heat press is still waiting on
+  // transfers). The rollup in ../functions/api/_pm-rollup.js keeps the
+  // order-level Order_Substatus__c an honest summary automatically.
+  send(cardId){
+    const card=(this.state.orders||[]).find(o=>o.id===cardId);
+    this.setState(st=>({ sent:Object.assign({},st.sent,{[cardId]:true}), openId:null }));
+    if(!this._api || this.state.connection!=='live' || !card) return;
+    this._api.patchMethodStatus(cardId,'Ready for Print',card.orderId).catch(()=>{});
   }
 
   defaultForm(){ return { method:'', placement:'', vendorId:null, vendorName:'', vendorQ:'', planMode:'new', planId:null, planName:'', planQ:'', status:'Pre-Production', items:[] }; }
@@ -485,9 +511,18 @@ class Component extends DCLogic {
   setMgrSpecs(v){ const oid=this.state.mgrId; this.setForm({specs:v}); if(!oid) return; clearTimeout(this._mgrSpecsT); this._mgrSpecsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
   setMgrSpecial(v){ const oid=this.state.mgrId; this.setForm({notes:v}); if(!oid) return; clearTimeout(this._mgrSpecialT); this._mgrSpecialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Special_Notes__c:v}).catch(()=>{}); },600); }
   backToInbox(){ this.setState({mgrId:null, mgrErr:'', mgrMsg:''}); }
-  openOrder(id){ this.setState({openId:id}); if(this._api && this.state.connection==='live'){ this._api.getPreProductionItems(id).then(items=>{ this.setState(st=>({ppItemsById:Object.assign({},st.ppItemsById,{[id]:items})})); }).catch(()=>{}); } }
-  setItemField(oid,itemId,field,val){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[oid]=(pp[oid]||[]).map(it=>it.Id===itemId?Object.assign({},it,{[field]:val}):it); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live') this._api.patchItem(itemId,{[field]:val}).catch(()=>{}); }
-  removePPItem(oid,itemId){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[oid]=(pp[oid]||[]).filter(it=>it.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{}); }
+  // Pre_Production_Item__c records come back per ORDER (one fetch covers
+  // every sibling method's items), cached under ppItemsById[orderId] and
+  // filtered down to just this card's own method at render time.
+  openOrder(cardId){
+    this.setState({openId:cardId});
+    const card=(this.state.orders||[]).find(o=>o.id===cardId);
+    if(!card || !this._api || this.state.connection!=='live') return;
+    const orderId=card.orderId;
+    this._api.getPreProductionItems(orderId).then(items=>{ this.setState(st=>({ppItemsById:Object.assign({},st.ppItemsById,{[orderId]:items})})); }).catch(()=>{});
+  }
+  setItemField(orderId,itemId,field,val){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).map(it=>it.Id===itemId?Object.assign({},it,{[field]:val}):it); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live') this._api.patchItem(itemId,{[field]:val}).catch(()=>{}); }
+  removePPItem(orderId,itemId){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).filter(it=>it.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{}); }
   setForm(patch){ this.setState(st=>({form:Object.assign({}, st.form||this.defaultForm(), patch)})); }
   vendorSearch(q){ this.setForm({vendorQ:q, vendorId:null, vendorName:''}); if(!this._api) return; clearTimeout(this._vt); this._vt=setTimeout(()=>{ this._api.searchVendors(q).then(r=>this.setState({vendorResults:r})).catch(()=>{}); },250); }
   pickVendor(id,name){ this.setForm({vendorId:id, vendorName:name, vendorQ:name}); this.setState({vendorResults:[]}); }
@@ -536,7 +571,7 @@ class Component extends DCLogic {
       // order a manager is adding a second method/placement to (see
       // openMgrForOrder) -- that second case won't be in `inbox` any more
       // once it has a method, so fall back to the worker board's own list.
-      const ord=inbox.find(o=>o.id===st.mgrId) || (st.orders||[]).find(o=>o.id===st.mgrId);
+      const ord=inbox.find(o=>o.id===st.mgrId) || (st.orders||[]).find(o=>o.orderId===st.mgrId);
       if(ord) mgrOrder={num:ord.num,customer:ord.customer,account:ord.account,qty:ord.qty};
       methodOptions=['Screen Print','Embroidery','Heat Press','Promotional Items'].map(x=>({ label:x, onPick:()=>this.setForm({method:x}), bg:f.method===x?'#2a1210':'#121215', border:f.method===x?'#C6372B':'#242428', color:f.method===x?'#ECEAE4':'#8a8378' }));
       placementOptions=(api&&api.PLACEMENTS?api.PLACEMENTS:['Front','Back','Left Sleeve','Right Sleeve','Left Chest','Right Chest','Full Front','Full Back','Tag','Hood','Pocket']).map(x=>({ label:x, onPick:()=>this.setForm({placement:x}), bg:f.placement===x?'#2a1210':'#121215', border:f.placement===x?'#C6372B':'#242428', color:f.placement===x?'#ECEAE4':'#8a8378' }));
@@ -570,7 +605,9 @@ class Component extends DCLogic {
 
   renderVals(){
     const st=this.state;
-    const M={ sp:{label:'Screen Print',color:'#C6372B',icon:'ti-stack-2',prereq:['Films printed','Screens completed','Inks mixed']}, em:{label:'Embroidery',color:'#5E9B9A',icon:'ti-needle',prereq:['File digitized','Thread & materials']}, hp:{label:'Heat Press',color:'#C9923A',icon:'ti-flame',prereq:['Transfers received','Transfers ready']} };
+    const api=this._api||window.CAApi;
+    const CF=(api&&api.CHECK_FIELD)||{};
+    const M={ sp:{label:'Screen Print',color:'#C6372B',icon:'ti-stack-2',prereq:['Films printed','Screens completed','Inks mixed']}, em:{label:'Embroidery',color:'#5E9B9A',icon:'ti-needle',prereq:['File digitized','Thread & materials']}, hp:{label:'Heat Press',color:'#C9923A',icon:'ti-flame',prereq:['Transfers received','Transfers ready']}, promo:{label:'Promotional Items',color:'#8E6FB0',icon:'ti-gift',prereq:[]} };
     const W={ MA:{name:'Marcus A.',color:'#C6372B'}, DK:{name:'Dana K.',color:'#5E9B9A'}, PR:{name:'Priya R.',color:'#C9923A'}, JT:{name:'Jules T.',color:'#7FA644'} };
     const U={ over:'#E24A3A', today:'#E24A3A', soon:'#C9923A', ok:'#6C665C' };
     const RECV={ none:{label:'Not Received',icon:'ti-inbox',textColor:'#E8A89F',bg:'#2A100D',border:'#7A241C'}, partial:{label:'Partial',icon:'ti-progress',textColor:'#E0B870',bg:'#241a09',border:'#5E4214'}, countedin:{label:'Counted In',icon:'ti-checks',textColor:'#8FCBE0',bg:'#0D1F2A',border:'#2E6A8B'}, staged:{label:'Staged',icon:'ti-check',textColor:'#BBD382',bg:'#18230D',border:'#3D5418'} };
@@ -582,17 +619,21 @@ class Component extends DCLogic {
     const inWeek=(iso)=>{ if(st.weekMode==='all') return true; if(!iso||anchorMon==null) return false; const m=mondayOf(iso); return m!=null && m===anchorMon; };
     const visible=st.orders.filter(o=>!st.sent[o.id] && inWeek(o.printDateISO) && (!q || (o.customer+' '+o.num+' '+o.account).toLowerCase().includes(q)));
 
-    const prereqDone=(o)=>{ const g=st.checks[o.id]||{}; return M[o.meth].prereq.filter(l=>g[l]).length; };
-    const isReady=(o)=>prereqDone(o)===M[o.meth].prereq.length && o.recv==='staged';
+    // Reads straight off the card's own Production_Method__c checklist
+    // fields (via CHECK_FIELD's label->field map) instead of a separate
+    // per-order `checks` dict -- each card IS one method now, so there's no
+    // more sharing to worry about.
+    const prereqDone=(o)=>{ const list=(M[o.meth]||M.sp).prereq; return list.filter(l=>o[CF[l]]).length; };
+    const isReady=(o)=>{ const list=(M[o.meth]||M.sp).prereq; return prereqDone(o)===list.length && o.recv==='staged'; };
 
     const mk=o=>{
       const m=M[o.meth]||M.sp, w=o.worker?W[o.worker]:null, r=RECV[o.recv]||RECV.none; const wname=o.workerName||(w&&w.name)||null;
       const done=prereqDone(o), total=m.prereq.length;
       return Object.assign({},o,{
-        methLabel:m.label, color:m.color,
+        methLabel: o.placement ? (m.label+' · '+o.placement) : m.label, color:m.color,
         hasWorker:!!wname, noWorker:!wname, workerName:wname||'Unassigned', workerInit:o.worker||(wname?wname.trim().slice(0,2).toUpperCase():'—'), workerColor:o.workerColor||(w&&w.color)||'#3a3a40',
         urgColor:U[o.urg]||U.ok,
-        checkLabel:done+' / '+total, checkWidth:Math.round(done/total*100)+'%',
+        checkLabel:done+' / '+total, checkWidth: total?(Math.round(done/total*100)+'%'):'100%',
         recvLabel:r.label, recvIcon:r.icon, recvTextColor:r.textColor, recvBg:r.bg, recvBorder:r.border,
         ready:isReady(o),
         onOpen:()=>this.openOrder(o.id),
@@ -616,21 +657,21 @@ class Component extends DCLogic {
     const awaiting=active.filter(o=>!isReady(o)).length;
 
     const kpis=[
-      { label:'In Pre-Production', value:String(active.length), unit:'orders', sub:'across three methods', accent:'#ECEAE4' },
-      { label:'Garments Staged', value:String(staged), unit:'orders', sub:'counted in & ready', accent:'#7FA644' },
-      { label:'Awaiting Prep', value:String(awaiting), unit:'orders', sub:'films · thread · transfers', accent:'#C9923A' },
-      { label:'Ready to Send', value:String(ready), unit:'orders', sub:'clear for production', accent:'#C6372B' },
-      { label:'Overdue', value:String(overdue), unit:'orders', sub:'print date passed', accent:'#E24A3A' },
+      { label:'In Pre-Production', value:String(active.length), unit:'jobs', sub:'across three methods', accent:'#ECEAE4' },
+      { label:'Garments Staged', value:String(staged), unit:'jobs', sub:'counted in & ready', accent:'#7FA644' },
+      { label:'Awaiting Prep', value:String(awaiting), unit:'jobs', sub:'films · thread · transfers', accent:'#C9923A' },
+      { label:'Ready to Send', value:String(ready), unit:'jobs', sub:'clear for production', accent:'#C6372B' },
+      { label:'Overdue', value:String(overdue), unit:'jobs', sub:'print date passed', accent:'#E24A3A' },
     ];
 
-    const shownLabel = active.length + ' orders';
+    const shownLabel = active.length + ' jobs';
 
     let open=null;
     const src=st.orders.find(o=>o.id===st.openId);
     if(src && !st.sent[src.id]){
-      const d=mk(src), m=M[src.meth], g=st.checks[src.id]||{};
-      const checklist=m.prereq.map(label=>{ const done=!!g[label]; return { label, onToggle:()=>this.toggleCheck(src.id,label), icon:done?'ti-check':'', boxBg:done?m.color:'transparent', boxBorder:done?m.color:'#3a3a40', border:done?'#2f2a24':'#232327', textColor:done?'#ECEAE4':'#9C978C' }; });
-      const recvSteps=RECV_STEPS.map(([key,label,icon])=>{ const on=src.recv===key; const c=RECV[key]; return { key,label,icon, onPick:()=>this.setRecv(src.id,key), bg:on?c.bg:'#121215', border:on?c.border:'#232327', textColor:on?c.textColor:'#8a8378' }; });
+      const d=mk(src), m=M[src.meth]||M.sp;
+      const checklist=m.prereq.map(label=>{ const done=!!src[CF[label]]; return { label, onToggle:()=>this.toggleCheck(src.id,label), icon:done?'ti-check':'', boxBg:done?m.color:'transparent', boxBorder:done?m.color:'#3a3a40', border:done?'#2f2a24':'#232327', textColor:done?'#ECEAE4':'#9C978C' }; });
+      const recvSteps=RECV_STEPS.map(([key,label,icon])=>{ const on=src.recv===key; const c=RECV[key]; return { key,label,icon, onPick:()=>this.setRecv(src.orderId,key), bg:on?c.bg:'#121215', border:on?c.border:'#232327', textColor:on?c.textColor:'#8a8378' }; });
       const assignees=['MA','DK','PR','JT'].map(k=>{ const on=src.worker===k; return { key:k, init:k, name:W[k].name, color:W[k].color, onPick:()=>this.assign(src.id,k), bg:on?'#1a1a1e':'transparent', border:on?W[k].color:'#242428', textColor:on?'#ECEAE4':'#8a8378' }; });
       const sizeCells=src.sizes.split('·').map(t=>t.trim()).filter(Boolean).map(tok=>{ const mm=tok.match(/^([A-Za-z0-9]+?)(\d+)$/); return mm?{label:mm[1],qty:mm[2]}:{label:tok,qty:''}; });
       const ready=isReady(src);
@@ -639,11 +680,14 @@ class Component extends DCLogic {
       // multiple print locations (front+back screen print, tag heat press)
       // shows one chip per method/placement here instead of a single vendor
       // line, and "Add another method / location" (below) opens the same
-      // manager form used for brand-new orders, pre-targeted at this order.
+      // manager form used for brand-new orders, pre-targeted at this
+      // ORDER (not this card) since it's adding a new method alongside it.
       const methodsView=(src.methods||[]).map(pm=>({ label:pm.label, color:pm.color, vendor:pm.vendor||'No vendor set' }));
-      open=Object.assign({},d,{ checklist, recvSteps, assignees, sizeCells, methodsView, methodsEmpty:methodsView.length===0, onAddMethod:()=>this.openMgrForOrder(src.id), ready, notReady:!ready, notReadyLabel:'Blocked — '+missing.join(' · '), onSend:()=>this.send(src.id), hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode:d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.id),
-        specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.id,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.id,e.target.value),
-        ppItemsView:(st.ppItemsById[src.id]||[]).map(it=>{ const ty=it.Type__c||'Item'; return { id:it.Id, type:ty, isScreen:ty==='Screen', isInk:ty==='Ink', isThread:ty==='Thread', isDigit:ty==='Digitization', isTransfer:ty==='Transfer', status:it.Status__c||'Not Started', statusOptions:[{value:'Not Started',label:'Not Started'},{value:'In Progress',label:'In Progress'},{value:'Ready',label:'Ready'}], onStatus:(e)=>this.setItemField(src.id,it.Id,'Status__c',e.target.value), mesh:it.Mesh_Count__c||'', meshOptions:['110','125','156','180','196','230','305'].map(m=>({value:m,label:m+' mesh'})), onMesh:(e)=>this.setItemField(src.id,it.Id,'Mesh_Count__c',e.target.value), pantone:it.Pantone_Color__c||'', onPantone:(e)=>this.setItemField(src.id,it.Id,'Pantone_Color__c',e.target.value), threadColor:it.Thread_Color__c||'', onThreadColor:(e)=>this.setItemField(src.id,it.Id,'Thread_Color__c',e.target.value), threadNumber:it.Thread_Number__c||'', onThreadNumber:(e)=>this.setItemField(src.id,it.Id,'Thread_Number__c',e.target.value), stitch:it.Stitch_Count__c||'', onStitch:(e)=>this.setItemField(src.id,it.Id,'Stitch_Count__c',e.target.value), transferType:it.Transfer_Type__c||'', ttOptions:['Screen Transfer','Digital Transfer','Sublimation','Vinyl'].map(m=>({value:m,label:m})), onTransfer:(e)=>this.setItemField(src.id,it.Id,'Transfer_Type__c',e.target.value), onRemove:()=>this.removePPItem(src.id,it.Id) }; }), ppItemsEmpty:(st.ppItemsById[src.id]||[]).length===0 });
+      open=Object.assign({},d,{ checklist, recvSteps, assignees, sizeCells, methodsView, methodsEmpty:methodsView.length===0, onAddMethod:()=>this.openMgrForOrder(src.orderId), ready, notReady:!ready, notReadyLabel:'Blocked — '+missing.join(' · '), onSend:()=>this.send(src.id), hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode:d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.orderId),
+        specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.orderId,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.orderId,e.target.value),
+        // Items come back per ORDER (all sibling methods' items together);
+        // filter down to just this card's own Production_Method__c.
+        ppItemsView:(st.ppItemsById[src.orderId]||[]).filter(it=>it.Production_Method__c===src.id).map(it=>{ const ty=it.Type__c||'Item'; return { id:it.Id, type:ty, isScreen:ty==='Screen', isInk:ty==='Ink', isThread:ty==='Thread', isDigit:ty==='Digitization', isTransfer:ty==='Transfer', status:it.Status__c||'Not Started', statusOptions:[{value:'Not Started',label:'Not Started'},{value:'In Progress',label:'In Progress'},{value:'Ready',label:'Ready'}], onStatus:(e)=>this.setItemField(src.orderId,it.Id,'Status__c',e.target.value), mesh:it.Mesh_Count__c||'', meshOptions:['110','125','156','180','196','230','305'].map(m=>({value:m,label:m+' mesh'})), onMesh:(e)=>this.setItemField(src.orderId,it.Id,'Mesh_Count__c',e.target.value), pantone:it.Pantone_Color__c||'', onPantone:(e)=>this.setItemField(src.orderId,it.Id,'Pantone_Color__c',e.target.value), threadColor:it.Thread_Color__c||'', onThreadColor:(e)=>this.setItemField(src.orderId,it.Id,'Thread_Color__c',e.target.value), threadNumber:it.Thread_Number__c||'', onThreadNumber:(e)=>this.setItemField(src.orderId,it.Id,'Thread_Number__c',e.target.value), stitch:it.Stitch_Count__c||'', onStitch:(e)=>this.setItemField(src.orderId,it.Id,'Stitch_Count__c',e.target.value), transferType:it.Transfer_Type__c||'', ttOptions:['Screen Transfer','Digital Transfer','Sublimation','Vinyl'].map(m=>({value:m,label:m})), onTransfer:(e)=>this.setItemField(src.orderId,it.Id,'Transfer_Type__c',e.target.value), onRemove:()=>this.removePPItem(src.orderId,it.Id) }; }), ppItemsEmpty:(st.ppItemsById[src.orderId]||[]).filter(it=>it.Production_Method__c===src.id).length===0 });
     }
 
     let wn='Priya R.'; try{ wn=localStorage.getItem('caShopWorkerName')||wn; }catch(_){}
