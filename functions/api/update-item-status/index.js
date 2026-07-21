@@ -3,7 +3,8 @@
  * Body: { "station": "<name>", "itemId": "<15/18-char SF Id>", "subStatus": "<value>", "by": "<worker name>" }
  *
  * Advances one Pre-Production Item's sub-status for the given station, and
- * sets the rolled-up Status__c in the SAME write when the station has no flow.
+ * sets the rolled-up Status__c in the SAME write (derived server-side from
+ * the station's statusMap -- see _station.js).
  *
  * "by" is an optional free-text worker name (captured client-side at station
  * login, since a station tablet is shared by whoever's PIN unlocked it, not
@@ -53,10 +54,10 @@ export async function onRequestPost({ env, request }) {
     const by = (body.by == null ? "" : String(body.by)).trim();
     if (by) payload.Last_Updated_By__c = by.slice(0, 80);
 
-    // Status__c: if a Salesforce flow rolls it up from the sub-status
-    // (cfg.statusViaFlow), DON'T write it here -- writing the sub-status
-    // triggers the flow, and letting the flow own Status keeps a single source
-    // of truth. Otherwise (e.g. ink, no flow) derive and write it ourselves.
+    // Status__c: every station now derives + writes it here from the
+    // sub-status (cfg.statusMap) rather than trusting an external Salesforce
+    // flow to roll it up -- see _station.js for why. cfg.statusViaFlow is kept
+    // only in case a station is ever added that genuinely has a confirmed flow.
     let rolledStatus = null;
     if (!cfg.statusViaFlow) {
       rolledStatus = cfg.statusMap[subStatus];
