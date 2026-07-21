@@ -122,7 +122,12 @@
           <sc-if value="{{modal.hasSizes}}" hint-placeholder-val="{{ false }}"><div style="font:400 12px/1.5 'Archivo';color:#6C665C;margin-top:9px">{{modal.sizes}}</div></sc-if>
         </div>
 
-        <div style="display:inline-flex;align-items:center;gap:8px;font:700 13px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{modal.urgColor}};margin-bottom:26px"><i class="ti ti-clock-hour-4"></i>{{modal.dueLabel}}</div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:26px">
+          <div style="display:inline-flex;align-items:center;gap:8px;font:700 13px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{modal.urgColor}}"><i class="ti ti-clock-hour-4"></i>{{modal.dueLabel}}</div>
+          <sc-if value="{{modal.hasOrderSheet}}" hint-placeholder-val="{{ false }}">
+            <a href="{{modal.orderSheetUrl}}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#ECEAE4;background:#141417;border:1px solid #2a2a2f;border-radius:10px;padding:11px 15px;text-decoration:none" style-hover="border-color:{{accent}};color:{{accent}}"><i class="ti ti-printer"></i>Print Order Sheet</a>
+          </sc-if>
+        </div>
 
         <sc-if value="{{modal.hasNotes}}" hint-placeholder-val="{{ false }}">
           <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Notes</div>
@@ -256,7 +261,12 @@ class Component extends DCLogic {
     const tabs=tabDefs.map(t=>{ const on=st.tab===t.key; let count=''; if(t.key==='master') count=String(items.filter(o=>o.stage!==doneStage).length); else if(t.key==='inventory') count=String((st.inv[cfg.inventory]||[]).length); else count=String(items.filter(o=>o.stage===t.key).length); return { key:t.key, label:t.label, count, onPick:()=>this.setState({tab:t.key}), bg:on?'#1a1a1e':'#121215', border:on?accent:'#232327', textColor:on?'#ECEAE4':'#8a8378', countColor:on?'#08080A':'#9C978C', countBg:on?accent:'#242428' }; });
 
     const stageColor=(stage)=> stage===doneStage ? '#7FA644' : accent;
-    const mk=o=>{ const dc=stageColor(o.stage); const done=o.stage===doneStage; return Object.assign({},o,{ urgColor:U[o.urg]||U.ok, stageColor:dc, stageBg:done?'#18230D':'rgba(255,255,255,.04)', stageBorder:done?'#3D5418':'#2f2f34', opacity:done?0.6:1, hasSizes:!!o.sizes, cta:{ label:done?'Done':cfg.cta, color:done?'#7FA644':accent }, onOpen:()=>this.setState({modalId:o.id}) }); };
+    // Only the garment station's items ARE Orders (id === the real Order Id) --
+    // ink/screen/transfer items are Pre_Production_Item__c records, so there's
+    // no Order Id to link to here without a schema change. Scope the printable
+    // order sheet link to garment for now.
+    const isOrderStation = cfg.source==='order';
+    const mk=o=>{ const dc=stageColor(o.stage); const done=o.stage===doneStage; return Object.assign({},o,{ urgColor:U[o.urg]||U.ok, stageColor:dc, stageBg:done?'#18230D':'rgba(255,255,255,.04)', stageBorder:done?'#3D5418':'#2f2f34', opacity:done?0.6:1, hasSizes:!!o.sizes, hasOrderSheet:isOrderStation, orderSheetUrl:isOrderStation?('order-sheet.html?orderId='+encodeURIComponent(o.id)):'', cta:{ label:done?'Done':cfg.cta, color:done?'#7FA644':accent }, onOpen:()=>this.setState({modalId:o.id}) }); };
 
     let cards=[]; let boardEmpty=false; let showInventory=false, showBoard=true;
     if(st.tab==='inventory'){ showInventory=true; showBoard=false; }
