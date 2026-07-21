@@ -26,12 +26,17 @@
  *     "vendorId": "001...",          // Account Id for Vendor__c (required)
  *     "status":   "Pre-Production",  // Production_Method__c.Status__c (required, manager-set)
  *     "type":     "Screen Print",    // Production_Method__c.Type__c (required)
- *     "placement":"Front",           // Production_Method__c.Placement__c (required) --
- *                                    //   which decoration location this method covers.
- *                                    //   An order with multiple locations/methods (e.g.
- *                                    //   screen print front+back, heat press on the tag)
- *                                    //   gets one Production_Method__c per placement,
- *                                    //   created via separate calls to this endpoint.
+ *     "placements":["Front","Back"], // Production_Method__c.Placements__c (required,
+ *                                    //   non-empty array) -- every decoration location
+ *                                    //   this ONE method/plan covers. Written to the
+ *                                    //   multi-select picklist as a ";"-joined string
+ *                                    //   (Salesforce's own multi-select wire format).
+ *                                    //   An order with genuinely different METHODS
+ *                                    //   (e.g. screen print + a heat-press tag) still
+ *                                    //   gets one Production_Method__c per method,
+ *                                    //   created via separate calls to this endpoint --
+ *                                    //   but multiple locations for the SAME method now
+ *                                    //   live together on one record/one checklist.
  *     "planId":   "a0X...",          // OPTIONAL existing ProductionPlan__c Id.
  *                                    //   present -> path A (attach); absent -> path B (create chain)
  *     "items": [ { "type": "Screen" }, { "type": "Ink" } ]   // 0+ items
@@ -60,14 +65,18 @@ const PM_ORDER_FIELD    = "Order__c";                  // also required on Metho
 const PM_VENDOR_FIELD   = "Vendor__c";                 // lookup -> Account (required)
 const PM_STATUS_FIELD   = "Status__c";                 // picklist (required, manager-set)
 const PM_TYPE_FIELD     = "Type__c";                   // picklist (required)
-// Which decoration location this method covers (Front / Back / Left Sleeve /
-// etc). Exists on Production_Method__c already but was unused until now --
-// see production-methods/index.js header. Order__c is master-detail, so an
-// order can carry several Production_Method__c children: one per
-// placement+method combo (e.g. "Front - Screen Print" and "Tag - Heat
-// Press" on the same order). REQUIRED so every method created from here on
-// is unambiguous about where it prints.
+// DEPRECATED (2026-07-21): single-select Placement__c has been replaced by
+// the multi-select Placements__c below, so one Production_Method__c can
+// cover several print locations for the same method instead of needing a
+// separate record per location. No longer written by this endpoint; left
+// defined only because older records still carry a value in it.
 const PM_PLACEMENT_FIELD = "Placement__c";
+// Multi-select picklist: every decoration location this method/plan covers
+// (Front / Back / Left Sleeve / etc). Order__c is master-detail, so an order
+// can still carry several Production_Method__c children -- now one per
+// distinct METHOD (e.g. "Screen Print" and "Heat Press" on the same order),
+// with each method's own record listing all the locations it covers.
+const PM_PLACEMENTS_FIELD = "Placements__c";
 
 const ITEM_OBJECT       = "Pre_Production_Item__c";
 const ITEM_PM_FIELD     = "Production_Method__c";      // lookup -> Method
@@ -115,7 +124,7 @@ export async function onRequestPost({ env, request }) {
     return jsonError("invalid_json", 400);
   }
 
-  const { orderId, vendorId, status, type, placement, planId, items } = payload || {};
+  const { orderId, vendorId, status, type, placements, planId, items } = payload || {};
   // Optional worker-name attribution -- who set this order's pre-production
   // up. Stamped onto each created item's Last_Updated_By__c (see
   // pre-production-items/[id].js for the field prerequisite).
@@ -128,8 +137,15 @@ export async function onRequestPost({ env, request }) {
   if (!ALLOWED_STATUSES.has(status))             return jsonError("bad_status", 400);
   if (!type || typeof type !== "string")         return jsonError("missing_type", 400);
   if (!ALLOWED_METHOD_TYPES.has(type))           return jsonError("bad_method_type", 400);
-  if (!placement || typeof placement !== "string") return jsonError("missing_placement", 400);
-  if (!ALLOWED_PLACEMENTS.has(placement))          return jsonError("bad_placement", 400);
+  if (!Array.isArray(placements) || placements.length === 0) return jsonError("missing_placements", 400);
+  for (const p of placements) {
+    if (typeof p !== "string" || !ALLOWED_PLACEMENTS.has(p)) {
+      return Response.json({ error: "bad_placement", detail: p }, { status: 400 });
+    }
+  }
+  // De-dupe, preserve first-seen order; Salesforce multi-select picklists are
+  // written as a ";"-joined string of the selected values.
+  const placementsValue = Array.from(new Set(placements)).join(";");
 
   const hasExistingPlan = typeof planId === "string" && planId.length > 0;
 
@@ -185,7 +201,7 @@ export async function onRequestPost({ env, request }) {
       [PM_VENDOR_FIELD]: vendorId,
       [PM_STATUS_FIELD]: status,
       [PM_TYPE_FIELD]:   type,
-      [PM_PLACEMENT_FIELD]: placement,
+      [PM_PLACEMENTS_FIELD]: placementsValue,
     },
   });
 
