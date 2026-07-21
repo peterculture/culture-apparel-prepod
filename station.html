@@ -74,24 +74,31 @@
     </sc-if>
 
     <sc-if value="{{showBoard}}" hint-placeholder-val="{{ true }}">
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
-        <sc-for list="{{cards}}" as="o" hint-placeholder-count="4">
-          <div onClick="{{ o.onOpen }}" style="display:flex;background:#141417;border:1px solid #232327;border-radius:14px;overflow:hidden;cursor:pointer;opacity:{{o.opacity}};transition:border-color .12s,transform .12s" style-hover="border-color:{{accent}};transform:translateY(-2px)">
-            <div style="width:7px;background:{{o.urgColor}};flex-shrink:0"></div>
-            <div style="padding:16px 17px;flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
-              <div style="display:flex;align-items:flex-start;gap:10px">
-                <div style="min-width:0"><div style="font:600 19px/1 'Oswald';color:#ECEAE4">{{o.ident}}</div><div style="font:400 11px/1 'Archivo';color:#6C665C;margin-top:6px">{{o.order}} · {{o.customer}}</div></div>
-                <span style="margin-left:auto;flex-shrink:0;font:600 12px/1 'Oswald';color:#ECEAE4;background:#1e1e22;border-radius:6px;padding:6px 9px">{{o.qty}}</span>
-              </div>
-              <div style="display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:{{o.stageColor}};background:{{o.stageBg}};border:1px solid {{o.stageBorder}};border-radius:7px;padding:6px 10px">{{o.stage}}</div>
-              <div style="display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #202024">
-                <span style="display:inline-flex;align-items:center;gap:5px;font:700 12px/1 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:{{o.urgColor}}"><i class="ti ti-clock-hour-4"></i>{{o.dueLabel}}</span>
-                <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font:700 11px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:{{o.cta.color}}">{{o.cta.label}}<i class="ti ti-arrow-right"></i></span>
+      <sc-for list="{{cardGroups}}" as="g" hint-placeholder-count="2">
+        <div style="display:flex;align-items:center;gap:10px;margin:22px 0 12px">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{g.color}};flex-shrink:0"></span>
+          <span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:{{g.color}}">{{g.label}}</span>
+          <div style="flex:1;height:1px;background:#1b1b1e"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+          <sc-for list="{{g.cards}}" as="o" hint-placeholder-count="2">
+            <div onClick="{{ o.onOpen }}" style="display:flex;background:#141417;border:1px solid #232327;border-radius:14px;overflow:hidden;cursor:pointer;opacity:{{o.opacity}};transition:border-color .12s,transform .12s" style-hover="border-color:{{accent}};transform:translateY(-2px)">
+              <div style="width:7px;background:{{o.urgColor}};flex-shrink:0"></div>
+              <div style="padding:16px 17px;flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;align-items:flex-start;gap:10px">
+                  <div style="min-width:0"><div style="font:700 15px/1.2 'Oswald';letter-spacing:.02em;color:#ECEAE4">{{o.order}} <span style="color:#6C665C">·</span> {{o.customer}}</div><div style="font:500 15px/1.2 'Oswald';color:#9C978C;margin-top:6px">{{o.ident}}</div></div>
+                  <span style="margin-left:auto;flex-shrink:0;font:600 12px/1 'Oswald';color:#ECEAE4;background:#1e1e22;border-radius:6px;padding:6px 9px">{{o.qty}}</span>
+                </div>
+                <div style="display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:{{o.stageColor}};background:{{o.stageBg}};border:1px solid {{o.stageBorder}};border-radius:7px;padding:6px 10px">{{o.stage}}</div>
+                <div style="display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #202024">
+                  <span style="display:inline-flex;align-items:center;gap:5px;font:700 12px/1 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:{{o.urgColor}}"><i class="ti ti-clock-hour-4"></i>{{o.dueLabel}}</span>
+                  <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font:700 11px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:{{o.cta.color}}">{{o.cta.label}}<i class="ti ti-arrow-right"></i></span>
+                </div>
               </div>
             </div>
-          </div>
-        </sc-for>
-      </div>
+          </sc-for>
+        </div>
+      </sc-for>
       <sc-if value="{{boardEmpty}}" hint-placeholder-val="{{ false }}">
         <div style="border:1px dashed #2a2a2f;border-radius:14px;padding:44px 20px;text-align:center;font:400 14px/1.5 'Archivo';color:#4d483f;max-width:520px;margin:8px auto">{{emptyMsg}}</div>
       </sc-if>
@@ -157,23 +164,23 @@ class Component extends DCLogic {
     };
     this._demoItems = {
       ink:[
-        { id:'ink-1', order:'GOA-4809', customer:'Cypress Trail 10K', ident:'PMS 186 · Red', qty:'2.4 gal', dueLabel:'Due tomorrow', urg:'soon', stage:'Mixing' },
-        { id:'ink-2', order:'GOA-4838', customer:'Northgate Prep', ident:'PMS 123 · Gold', qty:'1.1 gal', dueLabel:'Jul 24 · 4d', urg:'soon', stage:'Not Started' },
-        { id:'ink-3', order:'GOA-4842', customer:'Summit Cycling', ident:'White · Base', qty:'3.0 gal', dueLabel:'Jul 25 · 5d', urg:'ok', stage:'Not Started' },
-        { id:'ink-4', order:'GOA-4790', customer:'Lakeside VBS', ident:'PMS 286 · Royal', qty:'1.8 gal', dueLabel:'Ship today', urg:'today', stage:'Mixed' },
+        { id:'ink-1', order:'GOA-4809', customer:'Cypress Trail 10K', ident:'PMS 186 · Red', qty:'2.4 gal', dueLabel:'Due tomorrow', urg:'soon', days:1, stage:'Mixing' },
+        { id:'ink-2', order:'GOA-4838', customer:'Northgate Prep', ident:'PMS 123 · Gold', qty:'1.1 gal', dueLabel:'Jul 24 · 4d', urg:'soon', days:4, stage:'Not Started' },
+        { id:'ink-3', order:'GOA-4842', customer:'Summit Cycling', ident:'White · Base', qty:'3.0 gal', dueLabel:'Jul 25 · 5d', urg:'ok', days:5, stage:'Not Started' },
+        { id:'ink-4', order:'GOA-4790', customer:'Lakeside VBS', ident:'PMS 286 · Royal', qty:'1.8 gal', dueLabel:'Ship today', urg:'today', days:0, stage:'Mixed' },
       ],
       screen:[
-        { id:'scr-1', order:'GOA-4809', customer:'Cypress Trail 10K', ident:'156 mesh', qty:'4 screens', dueLabel:'Due tomorrow', urg:'soon', stage:'Ready for Exposure' },
-        { id:'scr-2', order:'GOA-4838', customer:'Northgate Prep', ident:'180 mesh', qty:'3 screens', dueLabel:'Jul 24 · 4d', urg:'soon', stage:'Needs Emulsion' },
-        { id:'scr-3', order:'GOA-4842', customer:'Summit Cycling', ident:'110 mesh', qty:'2 screens', dueLabel:'Jul 25 · 5d', urg:'ok', stage:'Needs Tape' },
+        { id:'scr-1', order:'GOA-4809', customer:'Cypress Trail 10K', ident:'156 mesh', qty:'4 screens', dueLabel:'Due tomorrow', urg:'soon', days:1, stage:'Ready for Exposure' },
+        { id:'scr-2', order:'GOA-4838', customer:'Northgate Prep', ident:'180 mesh', qty:'3 screens', dueLabel:'Jul 24 · 4d', urg:'soon', days:4, stage:'Needs Emulsion' },
+        { id:'scr-3', order:'GOA-4842', customer:'Summit Cycling', ident:'110 mesh', qty:'2 screens', dueLabel:'Jul 25 · 5d', urg:'ok', days:5, stage:'Needs Tape' },
       ],
       transfer:[
-        { id:'tr-1', order:'GOA-4847', customer:'Junior Rangers', ident:'DTF · Full color', qty:'120 sheets', dueLabel:'Jul 26 · 6d', urg:'ok', stage:'Not Received' },
-        { id:'tr-2', order:'GOA-4835', customer:'Vega Reunion', ident:'Vinyl · 1 color', qty:'48 sheets', dueLabel:'Jul 24 · 4d', urg:'soon', stage:'Transfers Received' },
+        { id:'tr-1', order:'GOA-4847', customer:'Junior Rangers', ident:'DTF · Full color', qty:'120 sheets', dueLabel:'Jul 26 · 6d', urg:'ok', days:6, stage:'Not Received' },
+        { id:'tr-2', order:'GOA-4835', customer:'Vega Reunion', ident:'Vinyl · 1 color', qty:'48 sheets', dueLabel:'Jul 24 · 4d', urg:'soon', days:4, stage:'Transfers Received' },
       ],
       garment:[
-        { id:'gr-1', order:'GOA-4853', customer:'Fiesta Foods', ident:'Gildan 5000 · White', qty:'200 pcs', dueLabel:'Jul 28 · 8d', urg:'ok', stage:'Not Received' },
-        { id:'gr-2', order:'GOA-4847', customer:'Junior Rangers', ident:'Bella Youth · Green', qty:'120 pcs', dueLabel:'Jul 26 · 6d', urg:'ok', stage:'Partial' },
+        { id:'gr-1', order:'GOA-4853', customer:'Fiesta Foods', ident:'Gildan 5000 · White', qty:'200 pcs', dueLabel:'Jul 28 · 8d', urg:'ok', days:8, stage:'Not Received' },
+        { id:'gr-2', order:'GOA-4847', customer:'Junior Rangers', ident:'Bella Youth · Green', qty:'120 pcs', dueLabel:'Jul 26 · 6d', urg:'ok', days:6, stage:'Partial' },
       ],
     };
     this._demoInv = {
@@ -195,10 +202,10 @@ class Component extends DCLogic {
       let items;
       if(cfg.source==='order'){
         const recs=await api.getOrders();
-        items = recs.filter(r=>(r.Receiving_Status__c||'Not Received')!=='Staged').map(r=>{ const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c); return { id:r.Id, order:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', ident:piv.garment, qty:piv.qty+' pcs', dueLabel:due.label, urg:due.urg, stage:(r.Receiving_Status__c||'Not Received'), mockupUrl:r.DesignMockupUrl||null, notes:'' }; });
+        items = recs.filter(r=>(r.Receiving_Status__c||'Not Received')!=='Staged').map(r=>{ const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c); return { id:r.Id, order:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', ident:piv.garment, qty:piv.qty+' pcs', dueLabel:due.label, urg:due.urg, days:due.days, stage:(r.Receiving_Status__c||'Not Received'), mockupUrl:r.DesignMockupUrl||null, notes:'' }; });
       } else {
         const recs=await api.getStationItems(station);
-        items = recs.map(r=>{ const o=(r.Production_Method__r&&r.Production_Method__r.Order__r)||{}; const due=api.dueInfo(o.Print_Date__c); const idv=r[cfg.identField]||''; return { id:r.Id, order:api.text(o.GOA_Order_Number__c)||'', customer:api.text(o.Customer_Order_Name__c)||api.text(o.Name)||'—', ident:(idv?api.text(idv)+(cfg.identSuffix||''):cfg.stages[0]), qty:'', dueLabel:due.label, urg:due.urg, stage:(r[cfg.subField]||cfg.stages[0]), mockupUrl:(o.DesignMockupUrl||null), notes:api.text(r.Notes__c)||'' }; });
+        items = recs.map(r=>{ const o=(r.Production_Method__r&&r.Production_Method__r.Order__r)||{}; const due=api.dueInfo(o.Print_Date__c); const idv=r[cfg.identField]||''; return { id:r.Id, order:api.text(o.GOA_Order_Number__c)||'', customer:api.text(o.Customer_Order_Name__c)||api.text(o.Name)||'—', ident:(idv?api.text(idv)+(cfg.identSuffix||''):cfg.stages[0]), qty:'', dueLabel:due.label, urg:due.urg, days:due.days, stage:(r[cfg.subField]||cfg.stages[0]), mockupUrl:(o.DesignMockupUrl||null), notes:api.text(r.Notes__c)||'' }; });
       }
       this.setState(st=>({ items:Object.assign({},st.items,{[station]:items}), connection:'live' }));
       if(cfg.inventory){ try { const inv=await api.getInventory(cfg.inventory); this.setState(st=>({ inv:Object.assign({},st.inv,{[cfg.inventory]:inv}) })); } catch(_){} }
@@ -251,7 +258,21 @@ class Component extends DCLogic {
     if(st.tab==='inventory'){ showInventory=true; showBoard=false; }
     else if(st.tab==='master'){ cards=items.filter(o=>o.stage!==doneStage).map(mk); }
     else { cards=items.filter(o=>o.stage===st.tab).map(mk); }
+    // Soonest print date first -- unknown dates sort to the end -- so the
+    // board reads like a schedule instead of whatever order the API returned.
+    cards.sort((a,b)=>{ const da=(a.days==null)?Infinity:a.days, db=(b.days==null)?Infinity:b.days; return da-db; });
     if(showBoard) boardEmpty=cards.length===0;
+
+    // Split into labeled sections (dividers) using the same due-date buckets
+    // dueInfo() already computes (urg) -- keeps a busy board from reading as
+    // one long wall of identical-looking cards. Empty buckets are dropped.
+    const GROUP_DEFS=[
+      { key:'over',  label:'Overdue',     color:'#E24A3A' },
+      { key:'today', label:'Due Today',   color:'#E24A3A' },
+      { key:'soon',  label:'Due Soon',    color:'#C9923A' },
+      { key:'ok',    label:'On Schedule', color:'#6C665C' },
+    ];
+    const cardGroups = GROUP_DEFS.map(g=>({ label:g.label, color:g.color, cards:cards.filter(c=>c.urg===g.key) })).filter(g=>g.cards.length>0);
 
     // inventory
     const invKey=cfg.inventory; const invArr=invKey?(st.inv[invKey]||[]):[];
@@ -278,7 +299,7 @@ class Component extends DCLogic {
       accent, stationName:cfg.label, stationIcon:cfg.icon, stationPills, tabs, clock,
       connLabel, connColor,
       worker:wn, workerInit:((wn||'?')[0]||'?').toUpperCase(), onNameTap:()=>{},
-      showInventory, showBoard, cards, boardEmpty, emptyMsg:cfg.empty,
+      showInventory, showBoard, cardGroups, boardEmpty, emptyMsg:cfg.empty,
       inventory, invTotal, invTitle,
       modalOpen:!!modal, modal, onCloseModal:()=>this.setState({modalId:null}),
     };
