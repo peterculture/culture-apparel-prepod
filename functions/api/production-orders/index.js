@@ -91,6 +91,47 @@ export async function onRequestGet({ env }) {
       r.DesignMockupUrl = mockups.get(r.OpportunityId) || null;
     });
 
+    // Same Production_Method__c enrichment as /api/orders (see that file for
+    // the full rationale): an order can have more than one method/placement
+    // combo (e.g. screen print front+back plus a heat-press tag), so this
+    // attaches the full list rather than a single inferred method. Fails
+    // open (empty array) so a transient query error never breaks the board.
+    const orderIds = (data.records || []).map((r) => r.Id).filter(Boolean);
+    if (orderIds.length) {
+      try {
+        const quoted = orderIds.map((oid) => `'${oid}'`).join(",");
+        const soqlPM =
+          `SELECT Id, Order__c, Type__c, Placement__c, Status__c, Vendor__r.Name ` +
+          `FROM Production_Method__c WHERE Order__c IN (${quoted})`;
+        const pathPM = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soqlPM)}`;
+        const respPM = await sfFetch(env, pathPM);
+        const dataPM = await respPM.json();
+        if (respPM.ok) {
+          const byOrder = new Map();
+          (dataPM.records || []).forEach((pm) => {
+            const arr = byOrder.get(pm.Order__c) || [];
+            arr.push({
+              Id: pm.Id,
+              Type__c: pm.Type__c,
+              Placement__c: pm.Placement__c || null,
+              Status__c: pm.Status__c,
+              Vendor: (pm.Vendor__r && pm.Vendor__r.Name) || null,
+            });
+            byOrder.set(pm.Order__c, arr);
+          });
+          (data.records || []).forEach((r) => {
+            r.ProductionMethods = byOrder.get(r.Id) || [];
+          });
+        } else {
+          console.error("Production method fetch failed", respPM.status, JSON.stringify(dataPM));
+          (data.records || []).forEach((r) => { r.ProductionMethods = []; });
+        }
+      } catch (e) {
+        console.error("Production method fetch error", e);
+        (data.records || []).forEach((r) => { r.ProductionMethods = []; });
+      }
+    }
+
     return Response.json(data, {
       headers: { "Cache-Control": "no-store" },
     });
