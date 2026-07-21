@@ -86,6 +86,12 @@
     if (orderId) body.orderId = orderId;
     return jsend('/api/production-methods/' + encodeURIComponent(id), 'PATCH', body);
   }
+  // Toggles one of the 7 per-method pre-production checklist booleans
+  // (Films_Printed__c..Transfers_Ready__c -- same field names as CHECK_FIELD
+  // below, just written to the method instead of the order). No orderId
+  // needed: these don't affect Order_Substatus__c, so there's nothing to
+  // roll up.
+  function patchMethodChecklist(id, fields){ return jsend('/api/production-methods/' + encodeURIComponent(id), 'PATCH', fields); }
   function patchOrder(id, fields){
     var body = Object.assign({}, fields);
     var by = workerName(); if (by) body.Last_Updated_By__c = by;
@@ -223,7 +229,7 @@
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf, stageOfMethod: stageOfMethod,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
     PLACEMENTS: PLACEMENTS, methodsList: methodsList, METHOD_META: METHOD_META,
-    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, createMethod: createMethod, patchMethodStatus: patchMethodStatus, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
+    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, createMethod: createMethod, patchMethodStatus: patchMethodStatus, patchMethodChecklist: patchMethodChecklist, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
     getPackaging: getPackaging, postPackaging: postPackaging, deletePackaging: deletePackaging,
     getShipments: getShipments, postShipment: postShipment,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
