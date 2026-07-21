@@ -133,26 +133,37 @@
           <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Notes</div>
           <div style="font:400 14px/1.55 'Archivo';color:#C9C6BF;white-space:pre-wrap;background:#121215;border:1px solid #232327;border-radius:11px;padding:14px 16px;margin-bottom:26px">{{modal.notes}}</div>
         </sc-if>
-        <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:16px">Station Pipeline</div>
-        <div style="display:flex;flex-direction:column;gap:0;margin-bottom:30px">
-          <sc-for list="{{modal.stages}}" as="s" hint-placeholder-count="4">
-            <div style="display:flex;align-items:center;gap:14px;padding:4px 0">
-              <div style="display:flex;flex-direction:column;align-items:center;align-self:stretch">
-                <div style="width:26px;height:26px;border-radius:50%;border:2px solid {{s.dotBorder}};background:{{s.dotBg}};color:#08080A;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"><i class="ti {{s.icon}}"></i></div>
-                <div style="flex:1;width:2px;background:{{s.lineColor}};min-height:14px"></div>
-              </div>
-              <span style="font:600 15px/1 'Oswald';letter-spacing:.03em;color:{{s.textColor}};padding-bottom:16px">{{s.label}}</span>
-            </div>
-          </sc-for>
-        </div>
+        <sc-if value="{{modal.isGarment}}" hint-placeholder-val="{{ false }}">
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:16px">Status — tap any to set</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <sc-for list="{{modal.statusOptions}}" as="s" hint-placeholder-count="4">
+              <button onClick="{{ s.onPick }}" style="display:flex;align-items:center;justify-content:center;gap:8px;font:700 13px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{s.color}};background:{{s.bg}};border:1px solid {{s.border}};border-radius:12px;padding:18px 10px;cursor:pointer"><i class="ti ti-circle-check"></i>{{s.label}}</button>
+            </sc-for>
+          </div>
+        </sc-if>
 
-        <sc-if value="{{modal.canAdvance}}" hint-placeholder-val="{{ true }}">
-          <button onClick="{{ modal.onAdvance }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;font:700 15px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#08080A;background:{{accent}};border:none;border-radius:14px;padding:20px;cursor:pointer;margin-bottom:12px" style-hover="filter:brightness(1.08)"><i class="ti ti-circle-check"></i>{{modal.advanceLabel}}</button>
+        <sc-if value="{{modal.isStepStation}}" hint-placeholder-val="{{ true }}">
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:16px">Station Pipeline</div>
+          <div style="display:flex;flex-direction:column;gap:0;margin-bottom:30px">
+            <sc-for list="{{modal.stages}}" as="s" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:14px;padding:4px 0">
+                <div style="display:flex;flex-direction:column;align-items:center;align-self:stretch">
+                  <div style="width:26px;height:26px;border-radius:50%;border:2px solid {{s.dotBorder}};background:{{s.dotBg}};color:#08080A;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"><i class="ti {{s.icon}}"></i></div>
+                  <div style="flex:1;width:2px;background:{{s.lineColor}};min-height:14px"></div>
+                </div>
+                <span style="font:600 15px/1 'Oswald';letter-spacing:.03em;color:{{s.textColor}};padding-bottom:16px">{{s.label}}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{modal.canAdvance}}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ modal.onAdvance }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;font:700 15px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#08080A;background:{{accent}};border:none;border-radius:14px;padding:20px;cursor:pointer;margin-bottom:12px" style-hover="filter:brightness(1.08)"><i class="ti ti-circle-check"></i>{{modal.advanceLabel}}</button>
+          </sc-if>
+          <sc-if value="{{modal.isDone}}" hint-placeholder-val="{{ false }}">
+            <div style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;font:700 14px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:14px;padding:20px;margin-bottom:12px"><i class="ti ti-circle-check"></i>{{modal.doneLabel}}</div>
+          </sc-if>
+          <button onClick="{{ modal.onError }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 12px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#E8A89F;background:transparent;border:1px solid #7A241C;border-radius:12px;padding:15px;cursor:pointer" style-hover="background:#2A100D"><i class="ti ti-alert-triangle"></i>{{modal.errorLabel}}</button>
         </sc-if>
-        <sc-if value="{{modal.isDone}}" hint-placeholder-val="{{ false }}">
-          <div style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;font:700 14px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:14px;padding:20px;margin-bottom:12px"><i class="ti ti-circle-check"></i>{{modal.doneLabel}}</div>
-        </sc-if>
-        <button onClick="{{ modal.onError }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 12px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#E8A89F;background:transparent;border:1px solid #7A241C;border-radius:12px;padding:15px;cursor:pointer" style-hover="background:#2A100D"><i class="ti ti-alert-triangle"></i>{{modal.errorLabel}}</button>
       </div>
     </div>
   </sc-if>
@@ -241,6 +252,15 @@ class Component extends DCLogic {
     this.setState(st=>{ const items=st.items[stn].map(o=>o.id===id?Object.assign({},o,{stage:first}):o); return {items:Object.assign({},st.items,{[stn]:items}), modalId:null}; });
     if(this._api && this.state.connection==='live'){ if(cfg.source==='order') this._api.updateOrderReceiving(id,first).catch(()=>{}); else this._api.updateItemStatus(stn,id,first).catch(()=>{}); }
   }
+  // Free status pick -- unlike advance()/resetStage(), this jumps straight to
+  // whatever status the worker tapped, in any direction. Used by the garment
+  // station's modal, which is not a linear pipeline (a worker can undo
+  // "Staged" back to "Partial" without stepping through every stage between).
+  setStage(id,stage){
+    const stn=this.state.station, cfg=this.STATIONS[stn];
+    this.setState(st=>{ const items=st.items[stn].map(o=>o.id===id?Object.assign({},o,{stage}):o); return {items:Object.assign({},st.items,{[stn]:items})}; });
+    if(this._api && this.state.connection==='live'){ if(cfg.source==='order') this._api.updateOrderReceiving(id,stage).catch(()=>{}); else this._api.updateItemStatus(stn,id,stage).catch(()=>{}); }
+  }
   invAdj(i,delta){
     const key=this.STATIONS[this.state.station].inventory; if(!key) return;
     this.setState(st=>{ const arr=st.inv[key].map((x,ix)=>ix===i?Object.assign({},x,{qty:Math.max(0,x.qty+delta)}):x); return {inv:Object.assign({},st.inv,{[key]:arr})}; });
@@ -297,10 +317,15 @@ class Component extends DCLogic {
     // modal
     let modal=null; const src=items.find(o=>o.id===st.modalId);
     if(src){
+      const isGarment=cfg.source==='order';
       const curIdx=cfg.stages.indexOf(src.stage);
       const stages=cfg.stages.map((label,i)=>{ const done=i<curIdx, cur=i===curIdx; return { label, icon:done?'ti-check':(cur?'ti-point-filled':''), dotBg:done?accent:(cur?accent:'transparent'), dotBorder:done||cur?accent:'#3a3a40', lineColor:i<curIdx?accent:'#242428', textColor:done?'#8a8378':(cur?'#ECEAE4':'#5a554c') }; });
       const isDone=src.stage===doneStage;
-      modal=Object.assign({},mk(src),{ stages, canAdvance:!isDone, isDone, advanceLabel:isDone?'':('Mark '+cfg.stages[curIdx+1]), doneLabel:cfg.stages[cfg.stages.length-1]+' — leaves board', errorLabel:cfg.errorLabel, onAdvance:()=>this.advance(src.id), onError:()=>this.resetStage(src.id), hasMockup:!!src.mockupUrl, noMockup:!src.mockupUrl, mockupNode: src.mockupUrl?React.createElement('img',{src:src.mockupUrl,alt:'Mockup',style:{width:'100%',height:280,borderRadius:16,border:'1px solid #232327',objectFit:'cover',display:'block'}}):null, hasNotes:!!src.notes, notes:src.notes||'' });
+      // Garment isn't a linear pipeline -- every status is directly pickable,
+      // any time, with the active one highlighted. Ink/Screen/Transfer keep
+      // the linear "Mark next step" flow (stages/canAdvance/isDone below).
+      const statusOptions = isGarment ? cfg.stages.map(label=>{ const active=label===src.stage; return { label, bg:active?accent:'#141417', color:active?'#08080A':'#ECEAE4', border:active?accent:'#2a2a2f', onPick:()=>this.setStage(src.id,label) }; }) : [];
+      modal=Object.assign({},mk(src),{ isGarment, isStepStation:!isGarment, stages, statusOptions, canAdvance:!isGarment&&!isDone, isDone:!isGarment&&isDone, advanceLabel:isDone?'':('Mark '+cfg.stages[curIdx+1]), doneLabel:cfg.stages[cfg.stages.length-1]+' — leaves board', errorLabel:cfg.errorLabel, onAdvance:()=>this.advance(src.id), onError:()=>this.resetStage(src.id), hasMockup:!!src.mockupUrl, noMockup:!src.mockupUrl, mockupNode: src.mockupUrl?React.createElement('img',{src:src.mockupUrl,alt:'Mockup',style:{width:'100%',height:280,borderRadius:16,border:'1px solid #232327',objectFit:'cover',display:'block'}}):null, hasNotes:!!src.notes, notes:src.notes||'' });
     }
 
     const clock=st.now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
