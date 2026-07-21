@@ -395,7 +395,13 @@ class Component extends DCLogic {
       this._api = window.CAApi; if(!this._api) throw new Error('CAApi not loaded');
       const api=this._api;
       const recs = await api.getOrders();
-      const pre = recs.filter(r=>(api.SUBSTATUS_LABEL[r.Order_Substatus__c]||r.Order_Substatus__c)==='Pre-Production');
+      // Orders in Pre-Production with no Production_Method__c yet only belong
+      // in the Management inbox (see openMgr/loadInbox below) -- they haven't
+      // been staffed with a method, vendor, or items, so there's nothing here
+      // for a worker to act on. r.HasProductionMethod is set server-side by
+      // /api/orders (defaults to true if that check ever fails, so a hiccup
+      // there never hides a real in-progress order).
+      const pre = recs.filter(r=>(api.SUBSTATUS_LABEL[r.Order_Substatus__c]||r.Order_Substatus__c)==='Pre-Production' && r.HasProductionMethod!==false);
       const checks={};
       const orders = pre.map(r=>{
         const id=r.Id, meth=api.methodOf(r), piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c), wn=r.Last_Updated_By__c||'';
