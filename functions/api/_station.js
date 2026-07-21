@@ -200,9 +200,14 @@ export const STATION_CONFIG = {
   screen: {
     type: "Screen",
     subStatusField: "Screen_Sub_Status__c",
-    statusViaFlow: true, // a SF flow rolls Status__c from Screen_Sub_Status__c,
-                         // so the endpoint writes ONLY the sub-status and lets
-                         // the flow cascade Status__c (confirmed 2026-07-07).
+    // Was `true` (assuming a Salesforce flow rolled up Status__c from the
+    // sub-status). That assumption was never actually confirmed live, and in
+    // practice Status__c was going stale on this path -- screens would sit on
+    // the station board forever even after reaching "Ready for Print", since
+    // the board's query filters on Status__c, not the sub-status. The app now
+    // owns this roll-up directly (statusMap below), same as ink, so it can't
+    // depend on a flow that may not exist.
+    statusViaFlow: false,
 
     selectFields: [
       "Id",
@@ -224,10 +229,9 @@ export const STATION_CONFIG = {
     // Screen_Sub_Status__c is treated as the start (Needs Emulsion).
     subStatusFlow: ["Needs Emulsion", "Ready for Exposure", "Needs Tape", "Ready for Print"],
 
-    // Roll-up is OWNED BY A SALESFORCE FLOW (statusViaFlow: true) — kept here for
-    // reference only; the endpoint does NOT write Status__c for screen. This MUST
-    // match the flow: Needs Emulsion => Not Started, the two middle => In Progress,
-    // Ready for Print => Ready (drops the screen off the board). Updated 2026-07-07.
+    // Roll-up the app writes itself (statusViaFlow: false, see above): Needs
+    // Emulsion => Not Started, the two middle stages => In Progress, Ready for
+    // Print => Ready (drops the screen off the board). Updated 2026-07-07.
     statusMap: {
       "Needs Emulsion": "Not Started",
       "Ready for Exposure": "In Progress",
@@ -257,10 +261,11 @@ export const STATION_CONFIG = {
     type: "Transfer",
     subStatusField: "Transfers_Sub_Status__c",
 
-    // A Salesforce flow rolls Status__c from Transfers_Sub_Status__c (confirmed
-    // 2026-07-07), so the endpoint writes ONLY the sub-status and lets the flow
-    // own Status__c — same pattern as screen.
-    statusViaFlow: true,
+    // Was `true` (assumed a Salesforce flow rolled up Status__c from the
+    // sub-status). Same problem as screen: unconfirmed live, and Status__c
+    // could go stale. The app now derives + writes it directly, every time,
+    // regardless of which board made the edit.
+    statusViaFlow: false,
 
     selectFields: [
       "Id",
@@ -280,10 +285,9 @@ export const STATION_CONFIG = {
     // treated as the start (Not Received).
     subStatusFlow: ["Not Received", "Transfers Received", "Transfers Cut/Ready"],
 
-    // Roll-up CONFIRMED 2026-07-07 and OWNED BY A SALESFORCE FLOW (statusViaFlow:
-    // true) — kept here for reference only; the endpoint does NOT write Status__c
-    // for transfers. The flow applies: Not Received => Not Started, Transfers
-    // Received => In Progress, Transfers Cut/Ready => Ready (drops off the board).
+    // Roll-up CONFIRMED 2026-07-07; the app writes it directly (statusViaFlow:
+    // false, see above): Not Received => Not Started, Transfers Received =>
+    // In Progress, Transfers Cut/Ready => Ready (drops off the board).
     statusMap: {
       "Not Received": "Not Started",
       "Transfers Received": "In Progress",
@@ -313,8 +317,10 @@ export const STATION_CONFIG = {
   garment: {
     source: "order",
     field: "Receiving_Status__c",
-    // Allowed picklist values (same set the main dashboard uses). Not a strict
-    // pipeline for the write, but the client advances through them in this order.
+    // Allowed picklist values (same set the main dashboard uses). Garment is
+    // NOT a strict pipeline -- unlike ink/screen/transfer, the client lets a
+    // worker jump directly to any of these four (e.g. undo "Staged" back to
+    // "Partial" without stepping through every stage in between).
     statuses: ["Not Received", "Partial", "Counted In", "Staged"],
     doneStatus: "Staged", // board hides orders at this value
     // Free-text "missing count-in" note; kept only while at "Partial".
@@ -322,3 +328,30 @@ export const STATION_CONFIG = {
     missingAtStage: "Partial",
   },
 };
+
+/**
+ * Given a sub-status FIELD NAME (e.g. "Screen_Sub_Status__c") and the value
+ * just written to it, returns the Status__c value that field's owning station
+ * config says it should roll up to -- or null if the field/value isn't part
+ * of a tracked pipeline (e.g. Screen's "Not Clean", which sits outside this
+ * flow). A blank/undefined value is treated as that pipeline's first stage,
+ * same convention used everywhere else in this file.
+ *
+ * Single source of truth for the sub-status -> Status__c roll-up, used by
+ * BOTH write paths that can set one of these fields: the station-tablet
+ * endpoint (update-item-status) and the pre-production worker/management
+ * board's item editor (pre-production-items/[id].js). Before this existed,
+ * only the tablet path derived Status__c (and only for ink) -- editing a
+ * screen/ink/transfer item's sub-status from the pre-production board left
+ * Status__c stale, which then broke anything keyed off Status__c (the
+ * station board's "still open" filter, the order-level checklist rollup).
+ */
+export function statusForSubStatus(subStatusField, value) {
+  for (const key of Object.keys(STATION_CONFIG)) {
+    const cfg = STATION_CONFIG[key];
+    if (cfg.subStatusField !== subStatusField || !cfg.statusMap) continue;
+    const v = value || (cfg.subStatusFlow && cfg.subStatusFlow[0]);
+    return cfg.statusMap[v] || null;
+  }
+  return null;
+}
