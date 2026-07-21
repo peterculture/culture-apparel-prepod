@@ -162,6 +162,7 @@ export const STATION_CONFIG = {
       "Production_Method__r.Order__r.Name",
       "Production_Method__r.Order__r.Print_Date__c",
       "Production_Method__r.Order__r.OpportunityId", // <-- for the Design__c mockup lookup
+      "Production_Method__r.Placement__c", // <-- which decoration location this ink job is for
     ],
     orderBy: "Production_Method__r.Order__r.Print_Date__c NULLS LAST, Production_Method__r.Order__r.Name",
 
@@ -221,6 +222,7 @@ export const STATION_CONFIG = {
       "Production_Method__r.Order__r.Name",
       "Production_Method__r.Order__r.Print_Date__c",
       "Production_Method__r.Order__r.OpportunityId", // <-- for the Design__c mockup lookup
+      "Production_Method__r.Placement__c", // <-- which decoration location this screen is for
     ],
     orderBy: "Production_Method__r.Order__r.Print_Date__c NULLS LAST, Production_Method__r.Order__r.Name",
 
@@ -278,6 +280,7 @@ export const STATION_CONFIG = {
       "Production_Method__r.Order__r.Customer_Order_Name__c",
       "Production_Method__r.Order__r.Name",
       "Production_Method__r.Order__r.Print_Date__c",
+      "Production_Method__r.Placement__c", // <-- which decoration location this transfer is for
     ],
     orderBy: "Production_Method__r.Order__r.Print_Date__c NULLS LAST, Production_Method__r.Order__r.Name",
 
