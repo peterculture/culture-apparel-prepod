@@ -26,6 +26,12 @@
  *     "vendorId": "001...",          // Account Id for Vendor__c (required)
  *     "status":   "Pre-Production",  // Production_Method__c.Status__c (required, manager-set)
  *     "type":     "Screen Print",    // Production_Method__c.Type__c (required)
+ *     "placement":"Front",           // Production_Method__c.Placement__c (required) --
+ *                                    //   which decoration location this method covers.
+ *                                    //   An order with multiple locations/methods (e.g.
+ *                                    //   screen print front+back, heat press on the tag)
+ *                                    //   gets one Production_Method__c per placement,
+ *                                    //   created via separate calls to this endpoint.
  *     "planId":   "a0X...",          // OPTIONAL existing ProductionPlan__c Id.
  *                                    //   present -> path A (attach); absent -> path B (create chain)
  *     "items": [ { "type": "Screen" }, { "type": "Ink" } ]   // 0+ items
@@ -54,6 +60,14 @@ const PM_ORDER_FIELD    = "Order__c";                  // also required on Metho
 const PM_VENDOR_FIELD   = "Vendor__c";                 // lookup -> Account (required)
 const PM_STATUS_FIELD   = "Status__c";                 // picklist (required, manager-set)
 const PM_TYPE_FIELD     = "Type__c";                   // picklist (required)
+// Which decoration location this method covers (Front / Back / Left Sleeve /
+// etc). Exists on Production_Method__c already but was unused until now --
+// see production-methods/index.js header. Order__c is master-detail, so an
+// order can carry several Production_Method__c children: one per
+// placement+method combo (e.g. "Front - Screen Print" and "Tag - Heat
+// Press" on the same order). REQUIRED so every method created from here on
+// is unambiguous about where it prints.
+const PM_PLACEMENT_FIELD = "Placement__c";
 
 const ITEM_OBJECT       = "Pre_Production_Item__c";
 const ITEM_PM_FIELD     = "Production_Method__c";      // lookup -> Method
@@ -78,6 +92,15 @@ const ALLOWED_TRANSFER_TYPE = new Set(["Screen Transfer","Digital Transfer","Sub
 // Allow-lists, enforced server-side so the browser can't write arbitrary values.
 const ALLOWED_METHOD_TYPES = new Set(["Screen Print", "Embroidery", "Heat Press", "Promotional Items"]);
 const ALLOWED_ITEM_TYPES   = new Set(["Screen", "Ink", "Thread", "Digitization", "Transfer"]);
+// Placement__c picklist values. MUST match Salesforce exactly (Setup ->
+// Object Manager -> Production Method -> Fields -> Placement) or the create
+// call fails with INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST. If the shop adds a
+// new print location, add it in Salesforce first, then add it here.
+const ALLOWED_PLACEMENTS = new Set([
+  "Front", "Back", "Left Sleeve", "Right Sleeve",
+  "Left Chest", "Right Chest", "Full Front", "Full Back",
+  "Tag", "Hood", "Pocket",
+]);
 // Exact Status__c picklist values, confirmed from Setup 2026-07-02.
 const ALLOWED_STATUSES     = new Set([
   "Pre-Production", "Ready for Print", "In Production",
@@ -92,7 +115,7 @@ export async function onRequestPost({ env, request }) {
     return jsonError("invalid_json", 400);
   }
 
-  const { orderId, vendorId, status, type, planId, items } = payload || {};
+  const { orderId, vendorId, status, type, placement, planId, items } = payload || {};
   // Optional worker-name attribution -- who set this order's pre-production
   // up. Stamped onto each created item's Last_Updated_By__c (see
   // pre-production-items/[id].js for the field prerequisite).
@@ -105,6 +128,8 @@ export async function onRequestPost({ env, request }) {
   if (!ALLOWED_STATUSES.has(status))             return jsonError("bad_status", 400);
   if (!type || typeof type !== "string")         return jsonError("missing_type", 400);
   if (!ALLOWED_METHOD_TYPES.has(type))           return jsonError("bad_method_type", 400);
+  if (!placement || typeof placement !== "string") return jsonError("missing_placement", 400);
+  if (!ALLOWED_PLACEMENTS.has(placement))          return jsonError("bad_placement", 400);
 
   const hasExistingPlan = typeof planId === "string" && planId.length > 0;
 
@@ -160,6 +185,7 @@ export async function onRequestPost({ env, request }) {
       [PM_VENDOR_FIELD]: vendorId,
       [PM_STATUS_FIELD]: status,
       [PM_TYPE_FIELD]:   type,
+      [PM_PLACEMENT_FIELD]: placement,
     },
   });
 
