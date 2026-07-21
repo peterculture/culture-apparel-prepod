@@ -99,8 +99,18 @@ export async function onRequestGet({ env }) {
     if (orderIds.length) {
       try {
         const quoted = orderIds.map((oid) => `'${oid}'`).join(",");
+        // Films_Printed__c..Transfers_Ready__c: the SAME 7 pre-production
+        // checklist booleans that used to live only on Order (see the field
+        // list above) now also exist on Production_Method__c, so each
+        // method can track its own readiness -- an order with a screen
+        // print AND a heat press method no longer has to share one set of
+        // checkboxes between two unrelated jobs. Order-level copies stay in
+        // the FIELDS list above for backward compat / other reports, but
+        // pre-production.html reads the per-method ones exclusively now.
         const soqlPM =
-          `SELECT Id, Order__c, Type__c, Placement__c, Status__c, Vendor__r.Name ` +
+          `SELECT Id, Order__c, Type__c, Placement__c, Status__c, Vendor__r.Name, ` +
+          `Films_Printed__c, Screens_Completed__c, Mix_Inks__c, Digitize_File__c, ` +
+          `Thread_Color_Materials__c, Transfers_Received__c, Transfers_Ready__c ` +
           `FROM Production_Method__c WHERE Order__c IN (${quoted})`;
         const pathPM = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soqlPM)}`;
         const respPM = await sfFetch(env, pathPM);
@@ -115,6 +125,13 @@ export async function onRequestGet({ env }) {
               Placement__c: pm.Placement__c || null,
               Status__c: pm.Status__c,
               Vendor: (pm.Vendor__r && pm.Vendor__r.Name) || null,
+              Films_Printed__c: !!pm.Films_Printed__c,
+              Screens_Completed__c: !!pm.Screens_Completed__c,
+              Mix_Inks__c: !!pm.Mix_Inks__c,
+              Digitize_File__c: !!pm.Digitize_File__c,
+              Thread_Color_Materials__c: !!pm.Thread_Color_Materials__c,
+              Transfers_Received__c: !!pm.Transfers_Received__c,
+              Transfers_Ready__c: !!pm.Transfers_Ready__c,
             });
             byOrder.set(pm.Order__c, arr);
           });
