@@ -439,7 +439,26 @@ class Component extends DCLogic {
   setSpecs(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{printSpecs:v}):o)})); clearTimeout(this._specsT); this._specsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
   setSpecial(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{specialNotes:v}):o)})); clearTimeout(this._specialT); this._specialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Special_Notes__c:v}).catch(()=>{}); },600); }
   assign(id,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{worker:o.worker===w?null:w}):o) })); }
-  send(id){ this.setState(st=>({ sent:Object.assign({},st.sent,{[id]:true}), openId:null })); if(this._api && this.state.connection==='live') this._api.patchOrder(id,{Order_Substatus__c:this._api.SUBSTATUS_VALUE['Ready for Print']}).catch(()=>{}); }
+  // "Send to Production" -- leaves the pre-production inbox/board. The floor
+  // board (index.html) now reads each Production_Method__c's OWN Status__c
+  // to decide whether it shows a card, so this has to advance every method
+  // on the order out of Pre-Production, not just the order's own
+  // Order_Substatus__c. Each PATCH rolls Order_Substatus__c up afterward
+  // (see functions/api/_pm-rollup.js), so once all methods have been
+  // advanced the order-level field ends up at "Ready for Print" too --
+  // patching it directly here is only a fallback for the (legacy) case of
+  // an order somehow leaving pre-production with zero methods attached.
+  send(id){
+    this.setState(st=>({ sent:Object.assign({},st.sent,{[id]:true}), openId:null }));
+    if(!this._api || this.state.connection!=='live') return;
+    const order=(this.state.orders||[]).find(o=>o.id===id);
+    const pending=((order&&order.methods)||[]).filter(m=>m.status==='Pre-Production');
+    if(pending.length){
+      pending.forEach(m=>this._api.patchMethodStatus(m.id,'Ready for Print',id).catch(()=>{}));
+    } else {
+      this._api.patchOrder(id,{Order_Substatus__c:this._api.SUBSTATUS_VALUE['Ready for Print']}).catch(()=>{});
+    }
+  }
 
   defaultForm(){ return { method:'', placement:'', vendorId:null, vendorName:'', vendorQ:'', planMode:'new', planId:null, planName:'', planQ:'', status:'Pre-Production', items:[] }; }
   openMgr(){ this.setState({view:'mgr', mgrId:null, mgrErr:'', mgrMsg:''}); this.loadInbox(); }
