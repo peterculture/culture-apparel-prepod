@@ -297,13 +297,16 @@ class Component extends DCLogic {
       { id:'GOA-4772', stage:'done', num:'GOA-4772', customer:'Twin Pines Coffee', account:'Twin Pines', meth:'hp', qty:'72', garment:'Comfort Colors · Ivory', sizes:'S12 · M24 · L24 · XL12', dueLabel:'Shipped Jul 19', urg:'done', worker:'JT', mis:0 },
       { id:'GOA-4755', stage:'done', num:'GOA-4755', customer:'Alderwood FC Kits', account:'Alderwood FC', meth:'em', qty:'88', garment:'Augusta Jersey · Green', sizes:'YM10 · YL14 · S20 · M24 · L14 · XL6', dueLabel:'Shipped Jul 17', urg:'done', worker:'MA', mis:0 },
     ];
-    this._demoOrders = seedOrders;
+    // Demo cards are already one-per-order; give each an orderId matching its
+    // own id so the order-level lookups added for multi-method support (timers,
+    // packaging, shipments, etc.) work the same in demo mode as live mode.
+    this._demoOrders = seedOrders.map(o=>Object.assign({orderId:o.id, status:({rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'})[o.stage]}, o));
     let storedName=''; try{ storedName=localStorage.getItem('caShopWorkerName')||''; }catch(_){}
     this.state = {
       now: new Date(),
       nameOk: VALID_NAMES.includes(storedName),
       orders: [], connection:'loading',
-      q:'', methods:{ sp:true, em:true, hp:true },
+      q:'', methods:{ sp:true, em:true, hp:true, promo:true },
       openId:null, dragId:null, dragOverStage:null,
       checks:{ 'GOA-4809':{'Films printed':true,'Screens burned':true,'Inks mixed':true}, 'GOA-4814':{'File digitized':true,'Threads pulled':true} },
       timers:{ 'GOA-4809':{ setup:{elapsed:1320,running:false,startedAt:0}, prod:{elapsed:2460,running:true,startedAt:Date.now()} }, 'GOA-4814':{ setup:{elapsed:900,running:false,startedAt:0}, prod:{elapsed:1560,running:false,startedAt:0} }, 'GOA-4790':{ setup:{elapsed:1080,running:false,startedAt:0}, prod:{elapsed:3900,running:false,startedAt:0} } },
@@ -314,76 +317,153 @@ class Component extends DCLogic {
   }
   componentDidMount(){ this._t = setInterval(()=>this.setState({ now:new Date() }), 1000); this.load(); this._ar = setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && !this.state.dragId) this.load(); }, 15000); }
   componentWillUnmount(){ clearInterval(this._t); clearInterval(this._ar); }
-  advanceStatus(id,label){ const stageOf={'Ready for Print':'rfp','In Production':'ip','Post-Production':'pp','Completed':'done'}[label]; const val=(this._api?this._api.SUBSTATUS_VALUE[label]:label)||label; if(label==='Pre-Production'){ this.setState(st=>({orders:st.orders.filter(o=>o.id!==id), openId:null})); this.push(id,{Order_Substatus__c:val}); return; } this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{stage:stageOf}):o)})); this.push(id,{Order_Substatus__c:val}); }
+  // Advances/rewinds ONE card (== one Production_Method__c). cardId is the
+  // method's Id; orderId is passed in from the caller (always has it handy)
+  // rather than looked up, since this fires from inside the drawer where the
+  // card object is already in scope.
+  advanceStatus(cardId,label,orderId){
+    const stageOf={'Ready for Print':'rfp','In Production':'ip','Post-Production':'pp','Completed':'done'}[label];
+    if(label==='Pre-Production'){
+      // Sends this ONE method back to Pre-Production -- it drops off this
+      // board (back into the pre-production queue) without touching its
+      // sibling methods on the same order.
+      this.setState(st=>({orders:st.orders.filter(o=>o.id!==cardId), openId:null}));
+      this.pushMethod(cardId,'Pre-Production',orderId);
+      return;
+    }
+    this.setState(st=>({orders:st.orders.map(o=>o.id===cardId?Object.assign({},o,{stage:stageOf,status:label}):o)}));
+    this.pushMethod(cardId,label,orderId);
+  }
   async load(){
     try {
       this._api = window.CAApi; if(!this._api) throw new Error('CAApi not loaded');
       const api=this._api;
       const recs = await api.getProductionOrders();
       const PREREQ={ sp:['Films_Printed__c','Screens_Completed__c','Mix_Inks__c'], em:['Digitize_File__c','Thread_Color_Materials__c'], hp:['Transfers_Received__c','Transfers_Ready__c'] };
-      const mapped = recs.map(r=>{
-        const stage=api.stageOf(r); if(!stage) return null;
-        const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c), meth=api.methodOf(r), wn=r.Last_Updated_By__c||'';
-        let pct, progressLabel;
-        if(stage==='ip'||stage==='pp'){ const s=PREREQ[meth]||PREREQ.sp; const done=s.filter(f=>r[f]).length; pct=Math.round(done/s.length*100); progressLabel = stage==='ip'?'On press':'Post-production'; }
-        return { id:r.Id, stage, num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'', meth, qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel: stage==='done'?'Completed':due.label, urg: stage==='done'?'done':due.urg, worker:null, workerName:wn||null, workerInit: wn?api.initials(wn):'—', workerColor: wn?api.colorForName(wn):'#3a3a40', pct, progressLabel, mis:Number(r.TotalQtyMisprints__c)||0, mockupUrl:r.DesignMockupUrl||null, printSpecs:api.text(r.Specifications_for_Printing__c)||'', specialNotes:api.text(r.Special_Notes__c)||'', shipDelivery:r.Shipping_Delivery__c||'', labelPrinted:!!r.Shipping_Label_Printed__c, _setup:Number(r.Print_Setup_Timer__c)||0, _prod:Number(r.Production_Timer__c)||0 };
-      }).filter(Boolean);
+      // One order can carry several Production_Method__c children (one per
+      // decoration location/method -- e.g. "Front - Screen Print" and
+      // "Tag - Heat Press" on the same order). Flatten those into one BOARD
+      // CARD per method instead of one per order, so an order with two
+      // methods correctly sorts into two places -- each with its own real
+      // stage (Production_Method__c.Status__c), not a single shared guess.
+      // A method still sitting in Pre-Production (or Cancelled/On Hold)
+      // hasn't reached this board yet, so it's skipped here.
+      const cards = [];
+      recs.forEach(r=>{
+        const methods = r.ProductionMethods || [];
+        const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c), wn=r.Last_Updated_By__c||'';
+        methods.forEach(pm=>{
+          const stage = api.stageOfMethod(pm.Status__c); if(!stage) return;
+          const meta = (api.METHOD_META && api.METHOD_META[pm.Type__c]) || { key:'sp', short:pm.Type__c||'Method', color:'#8a8378' };
+          const meth = meta.key;
+          let pct, progressLabel;
+          if(stage==='ip'||stage==='pp'){ const s=PREREQ[meth]||PREREQ.sp; const done=s.filter(f=>r[f]).length; pct=Math.round(done/s.length*100); progressLabel = stage==='ip'?'On press':'Post-production'; }
+          cards.push({
+            id:pm.Id, orderId:r.Id, stage, status:pm.Status__c, meth, placement:pm.Placement__c||null,
+            num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'',
+            qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel: stage==='done'?'Completed':due.label, urg: stage==='done'?'done':due.urg,
+            worker:null, workerName:wn||null, workerInit: wn?api.initials(wn):'—', workerColor: wn?api.colorForName(wn):'#3a3a40',
+            pct, progressLabel, mis:Number(r.TotalQtyMisprints__c)||0, mockupUrl:r.DesignMockupUrl||null,
+            printSpecs:api.text(r.Specifications_for_Printing__c)||'', specialNotes:api.text(r.Special_Notes__c)||'',
+            shipDelivery:r.Shipping_Delivery__c||'', labelPrinted:!!r.Shipping_Label_Printed__c,
+            _setup:Number(r.Print_Setup_Timer__c)||0, _prod:Number(r.Production_Timer__c)||0,
+          });
+        });
+      });
+      // Timers/misprint-details live on the Order, not the method -- seed
+      // once per distinct order so sibling cards from the same order share
+      // one reading (there's no per-method timer field in Salesforce yet).
       const timers={}, misD={};
-      mapped.forEach(o=>{ timers[o.id]={setup:{elapsed:o._setup||0,running:false,startedAt:0},prod:{elapsed:o._prod||0,running:false,startedAt:0}}; });
+      const seenOrders=new Set();
+      cards.forEach(c=>{ if(!seenOrders.has(c.orderId)){ seenOrders.add(c.orderId); timers[c.orderId]={setup:{elapsed:c._setup||0,running:false,startedAt:0},prod:{elapsed:c._prod||0,running:false,startedAt:0}}; } });
       recs.forEach(r=>{ if(r.Misprint_Details__c) misD[r.Id]=r.Misprint_Details__c; });
-      this.setState(st=>({ orders:mapped, connection:'live', timers:Object.assign({},st.timers,timers), misDetails:Object.assign({},st.misDetails,misD) }));
+      this.setState(st=>({ orders:cards, connection:'live', timers:Object.assign({},st.timers,timers), misDetails:Object.assign({},st.misDetails,misD) }));
     } catch(_) { this.setState({orders:this._demoOrders, connection:'demo'}); }
   }
   pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
   switchUser(){ try{localStorage.removeItem('caShopWorkerName');}catch(_){} this.setState({nameOk:false}); }
-  push(id,fields){ if(this._api && this.state.connection==='live') this._api.patchOrder(id,fields).catch(()=>{}); }
-  subVal(stage){ const label={rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[stage]; return (this._api?this._api.SUBSTATUS_VALUE[label]:label)||label; }
-  openOrder(id){ this.setState({openId:id}); if(this._api && this.state.connection==='live'){ const api=this._api; Promise.all([api.getPackaging(id).catch(()=>null),api.getShipments(id).catch(()=>null),api.getPreProductionItems(id).catch(()=>null)]).then(([pk,sh,it])=>{ this.setState(st=>{ const pkg=Object.assign({},st.pkg), ship=Object.assign({},st.ship), pp=Object.assign({},st.ppItemsById); if(pk) pkg[id]=pk.map(x=>({type:x.Packaging_Type__c,qty:x.Quantity__c,id:x.Id})); if(sh) ship[id]=sh.map(x=>({carrier:x.zkmulti__Carrier__c||'Shipment',tracking:x.zkmulti__Tracking_Number__c||''})); if(it) pp[id]=it; return {pkg,ship,ppItemsById:pp}; }); }); } }
-  removePkg(id,idx){ const cur=(this.state.pkg[id]||[])[idx]; this.setState(st=>{ const arr=(st.pkg[id]||[]).slice(); arr.splice(idx,1); const p=Object.assign({},st.pkg); p[id]=arr; return {pkg:p}; }); if(this._api && this.state.connection==='live' && cur && cur.id) this._api.deletePackaging(cur.id).catch(()=>{}); }
+  // Per-method write (Production_Method__c.Status__c) -- drives this board's
+  // stage columns now.
+  pushMethod(cardId,statusLabel,orderId){ if(this._api && this.state.connection==='live') this._api.patchMethodStatus(cardId,statusLabel,orderId).catch(()=>{}); }
+  // Per-order write -- everything else on the drawer (specs, notes, timers,
+  // packaging, shipments, misprints, delivery) still lives on the Order.
+  pushOrder(orderId,fields){ if(this._api && this.state.connection==='live') this._api.patchOrder(orderId,fields).catch(()=>{}); }
+  // Applies a field change to EVERY card sharing an orderId, so editing an
+  // order-level field (notes, misprint count, etc.) from one method's
+  // drawer stays in sync if the sibling method's drawer is opened next.
+  updateOrderFieldLocally(orderId,fields){ this.setState(st=>({ orders: st.orders.map(o=>o.orderId===orderId?Object.assign({},o,fields):o) })); }
+  openCard(cardId){
+    this.setState({openId:cardId});
+    const card=(this.state.orders||[]).find(c=>c.id===cardId);
+    if(!card || !this._api || this.state.connection!=='live') return;
+    const api=this._api, orderId=card.orderId;
+    Promise.all([api.getPackaging(orderId).catch(()=>null),api.getShipments(orderId).catch(()=>null),api.getPreProductionItems(orderId).catch(()=>null)]).then(([pk,sh,it])=>{
+      this.setState(st=>{
+        const pkg=Object.assign({},st.pkg), ship=Object.assign({},st.ship), pp=Object.assign({},st.ppItemsById);
+        if(pk) pkg[orderId]=pk.map(x=>({type:x.Packaging_Type__c,qty:x.Quantity__c,id:x.Id}));
+        if(sh) ship[orderId]=sh.map(x=>({carrier:x.zkmulti__Carrier__c||'Shipment',tracking:x.zkmulti__Tracking_Number__c||''}));
+        if(it) pp[orderId]=it;
+        return {pkg,ship,ppItemsById:pp};
+      });
+    });
+  }
+  removePkg(orderId,idx){ const cur=(this.state.pkg[orderId]||[])[idx]; this.setState(st=>{ const arr=(st.pkg[orderId]||[]).slice(); arr.splice(idx,1); const p=Object.assign({},st.pkg); p[orderId]=arr; return {pkg:p}; }); if(this._api && this.state.connection==='live' && cur && cur.id) this._api.deletePackaging(cur.id).catch(()=>{}); }
   removePPItem(orderId,itemId){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).filter(x=>x.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{}); }
-  setDelivery(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{shipDelivery:v}):o)})); if(v) this.push(id,{Shipping_Delivery__c:v}); }
-  toggleLabel(id){ const cur=(this.state.orders.find(o=>o.id===id)||{}).labelPrinted; const nv=!cur; this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{labelPrinted:nv}):o)})); this.push(id,{Shipping_Label_Printed__c:nv}); }
-  setMisDetails(id,v){ this.setState(s2=>({misDetails:Object.assign({},s2.misDetails,{[id]:v})})); clearTimeout(this._md); this._md=setTimeout(()=>this.push(id,{Misprint_Details__c:v}),600); }
-  setSpecs(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{printSpecs:v}):o)})); clearTimeout(this._specsT); this._specsT=setTimeout(()=>this.push(id,{Specifications_for_Printing__c:v}),600); }
-  setSpecial(id,v){ this.setState(st=>({orders:st.orders.map(o=>o.id===id?Object.assign({},o,{specialNotes:v}):o)})); clearTimeout(this._specialT); this._specialT=setTimeout(()=>this.push(id,{Special_Notes__c:v}),600); }
+  setDelivery(orderId,v){ this.updateOrderFieldLocally(orderId,{shipDelivery:v}); if(v) this.pushOrder(orderId,{Shipping_Delivery__c:v}); }
+  toggleLabel(orderId){ const cur=(this.state.orders||[]).find(o=>o.orderId===orderId); const nv=!(cur&&cur.labelPrinted); this.updateOrderFieldLocally(orderId,{labelPrinted:nv}); this.pushOrder(orderId,{Shipping_Label_Printed__c:nv}); }
+  setMisDetails(orderId,v){ this.setState(s2=>({misDetails:Object.assign({},s2.misDetails,{[orderId]:v})})); clearTimeout(this._md); this._md=setTimeout(()=>this.pushOrder(orderId,{Misprint_Details__c:v}),600); }
+  setSpecs(orderId,v){ this.updateOrderFieldLocally(orderId,{printSpecs:v}); clearTimeout(this._specsT); this._specsT=setTimeout(()=>this.pushOrder(orderId,{Specifications_for_Printing__c:v}),600); }
+  setSpecial(orderId,v){ this.updateOrderFieldLocally(orderId,{specialNotes:v}); clearTimeout(this._specialT); this._specialT=setTimeout(()=>this.pushOrder(orderId,{Special_Notes__c:v}),600); }
 
   fmtDur(s){ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60; const p=n=>String(n).padStart(2,'0'); return h>0?`${h}:${p(m)}:${p(ss)}`:`${m}:${p(ss)}`; }
-  moveOrder(id,stage){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{stage}):o), dragId:null, dragOverStage:null })); this.push(id,{Order_Substatus__c:this.subVal(stage)}); }
-  toggleCheck(id,label){ this.setState(st=>{ const c=Object.assign({},st.checks); const g=Object.assign({},c[id]||{}); if(g[label]) delete g[label]; else g[label]=true; c[id]=g; return {checks:c}; }); }
-  toggleTimer(id,which){
-    const t=this.state.timers[id]||{}; const cur=Object.assign({elapsed:0,running:false,startedAt:0},t[which]||{});
-    let next;
-    if(cur.running){ const el=cur.elapsed+Math.floor((Date.now()-cur.startedAt)/1000); next={elapsed:el,running:false,startedAt:0}; this.push(id,{[which==='setup'?'Print_Setup_Timer__c':'Production_Timer__c']:el}); }
-    else { next={elapsed:cur.elapsed,running:true,startedAt:Date.now()}; }
-    this.setState(st=>{ const timers=Object.assign({},st.timers); const g=Object.assign({},timers[id]||{}); g[which]=next; timers[id]=g; return {timers}; });
+  // Drag-and-drop path: only the dragged card id is known (dataTransfer
+  // doesn't carry the order id), so look the card up to find its orderId.
+  moveCard(cardId,stage){
+    const card=(this.state.orders||[]).find(c=>c.id===cardId);
+    const label=(this._api&&this._api.STAGE_SUBSTATUS&&this._api.STAGE_SUBSTATUS[stage])||{rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[stage];
+    this.setState(st=>({ orders: st.orders.map(o=>o.id===cardId?Object.assign({},o,{stage,status:label}):o), dragId:null, dragOverStage:null }));
+    if(card) this.pushMethod(cardId,label,card.orderId);
   }
-  setMis(id,val){ const v=Math.max(0,val); this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{mis:v}):o) })); this.push(id,{TotalQtyMisprints__c:v, Misprint__c:v>0}); }
-  addPkg(id){ const type=this.state.pkgType||'Standard Culture Box'; const qty=Math.max(1,parseInt(this.state.pkgQty,10)||1); const localKey='local-'+Date.now()+'-'+Math.random(); this.setState(st=>{ const p=Object.assign({},st.pkg); p[id]=(p[id]||[]).concat([{type,qty,_local:localKey}]); return {pkg:p}; }); if(this._api && this.state.connection==='live') this._api.postPackaging(id,type,qty).then(res=>{ const newId=res&&res.id; if(!newId) return; this.setState(st=>{ const p=Object.assign({},st.pkg); p[id]=(p[id]||[]).map(x=>x._local===localKey?Object.assign({},x,{id:newId}):x); return {pkg:p}; }); }).catch(()=>{}); }
-  zkUrl(o){ const id15=((o&&o.id)||'').slice(0,15); const F='CF00NRi000001mOHB'; const qs=new URLSearchParams({ [F]:(o&&o.num)||'', [F+'_lkid']:id15, navigationLocation:'RELATED_LIST', lexiSObjectName:'zkmulti__MCShipment__c', lexiActionName:'new', 'sfdc.override':'1' }); return 'https://cultureapparel--dev2--zkmulti.sandbox.vf.force.com/apex/Wizard?'+qs.toString(); }
-  addShip(id){ this.setState(st=>{ const s=Object.assign({},st.ship); s[id]=(s[id]||[]).concat([{carrier:'FedEx Ground',tracking:'Draft · rate shopping'}]); return {ship:s}; }); if(this._api && this.state.connection==='live') this._api.postShipment(id,{carrier:'FedEx Ground',serviceType:'Ground',tracking:'PENDING'}).catch(()=>{}); }
-  assign(id,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===id?Object.assign({},o,{worker: o.worker===w?null:w}):o) })); }
+  toggleCheck(cardId,label){ this.setState(st=>{ const c=Object.assign({},st.checks); const g=Object.assign({},c[cardId]||{}); if(g[label]) delete g[label]; else g[label]=true; c[cardId]=g; return {checks:c}; }); }
+  toggleTimer(orderId,which){
+    const t=this.state.timers[orderId]||{}; const cur=Object.assign({elapsed:0,running:false,startedAt:0},t[which]||{});
+    let next;
+    if(cur.running){ const el=cur.elapsed+Math.floor((Date.now()-cur.startedAt)/1000); next={elapsed:el,running:false,startedAt:0}; this.pushOrder(orderId,{[which==='setup'?'Print_Setup_Timer__c':'Production_Timer__c']:el}); }
+    else { next={elapsed:cur.elapsed,running:true,startedAt:Date.now()}; }
+    this.setState(st=>{ const timers=Object.assign({},st.timers); const g=Object.assign({},timers[orderId]||{}); g[which]=next; timers[orderId]=g; return {timers}; });
+  }
+  setMis(orderId,val){ const v=Math.max(0,val); this.updateOrderFieldLocally(orderId,{mis:v}); this.pushOrder(orderId,{TotalQtyMisprints__c:v, Misprint__c:v>0}); }
+  addPkg(orderId){ const type=this.state.pkgType||'Standard Culture Box'; const qty=Math.max(1,parseInt(this.state.pkgQty,10)||1); const localKey='local-'+Date.now()+'-'+Math.random(); this.setState(st=>{ const p=Object.assign({},st.pkg); p[orderId]=(p[orderId]||[]).concat([{type,qty,_local:localKey}]); return {pkg:p}; }); if(this._api && this.state.connection==='live') this._api.postPackaging(orderId,type,qty).then(res=>{ const newId=res&&res.id; if(!newId) return; this.setState(st=>{ const p=Object.assign({},st.pkg); p[orderId]=(p[orderId]||[]).map(x=>x._local===localKey?Object.assign({},x,{id:newId}):x); return {pkg:p}; }); }).catch(()=>{}); }
+  zkUrl(o){ const id15=((o&&o.orderId)||'').slice(0,15); const F='CF00NRi000001mOHB'; const qs=new URLSearchParams({ [F]:(o&&o.num)||'', [F+'_lkid']:id15, navigationLocation:'RELATED_LIST', lexiSObjectName:'zkmulti__MCShipment__c', lexiActionName:'new', 'sfdc.override':'1' }); return 'https://cultureapparel--dev2--zkmulti.sandbox.vf.force.com/apex/Wizard?'+qs.toString(); }
+  addShip(orderId){ this.setState(st=>{ const s=Object.assign({},st.ship); s[orderId]=(s[orderId]||[]).concat([{carrier:'FedEx Ground',tracking:'Draft · rate shopping'}]); return {ship:s}; }); if(this._api && this.state.connection==='live') this._api.postShipment(orderId,{carrier:'FedEx Ground',serviceType:'Ground',tracking:'PENDING'}).catch(()=>{}); }
+  assign(cardId,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===cardId?Object.assign({},o,{worker: o.worker===w?null:w}):o) })); }
 
   renderVals(){
     const st = this.state;
     const accent = this.props.accentColor || '#C6372B';
-    const M = { sp:{label:'Screen Print',short:'Screen',color:'#C6372B'}, em:{label:'Embroidery',short:'Embroid',color:'#5E9B9A'}, hp:{label:'Heat Press',short:'Heat',color:'#C9923A'} };
+    const M = { sp:{label:'Screen Print',short:'Screen',color:'#C6372B'}, em:{label:'Embroidery',short:'Embroid',color:'#5E9B9A'}, hp:{label:'Heat Press',short:'Heat',color:'#C9923A'}, promo:{label:'Promotional Items',short:'Promo',color:'#8E6FB0'} };
     const W = { MA:{name:'Marcus A.',color:'#C6372B'}, DK:{name:'Dana K.',color:'#5E9B9A'}, PR:{name:'Priya R.',color:'#C9923A'}, JT:{name:'Jules T.',color:'#7FA644'} };
     const U = { over:'#E24A3A', today:'#E24A3A', soon:'#C9923A', ok:'#6C665C', done:'#7FA644' };
-    const CHECKS = { sp:['Films printed','Screens burned','Inks mixed','Printed','Cured'], em:['File digitized','Threads pulled','Hooped','Stitched','Trimmed'], hp:['Transfers received','Pressed','Peeled','QC passed'] };
+    const CHECKS = { sp:['Films printed','Screens burned','Inks mixed','Printed','Cured'], em:['File digitized','Threads pulled','Hooped','Stitched','Trimmed'], hp:['Transfers received','Pressed','Peeled','QC passed'], promo:['Items received','Ready to pack'] };
     const NEXT = { rfp:{stage:'ip',label:'Start Production',icon:'ti-player-play'}, ip:{stage:'pp',label:'Move to Post-Production',icon:'ti-package'}, pp:{stage:'done',label:'Mark Completed',icon:'ti-circle-check'} };
 
     const q = st.q.trim().toLowerCase();
+    // Each card is one Production_Method__c -- filtering/searching now
+    // happens per-method, so typing a customer name still surfaces every
+    // method-card for that order, and toggling a method chip hides only
+    // that method's cards (an order with Screen Print + Heat Press stays
+    // visible via its Screen Print card even if Heat Press is toggled off).
     const matches = o => (!q || (o.customer+' '+o.num+' '+o.account).toLowerCase().includes(q)) && st.methods[o.meth];
     const visible = st.orders.filter(matches);
 
     const mk = o => {
       const m=M[o.meth]||M.sp, w=o.worker?W[o.worker]:null; const wname=o.workerName||(w&&w.name)||null;
       return Object.assign({}, o, {
-        methLabel:m.label, methShort:m.short, methColor:m.color,
+        methLabel:m.label, methShort: o.placement ? (m.short+' · '+o.placement) : m.short, methColor:m.color,
         hasWorker:!!wname, noWorker:!wname, workerName:wname||'Unassigned', workerInit:o.workerInit||o.worker||(wname?wname.trim().slice(0,2).toUpperCase():'—'), workerColor:o.workerColor||(w&&w.color)||'#3a3a40',
         urgColor:U[o.urg]||U.ok, hasProgress:typeof o.pct==='number', progressWidth:(o.pct||0)+'%', hasMisprints:(o.mis||0)>0,
         cardOpacity: st.dragId===o.id ? 0.35 : 1,
-        onOpen: ()=>this.openOrder(o.id),
+        onOpen: ()=>this.openCard(o.id),
         onDragStart: (e)=>{ if(e&&e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',o.id);}catch(_){}} this.setState({dragId:o.id}); },
         onDragEnd: ()=>this.setState({dragId:null,dragOverStage:null}),
       });
@@ -405,7 +485,7 @@ class Component extends DCLogic {
         colBorder: over?'#C6372B':'transparent',
         onDragOver:(e)=>{ e.preventDefault(); if(st.dragOverStage!==s.key) this.setState({dragOverStage:s.key}); },
         onDragLeave:()=>{ if(st.dragOverStage===s.key) this.setState({dragOverStage:null}); },
-        onDrop:(e)=>{ e.preventDefault(); if(st.dragId) this.moveOrder(st.dragId,s.key); },
+        onDrop:(e)=>{ e.preventDefault(); if(st.dragId) this.moveCard(st.dragId,s.key); },
       });
     });
 
@@ -426,11 +506,16 @@ class Component extends DCLogic {
       { label:'Shipped · 7d', value:'14', unit:'orders', sub:'3,120 pcs out', accent:'#ECEAE4', hasTrend:true, trendIcon:'ti-trending-up', trendColor:'#7FA644', trendVal:'+9%' },
     ];
 
-    const methodFilters = ['sp','em','hp'].map(k=>{ const on=st.methods[k]; return { key:k, label:M[k].label, color:M[k].color, onToggle:()=>this.setState(s2=>({methods:Object.assign({},s2.methods,{[k]:!s2.methods[k]})})), bg:on?'#1a1a1e':'transparent', border:on?'#3a3a40':'#242428', textColor:on?'#ECEAE4':'#6C665C' }; });
+    const methodFilters = ['sp','em','hp','promo'].map(k=>{ const on=st.methods[k]; return { key:k, label:M[k].label, color:M[k].color, onToggle:()=>this.setState(s2=>({methods:Object.assign({},s2.methods,{[k]:!s2.methods[k]})})), bg:on?'#1a1a1e':'transparent', border:on?'#3a3a40':'#242428', textColor:on?'#ECEAE4':'#6C665C' }; });
 
     const shownLabel = visible.length===st.orders.length ? (st.orders.length+' orders') : (visible.length+' of '+st.orders.length+' orders');
 
-    // Drawer
+    // Drawer -- src is one CARD (one Production_Method__c). Checklist and
+    // worker assignment are genuinely per-card (keyed by src.id, the method
+    // id); everything else on this drawer (timers, packaging, shipments,
+    // misprints, specs/notes, delivery) is still an Order-level field in
+    // Salesforce, so those all key off src.orderId instead -- shared with
+    // any sibling card from the same order.
     let open=null;
     const src = st.orders.find(o=>o.id===st.openId);
     if(src){
@@ -439,25 +524,31 @@ class Component extends DCLogic {
       const list=CHECKS[src.meth]||[];
       const checkedN=list.filter(l=>doneChecks[l]).length;
       const checklist=list.map(label=>{ const done=!!doneChecks[label]; return { label, onToggle:()=>this.toggleCheck(src.id,label), icon:done?'ti-check':'', boxBg:done?M[src.meth].color:'transparent', boxBorder:done?M[src.meth].color:'#3a3a40', border:done?'#2f2a24':'#232327', textColor:done?'#ECEAE4':'#9C978C' }; });
-      const tmr=st.timers[src.id]||{setup:{elapsed:0,running:false,startedAt:0},prod:{elapsed:0,running:false,startedAt:0}};
-      const timers=[['setup','Setup'],['prod','Production']].map(([key,label])=>{ const c=Object.assign({elapsed:0,running:false,startedAt:0},tmr[key]||{}); const disp=c.elapsed+(c.running?Math.floor((Date.now()-c.startedAt)/1000):0); return { label, display:this.fmtDur(disp), timeColor:c.running?'#7FA644':'#ECEAE4', onToggle:()=>this.toggleTimer(src.id,key), btnLabel:c.running?'Pause':'Start', btnIcon:c.running?'ti-player-pause':'ti-player-play', btnBg:c.running?'#18230D':'#16161a', btnBorder:c.running?'#3D5418':'#2a2a2f', btnText:c.running?'#BBD382':'#9C978C' }; });
+      const tmr=st.timers[src.orderId]||{setup:{elapsed:0,running:false,startedAt:0},prod:{elapsed:0,running:false,startedAt:0}};
+      const timers=[['setup','Setup'],['prod','Production']].map(([key,label])=>{ const c=Object.assign({elapsed:0,running:false,startedAt:0},tmr[key]||{}); const disp=c.elapsed+(c.running?Math.floor((Date.now()-c.startedAt)/1000):0); return { label, display:this.fmtDur(disp), timeColor:c.running?'#7FA644':'#ECEAE4', onToggle:()=>this.toggleTimer(src.orderId,key), btnLabel:c.running?'Pause':'Start', btnIcon:c.running?'ti-player-pause':'ti-player-play', btnBg:c.running?'#18230D':'#16161a', btnBorder:c.running?'#3D5418':'#2a2a2f', btnText:c.running?'#BBD382':'#9C978C' }; });
       const assignees=['MA','DK','PR','JT'].map(k=>{ const on=src.worker===k; return { key:k, init:k, name:W[k].name, color:W[k].color, onPick:()=>this.assign(src.id,k), bg:on?'#1a1a1e':'transparent', border:on?W[k].color:'#242428', textColor:on?'#ECEAE4':'#8a8378' }; });
-      const pkg=st.pkg[src.id]||[]; const shp=st.ship[src.id]||[]; const nx=NEXT[src.stage];
+      const pkg=st.pkg[src.orderId]||[]; const shp=st.ship[src.orderId]||[]; const nx=NEXT[src.stage];
       open=Object.assign({}, d, {
         assignees, timers, checklist,
         checklistTitle:'Production Checklist', checkDoneLabel:checkedN+' / '+list.length,
         hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode: d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Production mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, zkUrl:this.zkUrl(src),
-        specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.id,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.id,e.target.value), orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.id),
-        delivery:d.shipDelivery||'', deliveryOptions:[{value:'',label:'— not set —'},{value:'Shipping',label:'Shipping'},{value:'Local Dropoff',label:'Local Dropoff'},{value:'Pickup',label:'Pickup'},{value:'Order Fulfillment',label:'Order Fulfillment'},{value:'Split Ship',label:'Split Ship'}], onDelivery:(e)=>this.setDelivery(src.id,e.target.value),
-        labelPrinted:!!d.labelPrinted, onToggleLabel:()=>this.toggleLabel(src.id), labelBg:d.labelPrinted?'#18230D':'#16161a', labelBorder:d.labelPrinted?'#3D5418':'#2a2a2f', labelColor:d.labelPrinted?'#BBD382':'#9C978C', labelIcon:d.labelPrinted?'ti-checkbox':'ti-square',
-        ppItemsView:(st.ppItemsById[src.id]||[]).map(function(it){ var ty=it.Type__c||'Item', det=''; if(ty==='Screen') det=(it.Mesh_Count__c?it.Mesh_Count__c+' mesh':''); else if(ty==='Ink') det=it.Pantone_Color__c||''; else if(ty==='Thread') det=[it.Thread_Color__c,it.Thread_Number__c].filter(Boolean).join(' · '); else if(ty==='Digitization') det=(it.Stitch_Count__c?it.Stitch_Count__c+' stitches':''); else if(ty==='Transfer') det=it.Transfer_Type__c||''; return { type:ty, detail:det||'—', status:it.Status__c||'', onRemove:(function(){ this.removePPItem(src.id,it.Id); }).bind(this) }; }.bind(this)), ppItemsEmpty:(st.ppItemsById[src.id]||[]).length===0,
-        statusSteps:(function(){ var SS=['Pre-Production','Ready for Print','In Production','Post-Production','Completed']; var curLabel={rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[src.stage]; var ci=SS.indexOf(curLabel); return SS.map(function(label,i){ var done=i<ci, current=i===ci, isNext=(i===ci+1), clickable=isNext||done, allowed=isNext; return { label, onClick: clickable?(function(){ this.advanceStatus(src.id,label); }).bind(this):null, textColor: current?'#ECEAE4':(done?'#8a8378':(allowed?'#E0B870':'#4d483f')), border: current?'#C6372B':(allowed?'#5E4214':'#242428'), bg: current?'#2a1210':(done?'#18230D':(allowed?'#241a09':'#121215')) }; }.bind(this)); }).call(this),
-        packaging:pkg.map((p,idx)=>Object.assign({},p,{onRemove:()=>this.removePkg(src.id,idx)})), pkgEmpty:pkg.length===0, onAddPkg:()=>this.addPkg(src.id), pkgType:st.pkgType, pkgQty:st.pkgQty, onPkgType:(e)=>this.setState({pkgType:e.target.value}), onPkgQty:(e)=>this.setState({pkgQty:e.target.value}), pkgTypeOptions:[{value:'Standard Culture Box',label:'Standard Culture Box'},{value:'Culture Hat Box',label:'Culture Hat Box'},{value:'Poly Bag',label:'Poly Bag'},{value:'Standard Brown Box',label:'Standard Brown Box'}],
-        shipments:shp, shipEmpty:shp.length===0, onAddShip:()=>this.addShip(src.id),
+        specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.orderId,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.orderId,e.target.value), orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.orderId),
+        delivery:d.shipDelivery||'', deliveryOptions:[{value:'',label:'— not set —'},{value:'Shipping',label:'Shipping'},{value:'Local Dropoff',label:'Local Dropoff'},{value:'Pickup',label:'Pickup'},{value:'Order Fulfillment',label:'Order Fulfillment'},{value:'Split Ship',label:'Split Ship'}], onDelivery:(e)=>this.setDelivery(src.orderId,e.target.value),
+        labelPrinted:!!d.labelPrinted, onToggleLabel:()=>this.toggleLabel(src.orderId), labelBg:d.labelPrinted?'#18230D':'#16161a', labelBorder:d.labelPrinted?'#3D5418':'#2a2a2f', labelColor:d.labelPrinted?'#BBD382':'#9C978C', labelIcon:d.labelPrinted?'ti-checkbox':'ti-square',
+        // Pre_Production_Item__c records come back per ORDER (an order-wide
+        // fetch), so filter down to just this card's own method here --
+        // otherwise a card would show its sibling method's screens/inks too.
+        ppItemsView:(st.ppItemsById[src.orderId]||[]).filter(function(it){ return it.Production_Method__c===src.id; }).map(function(it){ var ty=it.Type__c||'Item', det=''; if(ty==='Screen') det=(it.Mesh_Count__c?it.Mesh_Count__c+' mesh':''); else if(ty==='Ink') det=it.Pantone_Color__c||''; else if(ty==='Thread') det=[it.Thread_Color__c,it.Thread_Number__c].filter(Boolean).join(' · '); else if(ty==='Digitization') det=(it.Stitch_Count__c?it.Stitch_Count__c+' stitches':''); else if(ty==='Transfer') det=it.Transfer_Type__c||''; return { type:ty, detail:det||'—', status:it.Status__c||'', onRemove:(function(){ this.removePPItem(src.orderId,it.Id); }).bind(this) }; }.bind(this)), ppItemsEmpty:(st.ppItemsById[src.orderId]||[]).filter(function(it){ return it.Production_Method__c===src.id; }).length===0,
+        // Steps read/write THIS card's own Production_Method__c.Status__c
+        // (src.status, set literally -- no Order-field label/value quirk
+        // here), not the order's shared stage.
+        statusSteps:(function(){ var SS=['Pre-Production','Ready for Print','In Production','Post-Production','Completed']; var curLabel=src.status||{rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[src.stage]; var ci=SS.indexOf(curLabel); return SS.map(function(label,i){ var done=i<ci, current=i===ci, isNext=(i===ci+1), clickable=isNext||done, allowed=isNext; return { label, onClick: clickable?(function(){ this.advanceStatus(src.id,label,src.orderId); }).bind(this):null, textColor: current?'#ECEAE4':(done?'#8a8378':(allowed?'#E0B870':'#4d483f')), border: current?'#C6372B':(allowed?'#5E4214':'#242428'), bg: current?'#2a1210':(done?'#18230D':(allowed?'#241a09':'#121215')) }; }.bind(this)); }).call(this),
+        packaging:pkg.map((p,idx)=>Object.assign({},p,{onRemove:()=>this.removePkg(src.orderId,idx)})), pkgEmpty:pkg.length===0, onAddPkg:()=>this.addPkg(src.orderId), pkgType:st.pkgType, pkgQty:st.pkgQty, onPkgType:(e)=>this.setState({pkgType:e.target.value}), onPkgQty:(e)=>this.setState({pkgQty:e.target.value}), pkgTypeOptions:[{value:'Standard Culture Box',label:'Standard Culture Box'},{value:'Culture Hat Box',label:'Culture Hat Box'},{value:'Poly Bag',label:'Poly Bag'},{value:'Standard Brown Box',label:'Standard Brown Box'}],
+        shipments:shp, shipEmpty:shp.length===0, onAddShip:()=>this.addShip(src.orderId),
         misBorder:(src.mis>0)?'#7A241C':'#232327', misColor:(src.mis>0)?'#E8A89F':'#ECEAE4',
-        onMisPlus:()=>this.setMis(src.id,(src.mis||0)+1), onMisMinus:()=>this.setMis(src.id,(src.mis||0)-1),
-        misDetails:st.misDetails[src.id]||'', onMisDetails:(e)=>this.setMisDetails(src.id,e.target.value),
-        canAdvance:!!nx, isDone:src.stage==='done', advanceLabel:nx?nx.label:'', advanceIcon:nx?nx.icon:'', onAdvance:nx?(()=>this.moveOrder(src.id,nx.stage)):null,
+        onMisPlus:()=>this.setMis(src.orderId,(src.mis||0)+1), onMisMinus:()=>this.setMis(src.orderId,(src.mis||0)-1),
+        misDetails:st.misDetails[src.orderId]||'', onMisDetails:(e)=>this.setMisDetails(src.orderId,e.target.value),
+        canAdvance:!!nx, isDone:src.stage==='done', advanceLabel:nx?nx.label:'', advanceIcon:nx?nx.icon:'', onAdvance:nx?(()=>this.advanceStatus(src.id,nx.label,src.orderId)):null,
       });
     }
 
