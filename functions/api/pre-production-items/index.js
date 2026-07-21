@@ -31,6 +31,13 @@ const ITEM_FIELDS = [
   "Production_Method__c",
   "Production_Method__r.Name",
   "Production_Method__r.Type__c",
+  // Which decoration location the parent method covers (Front/Back/Tag/etc).
+  // Items don't carry their own placement -- an order with multiple methods
+  // now has multiple Production_Method__c parents, so each item inherits its
+  // placement from whichever method it hangs off of. Lets the worker board
+  // show "Screen · Front" instead of just "Screen" when an order has more
+  // than one screen-print method (e.g. front and back as separate methods).
+  "Production_Method__r.Placement__c",
 ];
 
 // Loose SF Id sanity check (15 or 18 char alphanumeric).
