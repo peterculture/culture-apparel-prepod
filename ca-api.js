@@ -27,6 +27,14 @@
   var STAGE_KEY = { 'Ready for Print':'rfp', 'In Production':'ip', 'Post-Production':'pp', 'Completed':'done' };
   var STAGE_SUBSTATUS = { rfp:'Ready for Print', ip:'In Production', pp:'Post-Production', done:'Completed' };
   function stageOf(rec){ return STAGE_KEY[SUBSTATUS_LABEL[rec.Order_Substatus__c] || rec.Order_Substatus__c] || null; }
+  // Same rfp/ip/pp/done bucketing, but for a Production_Method__c's own
+  // Status__c instead of the Order's Order_Substatus__c -- no label/value
+  // quirk here, Production_Method__c.Status__c stores "In Production"
+  // literally (see production-methods/index.js ALLOWED_STATUSES), so
+  // STAGE_KEY can be looked up directly. Returns null for "Pre-Production",
+  // "Cancelled", and "On Hold" -- those methods haven't reached the
+  // production floor board (or have left it) and shouldn't show a card there.
+  function stageOfMethod(status){ return STAGE_KEY[status] || null; }
 
   /* pre-production checklist label -> Order boolean field */
   var CHECK_FIELD = {
@@ -68,6 +76,16 @@
   function searchVendors(q){ return jget('/api/vendors?q=' + encodeURIComponent(q || '')).then(function (d) { return d.records || []; }); }
   function searchPlans(q){ return jget('/api/plans?q=' + encodeURIComponent(q || '')).then(function (d) { return d.records || []; }); }
   function createMethod(body){ return jsend('/api/production-methods', 'POST', body); }
+  // Updates ONE Production_Method__c's own Status__c (independent of its
+  // order's other methods). orderId is optional but should be passed
+  // whenever known -- the server uses it to roll the parent Order's
+  // Order_Substatus__c up to whichever sibling method is least advanced, so
+  // screens that still read the order-level field stay accurate.
+  function patchMethodStatus(id, status, orderId){
+    var body = { Status__c: status };
+    if (orderId) body.orderId = orderId;
+    return jsend('/api/production-methods/' + encodeURIComponent(id), 'PATCH', body);
+  }
   function patchOrder(id, fields){
     var body = Object.assign({}, fields);
     var by = workerName(); if (by) body.Last_Updated_By__c = by;
@@ -202,10 +220,10 @@
 
   window.CAApi = {
     ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout,
-    SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf,
+    SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf, stageOfMethod: stageOfMethod,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
-    PLACEMENTS: PLACEMENTS, methodsList: methodsList,
-    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, createMethod: createMethod, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
+    PLACEMENTS: PLACEMENTS, methodsList: methodsList, METHOD_META: METHOD_META,
+    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, createMethod: createMethod, patchMethodStatus: patchMethodStatus, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
     getPackaging: getPackaging, postPackaging: postPackaging, deletePackaging: deletePackaging,
     getShipments: getShipments, postShipment: postShipment,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
