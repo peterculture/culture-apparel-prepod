@@ -1,4 +1,16 @@
 /**
+ * GET /api/production-runs?methodId=<id>
+ *
+ * Lists every Production_Run__c attached to ONE Production_Method__c --
+ * powers the "Production Runs" section of the pre-production board's card
+ * drawer (pre-production.html), added 2026-07-22 so a manager can open a
+ * card and see/edit every run created under it (not just at creation time
+ * via the Create Production Run modal). Scoped to PrintMethod__c = methodId
+ * -- one board card is one Production_Method__c, so this only ever returns
+ * that card's own runs, never a sibling method's.
+ *
+ *   GET /api/production-runs?methodId=a3V...  ->  { records: [ {...}, ... ] }
+ *
  * POST /api/production-runs
  *
  * Creates ONE Production_Run__c, from the "Create Production Run" modal that
@@ -51,6 +63,35 @@ function parseIso(v) {
   if (!v || typeof v !== "string") return null;
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
+}
+
+export async function onRequestGet({ env, request }) {
+  try {
+    const url = new URL(request.url);
+    const methodId = (url.searchParams.get("methodId") || "").trim();
+    if (!SF_ID.test(methodId)) return jsonError("missing_methodId", 400);
+
+    const soql =
+      `SELECT Id, Name, ${PR_PRESS_FIELD}, Press__r.Name, ${PR_SCHED_START_FIELD}, ${PR_SCHED_END_FIELD}, ` +
+      `Actual_Start__c, Actual_End__c, ${PR_QTY_FIELD} ` +
+      `FROM ${PR_OBJECT} WHERE ${PR_PRINTMETHOD_FIELD} = '${methodId}' ` +
+      `ORDER BY ${PR_SCHED_START_FIELD} ASC NULLS LAST`;
+    const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
+    const resp = await sfFetch(env, path);
+    const data = await resp.json();
+    if (!resp.ok) {
+      console.error("Production run list query failed", resp.status, JSON.stringify(data));
+      return jsonError("query_failed", resp.status);
+    }
+
+    return Response.json(
+      { records: data.records || [] },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (err) {
+    console.error(err);
+    return jsonError("internal_error", 500);
+  }
 }
 
 export async function onRequestPost({ env, request }) {
