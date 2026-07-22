@@ -551,6 +551,20 @@ class Component extends DCLogic {
     if(f.planMode==='existing' && !f.planId){ this.setState({mgrErr:'Pick an existing plan'}); return; }
     if(!this._api || this.state.connection!=='live'){ this.setState({mgrErr:'Not connected to Salesforce (demo mode) — deploy to create plans'}); return; }
     this.setState({submitting:true, mgrErr:''});
+    // FIXED 2026-07-22: specs/notes typed into this form only reach Salesforce
+    // via setMgrSpecs/setMgrSpecial's 600ms debounce (see above) -- if a
+    // manager types then clicks "Create Production Plan" fast, that timer
+    // hadn't fired yet and the edit was silently lost even though the method
+    // still got created. Flush both pending writes (if any) and await them
+    // before creating the method, so the Order's specs/notes are guaranteed
+    // saved by the time this returns.
+    clearTimeout(this._mgrSpecsT); clearTimeout(this._mgrSpecialT);
+    if(oid){
+      const flushes=[];
+      if(f.specs!=null) flushes.push(this._api.patchOrder(oid,{Specifications_for_Printing__c:f.specs}).catch(()=>{}));
+      if(f.notes!=null) flushes.push(this._api.patchOrder(oid,{Special_Notes__c:f.notes}).catch(()=>{}));
+      if(flushes.length) await Promise.all(flushes);
+    }
     const body={ orderId:oid, vendorId:f.vendorId, status:f.status, type:f.method, placements:f.placements, items:f.items||[] };
     if(f.planMode==='existing' && f.planId) body.planId=f.planId;
     try{ const by=(this._api.workerName&&this._api.workerName())||''; if(by) body.by=by; }catch(_){}
