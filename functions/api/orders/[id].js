@@ -7,18 +7,17 @@
  * successful update.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
-import { cascadeChecklistToItems } from "../_ppi-checklist.js";
 
-// Pre-production checklist booleans that cascade down to the matching
-// Pre_Production_Item__c records when checked (see _ppi-checklist.js).
-const CHECKLIST_FIELDS = new Set([
-  "Screens_Completed__c",
-  "Mix_Inks__c",
-  "Transfers_Received__c",
-  "Transfers_Ready__c",
-  "Digitize_File__c",
-  "Thread_Color_Materials__c",
-]);
+// NOTE (2026-07-22): this endpoint used to cascade any checklist box checked
+// TRUE here down onto matching Pre_Production_Item__c records. That cascade
+// was built against the OLD shared, order-level checklist -- since the
+// 2026-07-21 per-method migration, checklist toggles are written per
+// Production_Method__c via production-methods/[id].js, which now owns the
+// (correctly method-scoped) cascade itself; see ../_ppi-checklist.js. The
+// legacy order-level checklist fields below are still writable through this
+// endpoint for any other caller, but no cascade runs off them anymore -- a
+// stale cascade scoped to Production_Method__c off an Order Id would just
+// silently match nothing, which is worse than no cascade at all.
 
 const ALLOWED_FIELDS = new Set([
   "Receiving_Status__c",
@@ -138,18 +137,6 @@ export async function onRequestPatch({ params, request, env }) {
     });
 
     if (resp.status === 204) {
-      // Cascade any checklist box that was just checked TRUE down onto its
-      // matching Pre_Production_Item__c records. Best-effort: awaited so the
-      // items are in sync by the time the client re-fetches, but a cascade
-      // failure doesn't undo or fail the Order write that already succeeded.
-      const checkedNow = Object.keys(payload).filter(
-        (k) => CHECKLIST_FIELDS.has(k) && payload[k] === true,
-      );
-      if (checkedNow.length) {
-        await cascadeChecklistToItems(env, id, checkedNow).catch((e) =>
-          console.error("checklist cascade failed", e),
-        );
-      }
       return new Response(null, { status: 204 });
     }
 
