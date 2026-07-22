@@ -40,7 +40,7 @@
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1.5px solid #141210;border-radius:8px;overflow:hidden;margin-bottom:24px">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1.5px solid #141210;border-radius:8px;overflow:hidden;margin-bottom:24px">
     <div style="padding:12px 14px;border-right:1px solid #d8d1c7">
       <div style="font:600 9px/1 'Oswald';letter-spacing:.12em;text-transform:uppercase;color:#6b645c;margin-bottom:8px">Method</div>
       <div style="display:inline-flex;align-items:center;gap:7px;font:600 14px/1 'Oswald';color:#141210"><span style="width:9px;height:9px;border-radius:50%;background:{{methodColor}}"></span>{{methodLabel}}</div>
@@ -49,13 +49,9 @@
       <div style="font:600 9px/1 'Oswald';letter-spacing:.12em;text-transform:uppercase;color:#6b645c;margin-bottom:8px">Print Date</div>
       <div style="font:600 14px/1 'Oswald';color:#141210">{{printDate}}</div>
     </div>
-    <div style="padding:12px 14px;border-right:1px solid #d8d1c7">
+    <div style="padding:12px 14px">
       <div style="font:600 9px/1 'Oswald';letter-spacing:.12em;text-transform:uppercase;color:#6b645c;margin-bottom:8px">Quantity</div>
       <div style="font:600 14px/1 'Oswald';color:#141210">{{qty}} pieces</div>
-    </div>
-    <div style="padding:12px 14px">
-      <div style="font:600 9px/1 'Oswald';letter-spacing:.12em;text-transform:uppercase;color:#6b645c;margin-bottom:8px">Coordinator</div>
-      <div style="font:600 14px/1 'Oswald';color:#141210">{{coordinator}}</div>
     </div>
   </div>
 
@@ -66,9 +62,8 @@
       <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#6b645c;margin-bottom:12px">Print Details</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;gap:12px"><div style="font:600 11px/1.3 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#6b645c;width:110px;flex-shrink:0">Placement</div><div style="font:400 13px/1.3 'Archivo';color:#141210">{{placement}}</div></div>
-        <div style="display:flex;gap:12px"><div style="font:600 11px/1.3 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#6b645c;width:110px;flex-shrink:0">Colors</div><div style="font:400 13px/1.3 'Archivo';color:#141210">{{colors}}</div></div>
-        <div style="display:flex;gap:12px"><div style="font:600 11px/1.3 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#6b645c;width:110px;flex-shrink:0">Mesh / Ink</div><div style="font:400 13px/1.3 'Archivo';color:#141210">{{meshInk}}</div></div>
-        <div style="display:flex;gap:12px"><div style="font:600 11px/1.3 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#6b645c;width:110px;flex-shrink:0">Garment</div><div style="font:400 13px/1.3 'Archivo';color:#141210">{{garmentLine}}</div></div>
+        <div style="display:flex;gap:12px"><div style="font:600 11px/1.3 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#6b645c;width:110px;flex-shrink:0">Ink Colors</div><div style="font:400 13px/1.3 'Archivo';color:#141210">{{inkColors}}</div></div>
+        <div style="display:flex;gap:12px"><div style="font:600 11px/1.3 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#6b645c;width:110px;flex-shrink:0">Total Garments</div><div style="font:400 13px/1.3 'Archivo';color:#141210">{{totalGarments}}</div></div>
       </div>
     </div>
   </div>
@@ -126,9 +121,10 @@ class Component extends DCLogic {
       live:false,
       order:{
         goa:'GOA-4809', goaTail:'4809', customer:'Cypress Trail 10K', account:'Cypress Events', orderNumber:'00043891',
-        method:'sp', printDate:'Tue · Jul 21', qty:'300', coordinator:'Dana K.',
-        placement:'Full front · left chest · back yoke', colors:'3 colors · PMS 186 Red, PMS 123 Gold, White',
-        meshInk:'156 mesh · Plastisol, standard cure', garmentLine:'Next Level 3600 · Heather Gray + Black',
+        method:'sp', printDate:'Tue · Jul 21', qty:'300',
+        placement:'Full Front, Left Chest, Back',
+        inkColors:'PMS 186 Red, PMS 123 Gold, White',
+        totalGarments:'300 pieces',
         notes:'Run heather first, black second — reclaim gold screen between. Customer approved bright red over PMS match. Fold + poly-bag by size; box in cartons of 50. Event pickup Fri AM — must ship Thursday.',
         cols:['S','M','L','XL','2XL'],
         grids:[
@@ -147,7 +143,7 @@ class Component extends DCLogic {
     try {
       const api = window.CAApi; if(!api) return;
       const M = { sp:'Screen Print', em:'Embroidery', hp:'Heat Press' };
-      const [o1, o2, rows] = await Promise.all([ api.getOrders().catch(()=>[]), (api.getProductionOrders?api.getProductionOrders():Promise.resolve([])).catch(()=>[]), api.getOrderSizes(orderId) ]);
+      const [o1, o2, rows, items] = await Promise.all([ api.getOrders().catch(()=>[]), (api.getProductionOrders?api.getProductionOrders():Promise.resolve([])).catch(()=>[]), api.getOrderSizes(orderId), api.getPreProductionItems(orderId).catch(()=>[]) ]);
       const rec = o1.concat(o2).find(r => r.Id === orderId);
       if(!rec) return;
       // group size rows by color, keep a shared, ordered column list
@@ -164,17 +160,30 @@ class Component extends DCLogic {
       const grand = grids.reduce((a,g)=>a+g.total,0);
       const pdDate = api.parseSfDate(rec.Print_Date__c);
       const pd = pdDate ? pdDate.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }) : '—';
+      // Placement: every decoration location across every Production_Method__c
+      // on this order (Front / Back / Right Sleeve / etc, from Placements__c),
+      // deduped -- an order with two locations for the same method (or two
+      // different methods) still lists every location once.
+      const placements = Array.from(new Set(
+        (rec.ProductionMethods || []).flatMap(pm => (pm.Placements && pm.Placements.length) ? pm.Placements : (pm.Placement__c ? [pm.Placement__c] : []))
+      ));
+      // Ink Colors: pulled from this order's Pre_Production_Item__c Ink items'
+      // Pantone_Color__c, deduped -- these are the actual mixed colors, not
+      // the garment colors (that's what the old "Colors" row accidentally
+      // showed, via the size-breakdown grouping above).
+      const inkColors = Array.from(new Set(
+        (items || []).filter(it => it.Type__c === 'Ink' && it.Pantone_Color__c).map(it => it.Pantone_Color__c)
+      ));
       const order = {
         goa: api.text(rec.GOA_Order_Number__c) || rec.OrderNumber || rec.Id,
         goaTail: (api.text(rec.GOA_Order_Number__c)||rec.OrderNumber||'').replace(/[^0-9-]/g,'') || (rec.OrderNumber||''),
         customer: api.text(rec.Customer_Order_Name__c) || api.text(rec.Account&&rec.Account.Name) || '—',
         account: api.text(rec.Account&&rec.Account.Name) || '', orderNumber: rec.OrderNumber || '',
         method: api.methodOf(rec), methodLabelText: M[api.methodOf(rec)],
-        printDate: pd, qty: String(grand), coordinator: rec.Last_Updated_By__c || '—',
-        placement: rec.Specifications_for_Printing__c || '—',
-        colors: colorKeys.join(', ') || '—',
-        meshInk: rec.Specifications_for_Printing__c || '—',
-        garmentLine: Array.from(new Set(grids.map(g=>g.garment).filter(Boolean))).join(' · ') || '—',
+        printDate: pd, qty: String(grand),
+        placement: placements.join(', ') || '—',
+        inkColors: inkColors.join(', ') || '—',
+        totalGarments: grand ? (String(grand) + ' pieces') : '—',
         notes: rec.Production_Notes__c || rec.Special_Notes__c || '',
         mockupUrl: rec.DesignMockupUrl || null,
         cols, grids, grand: String(grand),
@@ -193,8 +202,8 @@ class Component extends DCLogic {
     }));
     return {
       goa:o.goa, goaTail:o.goaTail, customer:o.customer, account:o.account, orderNumber:o.orderNumber,
-      methodLabel:m.label, methodColor:m.color, printDate:o.printDate, qty:o.qty, coordinator:o.coordinator,
-      placement:o.placement, colors:o.colors, meshInk:o.meshInk, garmentLine:o.garmentLine, notes:o.notes,
+      methodLabel:m.label, methodColor:m.color, printDate:o.printDate, qty:o.qty,
+      placement:o.placement, inkColors:o.inkColors, totalGarments:o.totalGarments, notes:o.notes,
       cols:o.cols, grids, grand:o.grand,
       hasMockup:!!o.mockupUrl, noMockup:!o.mockupUrl,
       mockupNode: o.mockupUrl ? React.createElement('img',{src:o.mockupUrl,alt:'Production mockup',style:{width:190,height:190,flexShrink:0,borderRadius:8,border:'1.5px solid #141210',objectFit:'cover',background:'#efeae2'}}) : null,
