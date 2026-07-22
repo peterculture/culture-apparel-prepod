@@ -65,6 +65,12 @@ const PM_FIELDS = [
   "Thread_Color_Materials__c",
   "Transfers_Received__c",
   "Transfers_Ready__c",
+  // Per-method timers (2026-07-22): each Production_Method__c now has its own
+  // copy of these, same as the checklist fields -- sibling methods on one
+  // order time independently. The order-level totals below are computed as
+  // a live SUM across siblings during grouping, not read from Order.
+  "Print_Setup_Timer__c",
+  "Production_Timer__c",
 ];
 
 // Order-level fields every card needs, reached through the Order__r
@@ -84,8 +90,6 @@ const ORDER_FIELDS = [
   "Order__r.Order_Substatus__c",
   "Order__r.Receiving_Status__c",
   "Order__r.Partial_Check_in_Missing_Items__c",
-  "Order__r.Print_Setup_Timer__c",
-  "Order__r.Production_Timer__c",
   "Order__r.Misprint__c",
   "Order__r.Misprint_Details__c",
   "Order__r.TotalQtyMisprints__c",
@@ -137,8 +141,11 @@ export async function onRequestGet({ env }) {
           Order_Substatus__c: o.Order_Substatus__c,
           Receiving_Status__c: o.Receiving_Status__c,
           Partial_Check_in_Missing_Items__c: o.Partial_Check_in_Missing_Items__c,
-          Print_Setup_Timer__c: o.Print_Setup_Timer__c,
-          Production_Timer__c: o.Production_Timer__c,
+          // Live SUM across sibling Production_Method__c rows, accumulated
+          // below as each method is pushed -- NOT read from Order. Two
+          // methods each showing 20 elapsed seconds add up to 40 here.
+          Print_Setup_Timer__c: 0,
+          Production_Timer__c: 0,
           Misprint__c: o.Misprint__c,
           Misprint_Details__c: o.Misprint_Details__c,
           TotalQtyMisprints__c: o.TotalQtyMisprints__c,
@@ -155,6 +162,8 @@ export async function onRequestGet({ env }) {
         };
         byOrder.set(pm.Order__c, order);
       }
+      const pmSetup = Number(pm.Print_Setup_Timer__c) || 0;
+      const pmProd = Number(pm.Production_Timer__c) || 0;
       order.ProductionMethods.push({
         Id: pm.Id,
         Type__c: pm.Type__c,
@@ -171,7 +180,11 @@ export async function onRequestGet({ env }) {
         Thread_Color_Materials__c: !!pm.Thread_Color_Materials__c,
         Transfers_Received__c: !!pm.Transfers_Received__c,
         Transfers_Ready__c: !!pm.Transfers_Ready__c,
+        Print_Setup_Timer__c: pmSetup,
+        Production_Timer__c: pmProd,
       });
+      order.Print_Setup_Timer__c += pmSetup;
+      order.Production_Timer__c += pmProd;
     });
 
     const orders = Array.from(byOrder.values());
