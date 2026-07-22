@@ -33,7 +33,7 @@
  *   }                                       // in index.html for the order-total sum
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
-import { rollupOrderSubstatus } from "../_pm-rollup.js";
+import { rollupOrderSubstatus, rollupChecklistToOrder } from "../_pm-rollup.js";
 import { cascadeChecklistToItems } from "../_ppi-checklist.js";
 
 const PM_OBJECT = "Production_Method__c";
@@ -134,6 +134,17 @@ export async function onRequestPatch({ params, request, env }) {
     if (checkedNow.length) {
       await cascadeChecklistToItems(env, id, checkedNow).catch((e) =>
         console.error("checklist cascade failed", e),
+      );
+    }
+
+    // Best-effort: mirror ANY checklist field this PATCH touched (checked or
+    // unchecked) onto the legacy Order-level fields of the same name, so a
+    // manual toggle on this method's card -- not just the item-driven cascade
+    // -- keeps the Order copy honest too. See ../_pm-rollup.js.
+    const checklistTouched = Array.from(CHECKLIST_FIELDS).some((f) => f in payload);
+    if (checklistTouched) {
+      await rollupChecklistToOrder(env, id).catch((e) =>
+        console.error("checklist order rollup failed", e),
       );
     }
 
