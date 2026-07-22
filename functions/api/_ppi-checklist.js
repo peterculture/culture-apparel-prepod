@@ -42,6 +42,7 @@
  */
 import { sfFetch, apiVersion } from "./_sf.js";
 import { STATION_CONFIG } from "./_station.js";
+import { rollupChecklistToOrder } from "./_pm-rollup.js";
 
 // Embroidery item types -- no tablet station, no sub-status pipeline, just
 // the generic Status__c (Not Started / In Progress / Ready).
@@ -195,5 +196,11 @@ async function writeMethodPayload(env, methodId, payload) {
     console.error("rollupItemToMethod: method PATCH failed", rp.status, t);
     return null;
   }
+  // Mirror onto the legacy Order-level checklist fields too (see
+  // _pm-rollup.js's rollupChecklistToOrder) -- best-effort, never undoes the
+  // Production_Method__c write above if it fails.
+  await rollupChecklistToOrder(env, methodId).catch((e) =>
+    console.error("rollupItemToMethod: order mirror failed", e),
+  );
   return payload;
 }
