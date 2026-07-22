@@ -22,6 +22,7 @@
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 import { STATION_CONFIG } from "../_station.js";
+import { rollupItemToMethod } from "../_ppi-checklist.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
@@ -89,16 +90,28 @@ export async function onRequestPost({ env, request }) {
       return jsonError("update_failed", resp.status);
     }
 
-    // Optional cross-object roll-up onto the standard Order (transfers use this
-    // to drive the main dashboard's heat-press checkboxes). Best-effort: the
-    // item update already succeeded, so a roll-up failure is logged, not fatal.
+    // Roll-up onto this item's own parent Production_Method__c checklist
+    // field (e.g. Screens_Completed__c). Best-effort: the item update already
+    // succeeded, so a roll-up failure is logged, not fatal.
+    //
+    // FIXED 2026-07-22: this used to call a LOCAL rollupOrder() below --  a
+    // second, never-updated copy of the same cascade logic that lived in
+    // ../_ppi-checklist.js. That copy still scoped by
+    // Production_Method__r.Order__c (every sibling method on the whole
+    // order) and wrote the result onto the standard Order, from before the
+    // 2026-07-21 per-method checklist migration. _ppi-checklist.js's own
+    // copy was already fixed to scope by Production_Method__c and write to
+    // Production_Method__c (see rollupItemToMethod) -- but this station
+    // endpoint kept calling its own stale local copy instead, so items
+    // advanced from a station TABLET (as opposed to the pre-production
+    // manager board, which already called the fixed helper) never flipped
+    // the checkbox. Now both write paths share the one fixed helper.
     let rollup = null;
     if (cfg.orderRollup) {
-      try {
-        rollup = await rollupOrder(env, cfg, itemId);
-      } catch (e) {
-        console.error("order rollup error", e);
-      }
+      rollup = await rollupItemToMethod(env, itemId).catch((e) => {
+        console.error("item rollup error", e);
+        return null;
+      });
     }
 
     return Response.json(
@@ -109,60 +122,4 @@ export async function onRequestPost({ env, request }) {
     console.error(err);
     return jsonError("internal_error", 500);
   }
-}
-
-/**
- * Recompute summary booleans on the standard Order from ALL of its child items
- * of this station's Type. Each cfg.orderRollup entry's field is set true iff
- * every sibling item is at `atOrAfter` (by pipeline position) or later.
- * Returns the written booleans, or null if the order couldn't be resolved.
- */
-async function rollupOrder(env, cfg, itemId) {
-  const v = apiVersion(env);
-  const flow = cfg.subStatusFlow;
-  const idxOf = (val) => {
-    const i = flow.indexOf(val || flow[0]); // blank sub-status = the first stage
-    return i < 0 ? 0 : i;
-  };
-
-  // 1. Resolve the standard Order Id for the item that just changed.
-  const q1 =
-    `SELECT Production_Method__r.Order__r.Id FROM Pre_Production_Item__c WHERE Id = '${itemId}'`;
-  const r1 = await sfFetch(env, `/services/data/${v}/query/?q=${encodeURIComponent(q1)}`);
-  const d1 = await r1.json();
-  const rec1 = d1 && d1.records && d1.records[0];
-  const orderId =
-    rec1 && rec1.Production_Method__r && rec1.Production_Method__r.Order__r &&
-    rec1.Production_Method__r.Order__r.Id;
-  if (!orderId) return null;
-
-  // 2. Every item of this Type on that order (reflects the write we just made).
-  const q2 =
-    `SELECT ${cfg.subStatusField} FROM Pre_Production_Item__c ` +
-    `WHERE Type__c = '${cfg.type}' AND Production_Method__r.Order__c = '${orderId}'`;
-  const r2 = await sfFetch(env, `/services/data/${v}/query/?q=${encodeURIComponent(q2)}`);
-  const d2 = await r2.json();
-  const items = (d2 && d2.records) || [];
-  if (!items.length) return null;
-
-  // 3. Compute each Order checkbox: true iff ALL siblings are at/after the stage.
-  const orderPayload = {};
-  for (const m of cfg.orderRollup) {
-    const target = idxOf(m.atOrAfter);
-    orderPayload[m.field] = items.every((it) => idxOf(it[cfg.subStatusField]) >= target);
-  }
-
-  // 4. Write the summary booleans onto the standard Order.
-  const rp = await sfFetch(env, `/services/data/${v}/sobjects/Order/${orderId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(orderPayload),
-  });
-  if (!rp.ok && rp.status !== 204) {
-    let t = "";
-    try { t = JSON.stringify(await rp.json()); } catch { /* empty */ }
-    console.error("order rollup PATCH failed", rp.status, t);
-    return null;
-  }
-  return orderPayload;
 }
