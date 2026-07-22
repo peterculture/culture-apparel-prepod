@@ -32,6 +32,7 @@
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 import { rollupOrderSubstatus } from "../_pm-rollup.js";
+import { cascadeChecklistToItems } from "../_ppi-checklist.js";
 
 const PM_OBJECT = "Production_Method__c";
 
@@ -103,6 +104,18 @@ export async function onRequestPatch({ params, request, env }) {
       const detail = await resp.text();
       console.error("Production method update failed", resp.status, detail);
       return jsonError("update_failed", resp.status);
+    }
+
+    // Cascade any checklist box that was just checked TRUE down onto its
+    // matching Pre_Production_Item__c records, scoped to THIS method (see
+    // ../_ppi-checklist.js). Best-effort: awaited so the items are in sync by
+    // the time the client re-fetches, but a cascade failure doesn't undo or
+    // fail the checklist write that already succeeded.
+    const checkedNow = Array.from(CHECKLIST_FIELDS).filter((f) => payload[f] === true);
+    if (checkedNow.length) {
+      await cascadeChecklistToItems(env, id, checkedNow).catch((e) =>
+        console.error("checklist cascade failed", e),
+      );
     }
 
     // Best-effort: keep Order_Substatus__c an honest summary of its methods.
