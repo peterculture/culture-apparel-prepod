@@ -217,6 +217,73 @@
           </div>
         </div>
 
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Production Runs</span><sc-if value="{{open.runsLoading}}" hint-placeholder-val="{{ false }}"><span style="font:400 10px/1 'Archivo';color:#4d483f">Loading…</span></sc-if></div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <sc-for list="{{open.runsView}}" as="run" hint-placeholder-count="0">
+              <div style="background:#121215;border:1px solid #232327;border-radius:10px;padding:13px 14px;display:flex;flex-direction:column;gap:11px">
+                <div style="font:600 11px/1 'Oswald';letter-spacing:.06em;color:#5E9B9A">{{run.name}}</div>
+
+                <div>
+                  <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Press</div>
+                  <input value="{{run.pressQ}}" onInput="{{ run.onPressSearch }}" placeholder="Search presses/machines…" style="width:100%;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:12px;color:#ECEAE4;outline:none">
+                  <sc-if value="{{run.pressPicked}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:5px;font:600 10px/1 'Oswald';letter-spacing:.03em;color:#BBD382;margin-top:7px"><i class="ti ti-check"></i>{{run.pressName}}</div></sc-if>
+                  <div style="display:flex;flex-direction:column;gap:4px;margin-top:7px">
+                    <sc-for list="{{run.pressResultsView}}" as="p" hint-placeholder-count="0">
+                      <button onClick="{{ p.onPick }}" style="text-align:left;font:500 11px/1.2 'Archivo';color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:8px 10px;cursor:pointer" style-hover="border-color:#C6372B">{{p.name}}</button>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:8px">
+                  <div style="flex:1;min-width:0">
+                    <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Scheduled Start</div>
+                    <div style="display:flex;gap:6px">
+                      <input type="date" value="{{run.startDate}}" onInput="{{ run.onStartDate }}" style="flex:1;min-width:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                      <input type="time" value="{{run.startTime}}" onInput="{{ run.onStartTime }}" style="width:92px;flex-shrink:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                    </div>
+                  </div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Scheduled End</div>
+                    <div style="display:flex;gap:6px">
+                      <input type="date" value="{{run.endDate}}" onInput="{{ run.onEndDate }}" style="flex:1;min-width:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                      <input type="time" value="{{run.endTime}}" onInput="{{ run.onEndTime }}" style="width:92px;flex-shrink:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Total Garments</div>
+                  <input type="number" min="1" value="{{run.qty}}" onInput="{{ run.onQty }}" style="width:100%;max-width:140px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:12px;color:#ECEAE4;outline:none">
+                </div>
+
+                <div style="display:flex;gap:8px;padding-top:2px;border-top:1px dashed #232327">
+                  <div style="flex:1;min-width:0;padding-top:9px">
+                    <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#7FA644;margin-bottom:6px">Actual Start</div>
+                    <div style="display:flex;gap:6px">
+                      <input type="date" value="{{run.actualStartDate}}" onInput="{{ run.onActualStartDate }}" style="flex:1;min-width:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                      <input type="time" value="{{run.actualStartTime}}" onInput="{{ run.onActualStartTime }}" style="width:92px;flex-shrink:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                    </div>
+                  </div>
+                  <div style="flex:1;min-width:0;padding-top:9px">
+                    <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#7FA644;margin-bottom:6px">Actual End</div>
+                    <div style="display:flex;gap:6px">
+                      <input type="date" value="{{run.actualEndDate}}" onInput="{{ run.onActualEndDate }}" style="flex:1;min-width:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                      <input type="time" value="{{run.actualEndTime}}" onInput="{{ run.onActualEndTime }}" style="width:92px;flex-shrink:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                    </div>
+                  </div>
+                </div>
+
+                <sc-if value="{{run.hasMsg}}" hint-placeholder-val="{{ false }}"><div style="font:600 10px/1 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:#BBD382">{{run.msg}}</div></sc-if>
+                <sc-if value="{{run.hasErr}}" hint-placeholder-val="{{ false }}"><div style="font:600 10px/1.3 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:#E8A89F">{{run.err}}</div></sc-if>
+
+                <button onClick="{{ run.onSave }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:8px;padding:11px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-device-floppy"></i>{{run.saveLabel}}</button>
+              </div>
+            </sc-for>
+            <sc-if value="{{open.runsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f;padding:2px">No production runs created for this method yet.</div></sc-if>
+          </div>
+        </div>
+
       </div>
 
       <div style="padding:16px 22px;border-top:1px solid #1b1b1e">
@@ -522,6 +589,13 @@ class Component extends DCLogic {
       // Post-creation "Production Method Created" panel + the Create
       // Production Run modal it launches -- see submitMethod()/submitRun().
       createdPanel:null, runModalOpen:false, runForm:null, runPressResults:[], runSubmitting:false, runErr:'', runMsg:'',
+      // Card drawer's "Production Runs" section (view + edit existing runs
+      // under this card's Production_Method__c) -- see openOrder()/
+      // loadRunsForCard()/saveRunRow(). runsByMethod caches the raw records
+      // per methodId; runEdits holds each run's own editable form buffer,
+      // seeded from the record and diverging as the manager types, until
+      // Save writes it back and (on success) it's re-seeded from the fetch.
+      runsByMethod:{}, runsLoadingFor:null, runEdits:{}, runRowPressResults:{}, runRowSaving:{}, runRowErr:{}, runRowMsg:{},
     };
   }
   componentDidMount(){ this._t=setInterval(()=>this.setState({now:new Date()}),1000); this.load(); this._ar=setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && this.state.view!=='mgr') this.load(); },15000); }
@@ -646,6 +720,90 @@ class Component extends DCLogic {
     if(!card || !this._api || this.state.connection!=='live') return;
     const orderId=card.orderId;
     this._api.getPreProductionItems(orderId).then(items=>{ this.setState(st=>({ppItemsById:Object.assign({},st.ppItemsById,{[orderId]:items})})); }).catch(()=>{});
+    // cardId IS this card's Production_Method__c Id (one card == one method).
+    this.loadRunsForCard(cardId);
+  }
+  // ── Production Runs section of the card drawer ──────────────────────────
+  // Splits an ISO datetime back into the {date,time} pair <input type=date>/
+  // <input type=time> need -- the inverse of buildRunDateTime(). Local-time
+  // components on both sides of the round trip, so this always matches what
+  // buildRunDateTime() would produce from the same wall-clock values.
+  splitDT(iso){
+    if(!iso) return {date:'', time:''};
+    const d=new Date(iso); if(isNaN(d.getTime())) return {date:'', time:''};
+    const pad=(n)=>String(n).padStart(2,'0');
+    return { date: d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()), time: pad(d.getHours())+':'+pad(d.getMinutes()) };
+  }
+  runEditFieldsFromRecord(r){
+    const ss=this.splitDT(r.scheduledStart), se=this.splitDT(r.scheduledEnd);
+    const as=this.splitDT(r.actualStart), ae=this.splitDT(r.actualEnd);
+    return {
+      pressId:r.pressId||null, pressName:r.pressName||'', pressQ:r.pressName||'',
+      startDate:ss.date, startTime:ss.time, endDate:se.date, endTime:se.time,
+      actualStartDate:as.date, actualStartTime:as.time, actualEndDate:ae.date, actualEndTime:ae.time,
+      qty: r.qty!=null ? String(r.qty) : '',
+    };
+  }
+  loadRunsForCard(methodId){
+    if(!methodId || !this._api || this.state.connection!=='live') return;
+    this.setState({runsLoadingFor:methodId});
+    this._api.getProductionRuns(methodId).then(recs=>{
+      const runs=(recs||[]).map(r=>({
+        id:r.Id, name:r.Name,
+        pressId:r.Press__c||null, pressName:(r.Press__r&&r.Press__r.Name)||'',
+        scheduledStart:r.Scheduled_Start__c||null, scheduledEnd:r.Scheduled_End__c||null,
+        actualStart:r.Actual_Start__c||null, actualEnd:r.Actual_End__c||null,
+        qty: r.Quantity_Planned_c__c!=null ? r.Quantity_Planned_c__c : null,
+      }));
+      this.setState(st=>{
+        const edits=Object.assign({}, st.runEdits);
+        runs.forEach(r=>{ edits[r.id]=this.runEditFieldsFromRecord(r); });
+        return {
+          runsByMethod:Object.assign({}, st.runsByMethod, {[methodId]:runs}),
+          runEdits:edits,
+          runsLoadingFor: st.runsLoadingFor===methodId ? null : st.runsLoadingFor,
+        };
+      });
+    }).catch(()=>{
+      this.setState(st=>({ runsByMethod:Object.assign({}, st.runsByMethod, {[methodId]:st.runsByMethod[methodId]||[]}), runsLoadingFor: st.runsLoadingFor===methodId ? null : st.runsLoadingFor }));
+    });
+  }
+  setRunRowField(runId, patch){ this.setState(st=>({ runEdits:Object.assign({}, st.runEdits, {[runId]:Object.assign({}, st.runEdits[runId]||{}, patch)}) })); }
+  runRowPressSearch(runId, q){
+    this.setRunRowField(runId, {pressQ:q, pressId:null, pressName:''});
+    if(!this._api) return;
+    this._rrpt=this._rrpt||{}; clearTimeout(this._rrpt[runId]);
+    this._rrpt[runId]=setTimeout(()=>{ this._api.searchPresses(q).then(r=>this.setState(st=>({runRowPressResults:Object.assign({}, st.runRowPressResults, {[runId]:r})}))).catch(()=>{}); },250);
+  }
+  pickRunRowPress(runId,id,name){ this.setRunRowField(runId,{pressId:id, pressName:name, pressQ:name}); this.setState(st=>({runRowPressResults:Object.assign({}, st.runRowPressResults, {[runId]:[]})})); }
+  async saveRunRow(runId){
+    const f=this.state.runEdits[runId]; if(!f) return;
+    if(this.state.runRowSaving[runId]) return;
+    const fail=(msg)=>{ this.setState(st=>({ runRowErr:Object.assign({}, st.runRowErr, {[runId]:msg}), runRowMsg:Object.assign({}, st.runRowMsg, {[runId]:''}) })); };
+    if(!f.pressId){ fail('Pick a press'); return; }
+    const start=this.buildRunDateTime(f.startDate,f.startTime);
+    if(!start){ fail('Set the scheduled start date & time'); return; }
+    const end=this.buildRunDateTime(f.endDate,f.endTime);
+    if(!end){ fail('Set the scheduled end date & time'); return; }
+    const qtyNum=Number(f.qty);
+    if(!f.qty || !Number.isFinite(qtyNum) || qtyNum<=0){ fail('Enter the total quantity for this run'); return; }
+    // Actual Start/End are optional -- either can be left fully blank. A
+    // half-filled pair (date with no time, or vice versa) is treated as a
+    // mistake and blocks save rather than silently dropping half the input.
+    if((f.actualStartDate||f.actualStartTime) && !(f.actualStartDate&&f.actualStartTime)){ fail('Actual Start needs both a date and a time'); return; }
+    if((f.actualEndDate||f.actualEndTime) && !(f.actualEndDate&&f.actualEndTime)){ fail('Actual End needs both a date and a time'); return; }
+    const actualStart = (f.actualStartDate && f.actualStartTime) ? this.buildRunDateTime(f.actualStartDate,f.actualStartTime) : '';
+    const actualEnd = (f.actualEndDate && f.actualEndTime) ? this.buildRunDateTime(f.actualEndDate,f.actualEndTime) : '';
+    if(f.actualStartDate && f.actualStartTime && !actualStart){ fail('Actual Start date/time is invalid'); return; }
+    if(f.actualEndDate && f.actualEndTime && !actualEnd){ fail('Actual End date/time is invalid'); return; }
+    this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:true}), runRowErr:Object.assign({}, st.runRowErr, {[runId]:''}), runRowMsg:Object.assign({}, st.runRowMsg, {[runId]:''}) }));
+    try{
+      const res=await this._api.patchProductionRun(runId, { pressId:f.pressId, scheduledStart:start, scheduledEnd:end, quantity:qtyNum, actualStart:actualStart, actualEnd:actualEnd });
+      if(res && (res.error || res.ok===false)) throw new Error(res.error||'update_failed');
+      this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowMsg:Object.assign({}, st.runRowMsg, {[runId]:'Saved'}) }));
+    }catch(e){
+      this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowErr:Object.assign({}, st.runRowErr, {[runId]:'Save failed — check press / schedule and try again'}) }));
+    }
   }
   setItemField(orderId,itemId,field,val){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).map(it=>it.Id===itemId?Object.assign({},it,{[field]:val}):it); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live') this._api.patchItem(itemId,{[field]:val}).catch(()=>{}); }
   removePPItem(orderId,itemId){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).filter(it=>it.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{}); }
@@ -923,7 +1081,37 @@ class Component extends DCLogic {
       // manager form used for brand-new orders, pre-targeted at this
       // ORDER (not this card) since it's adding a new method alongside it.
       const methodsView=(src.methods||[]).map(pm=>({ label:pm.label, color:pm.color, vendor:pm.vendor||'No vendor set' }));
-      open=Object.assign({},d,{ checklist, recvSteps, assignees, sizeCells, methodsView, methodsEmpty:methodsView.length===0, onAddMethod:()=>this.openMgrForOrder(src.orderId), ready, notReady:!ready, notReadyLabel:'Blocked — '+missing.join(' · '), onSend:()=>this.send(src.id), hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode:d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.orderId),
+      // Production Runs section: this card's own Production_Method__c is the
+      // scope key (runsByMethod/runEdits are keyed by that same Id), so a
+      // sibling method's runs never bleed into this card. Falls back to
+      // runEditFieldsFromRecord(r) if a run just arrived from the fetch and
+      // hasn't been seeded into runEdits yet (shouldn't normally happen --
+      // loadRunsForCard() seeds both together -- but keeps render safe).
+      const rawRuns = st.runsByMethod[src.id] || [];
+      const runsView = rawRuns.map(r=>{
+        const f = st.runEdits[r.id] || this.runEditFieldsFromRecord(r);
+        const pressResults = (st.runRowPressResults && st.runRowPressResults[r.id]) || [];
+        const saving = !!(st.runRowSaving && st.runRowSaving[r.id]);
+        return {
+          id:r.id, name:r.name,
+          pressQ:f.pressQ, pressPicked:!!f.pressId, pressName:f.pressName,
+          onPressSearch:(e)=>this.runRowPressSearch(r.id, e.target.value),
+          pressResultsView: pressResults.map(p=>({ id:p.Id, name:p.Name, onPick:()=>this.pickRunRowPress(r.id,p.Id,p.Name) })),
+          startDate:f.startDate, startTime:f.startTime,
+          onStartDate:(e)=>this.setRunRowField(r.id,{startDate:e.target.value}), onStartTime:(e)=>this.setRunRowField(r.id,{startTime:e.target.value}),
+          endDate:f.endDate, endTime:f.endTime,
+          onEndDate:(e)=>this.setRunRowField(r.id,{endDate:e.target.value}), onEndTime:(e)=>this.setRunRowField(r.id,{endTime:e.target.value}),
+          actualStartDate:f.actualStartDate, actualStartTime:f.actualStartTime,
+          onActualStartDate:(e)=>this.setRunRowField(r.id,{actualStartDate:e.target.value}), onActualStartTime:(e)=>this.setRunRowField(r.id,{actualStartTime:e.target.value}),
+          actualEndDate:f.actualEndDate, actualEndTime:f.actualEndTime,
+          onActualEndDate:(e)=>this.setRunRowField(r.id,{actualEndDate:e.target.value}), onActualEndTime:(e)=>this.setRunRowField(r.id,{actualEndTime:e.target.value}),
+          qty:f.qty, onQty:(e)=>this.setRunRowField(r.id,{qty:e.target.value}),
+          onSave:()=>this.saveRunRow(r.id), saving, saveLabel: saving?'Saving…':'Save Changes',
+          err:(st.runRowErr&&st.runRowErr[r.id])||'', msg:(st.runRowMsg&&st.runRowMsg[r.id])||'',
+          hasErr:!!(st.runRowErr&&st.runRowErr[r.id]), hasMsg:!!(st.runRowMsg&&st.runRowMsg[r.id]),
+        };
+      });
+      open=Object.assign({},d,{ checklist, recvSteps, assignees, sizeCells, methodsView, methodsEmpty:methodsView.length===0, onAddMethod:()=>this.openMgrForOrder(src.orderId), runsView, runsEmpty:runsView.length===0, runsLoading: st.runsLoadingFor===src.id, ready, notReady:!ready, notReadyLabel:'Blocked — '+missing.join(' · '), onSend:()=>this.send(src.id), hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode:d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.orderId),
         specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.orderId,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.orderId,e.target.value),
         // Items come back per ORDER (all sibling methods' items together);
         // filter down to just this card's own Production_Method__c.
