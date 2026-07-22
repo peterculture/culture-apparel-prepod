@@ -26,7 +26,11 @@ const FIELDS = [
   "Specifications_for_Printing__c",
   "Special_Notes__c",
   "Printer__r.Name",
-  "(SELECT Product2.Name, Quantity FROM OrderItems)",
+  // Color__c + Size__c added 2026-07-22 so the manager can preview the
+  // garment size breakdown (via CAApi.pivotItems) while setting up a fresh
+  // Production Method/Run for this order -- matches the shape /api/orders
+  // already selects.
+  "(SELECT Product2.Name, Color__c, Size__c, Quantity FROM OrderItems)",
 ];
 export async function onRequestGet({ env }) {
   try {
