@@ -72,9 +72,12 @@ const ALLOWED_SUBSTATUSES = new Set([
   "Pre-Production", "Ready for Print", "Production", "Post-Production", "Completed",
 ]);
 
-// Shipping_Delivery__c picklist values, confirmed 2026-07-14.
+// Shipping_Delivery__c picklist values, confirmed 2026-07-14. "Delivery" added
+// 2026-07-22 -- must exist on the Shipping_Delivery__c picklist in Salesforce
+// (Setup -> Object Manager -> Order -> Fields) before this ships, or a PATCH
+// sending it fails with INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST.
 const ALLOWED_DELIVERY_METHODS = new Set([
-  "Shipping", "Local Dropoff", "Pickup", "Order Fulfillment", "Split Ship",
+  "Shipping", "Local Dropoff", "Pickup", "Order Fulfillment", "Split Ship", "Delivery",
 ]);
 
 // Salesforce IDs are 15 or 18 chars, alphanumeric. Validate before using in a URL.
