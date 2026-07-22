@@ -511,8 +511,17 @@ class Component extends DCLogic {
     const form=Object.assign(this.defaultForm(),{ specs:(src&&src.printSpecs)||'', notes:(src&&src.specialNotes)||'' });
     this.setState({view:'mgr', mgrId:orderId, mgrSource:'order', form, vendorResults:[], planResults:[], mgrErr:'', mgrMsg:'', openId:null});
   }
-  setMgrSpecs(v){ const oid=this.state.mgrId; this.setForm({specs:v}); if(!oid) return; clearTimeout(this._mgrSpecsT); this._mgrSpecsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
-  setMgrSpecial(v){ const oid=this.state.mgrId; this.setForm({notes:v}); if(!oid) return; clearTimeout(this._mgrSpecialT); this._mgrSpecialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Special_Notes__c:v}).catch(()=>{}); },600); }
+  // FIXED 2026-07-22: these only ever pushed to Salesforce and updated the
+  // isolated manager-form state (this.state.form) -- never
+  // updateOrderFieldLocally, unlike setSpecs/setSpecial above. That's fine
+  // for a brand-new order opened from the inbox (no cards exist yet to sync),
+  // but openMgrForOrder() reuses this same form to add a method to an ORDER
+  // THAT ALREADY HAS SIBLING CARDS on the worker board -- and those sibling
+  // cards never saw the edit until the next 15s poll. Now mirrors
+  // setSpecs/setSpecial: updates every sibling card immediately (a no-op
+  // .map() if mgrId isn't actually an order id with cards yet).
+  setMgrSpecs(v){ const oid=this.state.mgrId; this.setForm({specs:v}); if(!oid) return; this.updateOrderFieldLocally(oid,{printSpecs:v}); clearTimeout(this._mgrSpecsT); this._mgrSpecsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
+  setMgrSpecial(v){ const oid=this.state.mgrId; this.setForm({notes:v}); if(!oid) return; this.updateOrderFieldLocally(oid,{specialNotes:v}); clearTimeout(this._mgrSpecialT); this._mgrSpecialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Special_Notes__c:v}).catch(()=>{}); },600); }
   backToInbox(){ this.setState({mgrId:null, mgrErr:'', mgrMsg:''}); }
   // Pre_Production_Item__c records come back per ORDER (one fetch covers
   // every sibling method's items), cached under ppItemsById[orderId] and
