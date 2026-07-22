@@ -451,7 +451,15 @@ class Component extends DCLogic {
     const M = { sp:{label:'Screen Print',short:'Screen',color:'#C6372B'}, em:{label:'Embroidery',short:'Embroid',color:'#5E9B9A'}, hp:{label:'Heat Press',short:'Heat',color:'#C9923A'}, promo:{label:'Promotional Items',short:'Promo',color:'#8E6FB0'} };
     const W = { MA:{name:'Marcus A.',color:'#C6372B'}, DK:{name:'Dana K.',color:'#5E9B9A'}, PR:{name:'Priya R.',color:'#C9923A'}, JT:{name:'Jules T.',color:'#7FA644'} };
     const U = { over:'#E24A3A', today:'#E24A3A', soon:'#C9923A', ok:'#6C665C', done:'#7FA644' };
-    const NEXT = { rfp:{stage:'ip',label:'Start Production',icon:'ti-player-play'}, ip:{stage:'pp',label:'Move to Post-Production',icon:'ti-package'}, pp:{stage:'done',label:'Mark Completed',icon:'ti-circle-check'} };
+    // nx.label is a BUTTON CAPTION ("Start Production"), not a Status__c
+    // value -- advanceStatus() needs the real picklist value (e.g. "In
+    // Production"), so nx.status carries that separately. Mixing these up
+    // was the root cause of a real bug: clicking the bottom CTA sent the
+    // literal string "Start Production" as Status__c, which Salesforce
+    // rejects (not a valid picklist value), so the write silently failed
+    // while local state still flipped -- the card would go stage:undefined
+    // and vanish from every column until the next poll corrected it.
+    const NEXT = { rfp:{stage:'ip',status:'In Production',label:'Start Production',icon:'ti-player-play'}, ip:{stage:'pp',status:'Post-Production',label:'Move to Post-Production',icon:'ti-package'}, pp:{stage:'done',status:'Completed',label:'Mark Completed',icon:'ti-circle-check'} };
 
     const q = st.q.trim().toLowerCase();
     // Each card is one Production_Method__c -- filtering/searching now
@@ -561,7 +569,7 @@ class Component extends DCLogic {
         misBorder:(src.mis>0)?'#7A241C':'#232327', misColor:(src.mis>0)?'#E8A89F':'#ECEAE4',
         onMisPlus:()=>this.setMis(src.orderId,(src.mis||0)+1), onMisMinus:()=>this.setMis(src.orderId,(src.mis||0)-1),
         misDetails:st.misDetails[src.orderId]||'', onMisDetails:(e)=>this.setMisDetails(src.orderId,e.target.value),
-        canAdvance:!!nx, isDone:src.stage==='done', advanceLabel:nx?nx.label:'', advanceIcon:nx?nx.icon:'', onAdvance:nx?(()=>this.advanceStatus(src.id,nx.label,src.orderId)):null,
+        canAdvance:!!nx, isDone:src.stage==='done', advanceLabel:nx?nx.label:'', advanceIcon:nx?nx.icon:'', onAdvance:nx?(()=>this.advanceStatus(src.id,nx.status,src.orderId)):null,
       });
     }
 
