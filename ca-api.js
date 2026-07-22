@@ -82,6 +82,13 @@
   function createMethod(body){ return jsend('/api/production-methods', 'POST', body); }
   // Creates one Production_Run__c. body: { printMethodId, pressId, scheduledStart, scheduledEnd, quantity }
   function createProductionRun(body){ return jsend('/api/production-runs', 'POST', body); }
+  // Every Production_Run__c attached to one Production_Method__c -- powers
+  // the card drawer's "Production Runs" section (view + edit existing runs).
+  function getProductionRuns(methodId){ return jget('/api/production-runs?methodId=' + encodeURIComponent(methodId)).then(function (d) { return d.records || []; }); }
+  // Updates one Production_Run__c. fields: any subset of { pressId, scheduledStart,
+  // scheduledEnd, quantity, actualStart, actualEnd } -- actualStart/actualEnd accept
+  // '' to clear that field. See functions/api/production-runs/[id].js.
+  function patchProductionRun(id, fields){ return jsend('/api/production-runs/' + encodeURIComponent(id), 'PATCH', fields); }
   // Updates ONE Production_Method__c's own Status__c (independent of its
   // order's other methods). orderId is optional but should be passed
   // whenever known -- the server uses it to roll the parent Order's
@@ -239,7 +246,7 @@
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf, stageOfMethod: stageOfMethod,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
     PLACEMENTS: PLACEMENTS, methodsList: methodsList, METHOD_META: METHOD_META,
-    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, searchPresses: searchPresses, createMethod: createMethod, createProductionRun: createProductionRun, patchMethodStatus: patchMethodStatus, patchMethodChecklist: patchMethodChecklist, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
+    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, searchPresses: searchPresses, createMethod: createMethod, createProductionRun: createProductionRun, getProductionRuns: getProductionRuns, patchProductionRun: patchProductionRun, patchMethodStatus: patchMethodStatus, patchMethodChecklist: patchMethodChecklist, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
     getPackaging: getPackaging, postPackaging: postPackaging, deletePackaging: deletePackaging,
     getShipments: getShipments, postShipment: postShipment,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
