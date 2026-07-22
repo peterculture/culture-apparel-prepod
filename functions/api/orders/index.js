@@ -1,74 +1,94 @@
 /**
  * GET /api/orders
  *
- * Runs the fixed SOQL query for production-pipeline orders and returns the raw
- * Salesforce query response to the browser. Because the query is hard-coded
- * here (not passed in from the client), the browser cannot run arbitrary SOQL.
+ * Powers the Pre-Production board (pre-production.html) and the Garment
+ * station. Production_Method__c -- NOT Order -- is the root of this query,
+ * same shape as /api/production-orders (see that file for the full
+ * rationale). Every row already IS a board card: it's gated on its own
+ * Status__c = 'Pre-Production' and carries every order-level field a card
+ * needs, pulled through the Order__r relationship. Rows are grouped into
+ * an order-shaped payload afterward purely for DISPLAY -- Order is a
+ * grouping label here, not a gate. An order with a Screen Print method
+ * still in Pre-Production and a Heat Press method already further along
+ * shows up with just the one relevant card, independent of its sibling.
  *
- * WHY THE FILTER CHANGED (2026-07-20): the dashboards' columns are driven by
- * Order_Substatus__c (Pre-Production / Ready for Print / In Production /
- * Post-Production / Completed), NOT by the standard Status field. The old
- * filter `WHERE Status = 'Pre-Production'` dropped any order whose standard
- * Status had moved on (e.g. an order sitting at substatus "Post-Production"
- * whose Status is no longer "Pre-Production") -- so those orders silently
- * vanished from the board. Filtering on `Order_Substatus__c != null` returns
- * every order that is anywhere in the production pipeline and lets the front
- * end place each one by its substatus. If you ever need to scope it tighter,
- * filter on an explicit set instead, e.g.:
- *   WHERE Order_Substatus__c IN
- *     ('Pre-Production','Ready for Print','Production','Post-Production','Completed')
- * (note: the "In Production" picklist entry's stored value is "Production").
+ * WHY THIS SHAPE (2026-07-22): matches /api/production-orders for
+ * consistency -- both boards now key off Production_Method__c.Status__c
+ * exclusively, and neither depends on Order.Order_Substatus__c (a rolled-up
+ * field, see _pm-rollup.js) to decide what's fetched. pre-production.html
+ * already filtered cards client-side by `pm.Status__c === 'Pre-Production'`
+ * before this change, so this doesn't change what's visible -- it just
+ * stops over-fetching every order in the whole pipeline (Ready for Print
+ * through Completed) only to discard most of it client-side, and stops
+ * relying on Order_Substatus__c altogether.
  *
- * NOTE ON FIELDS: adjust the SELECT list to match your org's exact API names.
+ * WHY A SEPARATE ENDPOINT FROM /api/production-orders: that one filters on
+ * Production_Method__c.Status__c IN ('Ready for Print', 'In Production',
+ * 'Post-Production', 'Completed') for the Production Dashboard. This one
+ * filters on Status__c = 'Pre-Production' for the Pre-Production
+ * Dashboard/Garment station. They're deliberately non-overlapping.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 import { fetchMockupsByOpportunity } from "../_mockup.js";
-const FIELDS = [
+
+// Production_Method__c fields every card needs -- same set the old
+// enrichment query fetched, just as the primary SELECT now.
+const PM_FIELDS = [
   "Id",
-  "GOA_Order_Number__c",
-  "OpportunityId", // <-- used server-side to look up the Design__c mockup image
-  "Opportunity.SyncedQuoteId",
-  "OrderNumber",
-  "Customer_Order_Name__c",
-  "Print_Date__c",
-  "Account.Name",
-  "Printer__r.Name", // <-- printer account drives the print method
-  "Status", // <-- standard field; controlling field for Order_Substatus__c
-  "Order_Substatus__c", // <-- "Production Status" path: Pre-Production, Ready for Print, In Production, Post-Production, Completed
-  "Receiving_Status__c",
-  "Partial_Check_in_Missing_Items__c", // <-- garment count-in board: missing note
-  // Screen Print
+  "Order__c",
+  "Type__c",
+  "Placement__c",
+  "Placements__c",
+  "Status__c",
+  "Vendor__r.Name",
   "Films_Printed__c",
   "Screens_Completed__c",
   "Mix_Inks__c",
-  // Embroidery
   "Digitize_File__c",
   "Thread_Color_Materials__c",
-  // Heat Press
   "Transfers_Received__c",
   "Transfers_Ready__c",
-  // Production Dashboard (In Production / Post-Production / shipping)
-  "Print_Setup_Timer__c",
-  "Production_Timer__c",
-  "Misprint__c",
-  "Misprint_Details__c",
-  "TotalQtyMisprints__c",
-  "Packaging_Count__c",
-  "Production_Notes__c",
-  "Shipping_Delivery__c", // <-- "Delivery Method" picklist
-  "Shipping_Label_Printed__c",
-  "ShippingAddress", // <-- compound address field, returns as a nested object
-  "Special_Notes__c", // <-- Ready for Print card: Special Notes
-  "Specifications_for_Printing__c", // <-- Ready for Print card: Specifications for Printing
-  "(SELECT Product2.Name, Color__c, Size__c, Quantity FROM OrderItems)",
 ];
+
+// Order-level fields every card needs, reached through the Order__r
+// relationship -- the same fields the old FIELDS list selected directly
+// off Order, just re-pathed.
+const ORDER_FIELDS = [
+  "Order__r.Id",
+  "Order__r.GOA_Order_Number__c",
+  "Order__r.OpportunityId",
+  "Order__r.Opportunity.SyncedQuoteId",
+  "Order__r.OrderNumber",
+  "Order__r.Customer_Order_Name__c",
+  "Order__r.Print_Date__c",
+  "Order__r.Account.Name",
+  "Order__r.Printer__r.Name",
+  "Order__r.Status",
+  "Order__r.Order_Substatus__c",
+  "Order__r.Receiving_Status__c",
+  "Order__r.Partial_Check_in_Missing_Items__c",
+  "Order__r.Print_Setup_Timer__c",
+  "Order__r.Production_Timer__c",
+  "Order__r.Misprint__c",
+  "Order__r.Misprint_Details__c",
+  "Order__r.TotalQtyMisprints__c",
+  "Order__r.Packaging_Count__c",
+  "Order__r.Production_Notes__c",
+  "Order__r.Shipping_Delivery__c",
+  "Order__r.Shipping_Label_Printed__c",
+  "Order__r.ShippingAddress",
+  "Order__r.Special_Notes__c",
+  "Order__r.Specifications_for_Printing__c",
+];
+
 export async function onRequestGet({ env }) {
   try {
+    const v = apiVersion(env);
     const soql =
-      `SELECT ${FIELDS.join(", ")} FROM Order ` +
-      `WHERE Order_Substatus__c != null ORDER BY Print_Date__c ASC`;
-    const path =
-      `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
+      `SELECT ${PM_FIELDS.join(", ")}, ${ORDER_FIELDS.join(", ")} ` +
+      `FROM Production_Method__c ` +
+      `WHERE Status__c = 'Pre-Production' AND Order__c != null`;
+    const path = `/services/data/${v}/query/?q=${encodeURIComponent(soql)}`;
     const resp = await sfFetch(env, path);
     const data = await resp.json();
     if (!resp.ok) {
@@ -76,96 +96,133 @@ export async function onRequestGet({ env }) {
       return jsonError("query_failed", resp.status);
     }
 
-    const mockups = await fetchMockupsByOpportunity(
-      env,
-      (data.records || []).map((r) => r.OpportunityId),
-    );
-    (data.records || []).forEach((r) => {
-      r.DesignMockupUrl = mockups.get(r.OpportunityId) || null;
+    // Group method rows into one object per Order__c. Order-level fields
+    // are identical across sibling methods on the same order, so they're
+    // taken from the first row seen for that order; every row still adds
+    // its own entry to ProductionMethods. HasProductionMethod is always
+    // true here by construction (every row IS a method), kept only for
+    // shape parity with any older client code still reading it.
+    const byOrder = new Map();
+    (data.records || []).forEach((pm) => {
+      const o = pm.Order__r || {};
+      let order = byOrder.get(pm.Order__c);
+      if (!order) {
+        order = {
+          Id: o.Id || pm.Order__c,
+          GOA_Order_Number__c: o.GOA_Order_Number__c,
+          OpportunityId: o.OpportunityId,
+          Opportunity: o.Opportunity,
+          OrderNumber: o.OrderNumber,
+          Customer_Order_Name__c: o.Customer_Order_Name__c,
+          Print_Date__c: o.Print_Date__c,
+          Account: o.Account,
+          Printer__r: o.Printer__r,
+          Status: o.Status,
+          Order_Substatus__c: o.Order_Substatus__c,
+          Receiving_Status__c: o.Receiving_Status__c,
+          Partial_Check_in_Missing_Items__c: o.Partial_Check_in_Missing_Items__c,
+          Print_Setup_Timer__c: o.Print_Setup_Timer__c,
+          Production_Timer__c: o.Production_Timer__c,
+          Misprint__c: o.Misprint__c,
+          Misprint_Details__c: o.Misprint_Details__c,
+          TotalQtyMisprints__c: o.TotalQtyMisprints__c,
+          Packaging_Count__c: o.Packaging_Count__c,
+          Production_Notes__c: o.Production_Notes__c,
+          Shipping_Delivery__c: o.Shipping_Delivery__c,
+          Shipping_Label_Printed__c: o.Shipping_Label_Printed__c,
+          ShippingAddress: o.ShippingAddress,
+          Special_Notes__c: o.Special_Notes__c,
+          Specifications_for_Printing__c: o.Specifications_for_Printing__c,
+          DesignMockupUrl: null,
+          OrderItems: { totalSize: 0, done: true, records: [] },
+          HasProductionMethod: true,
+          ProductionMethods: [],
+        };
+        byOrder.set(pm.Order__c, order);
+      }
+      order.ProductionMethods.push({
+        Id: pm.Id,
+        Type__c: pm.Type__c,
+        Placement__c: pm.Placement__c || null,
+        // Placements__c comes back from Salesforce as a ";"-joined string
+        // (multi-select picklist wire format). Split it into a clean array
+        // for the client; fall back to the single old Placement__c value
+        // for records never migrated to the multi-select field.
+        Placements: pm.Placements__c
+          ? pm.Placements__c.split(";").filter(Boolean)
+          : (pm.Placement__c ? [pm.Placement__c] : []),
+        Status__c: pm.Status__c,
+        Vendor: (pm.Vendor__r && pm.Vendor__r.Name) || null,
+        Films_Printed__c: !!pm.Films_Printed__c,
+        Screens_Completed__c: !!pm.Screens_Completed__c,
+        Mix_Inks__c: !!pm.Mix_Inks__c,
+        Digitize_File__c: !!pm.Digitize_File__c,
+        Thread_Color_Materials__c: !!pm.Thread_Color_Materials__c,
+        Transfers_Received__c: !!pm.Transfers_Received__c,
+        Transfers_Ready__c: !!pm.Transfers_Ready__c,
+      });
     });
 
-    // Annotate each order with its Production_Method__c children (Type__c +
-    // Placement__c + Status__c + vendor name) -- an order can have MORE THAN
-    // ONE of these: a shop order with a front+back screen print and a heat-
-    // press tag is three Production_Method__c records under one Order__c
-    // (master-detail), one per placement+method combo. r.HasProductionMethod
-    // stays for backward compat (pre-production.html's worker-board filter);
-    // r.ProductionMethods is the new array the UI reads to show what's
-    // already staffed on an order before a manager adds another location.
-    // Same second-query-then-Map pattern as the mockup lookup above; fails
-    // open (defaults to visible / empty) so a transient query error never
-    // hides a real order.
-    const orderIds = (data.records || []).map((r) => r.Id).filter(Boolean);
+    const orders = Array.from(byOrder.values());
+
+    // OrderItems is a child of Order, not of Production_Method__c, so it
+    // can no longer ride along as a nested subquery now that
+    // Production_Method__c is the query root -- fetch it in one batched
+    // follow-up keyed by order Id instead, same pattern as the mockup
+    // lookup below. Fails open (empty items) so a transient error never
+    // breaks a card, just its size/qty display.
+    const orderIds = orders.map((o) => o.Id).filter(Boolean);
     if (orderIds.length) {
       try {
         const quoted = orderIds.map((oid) => `'${oid}'`).join(",");
-        // Films_Printed__c..Transfers_Ready__c: the SAME 7 pre-production
-        // checklist booleans that used to live only on Order (see the field
-        // list above) now also exist on Production_Method__c, so each
-        // method can track its own readiness -- an order with a screen
-        // print AND a heat press method no longer has to share one set of
-        // checkboxes between two unrelated jobs. Order-level copies stay in
-        // the FIELDS list above for backward compat / other reports, but
-        // pre-production.html reads the per-method ones exclusively now.
-        // Placements__c (multi-select, added 2026-07-21) replaces the old
-        // single-select Placement__c -- one method/plan can now cover
-        // several print locations at once. Both are selected: Placements__c
-        // is preferred, Placement__c is the fallback for any older record
-        // that was created before the multi-select field existed and never
-        // got migrated.
-        const soqlPM =
-          `SELECT Id, Order__c, Type__c, Placement__c, Placements__c, Status__c, Vendor__r.Name, ` +
-          `Films_Printed__c, Screens_Completed__c, Mix_Inks__c, Digitize_File__c, ` +
-          `Thread_Color_Materials__c, Transfers_Received__c, Transfers_Ready__c ` +
-          `FROM Production_Method__c WHERE Order__c IN (${quoted})`;
-        const pathPM = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soqlPM)}`;
-        const respPM = await sfFetch(env, pathPM);
-        const dataPM = await respPM.json();
-        if (respPM.ok) {
-          const byOrder = new Map();
-          (dataPM.records || []).forEach((pm) => {
-            const arr = byOrder.get(pm.Order__c) || [];
-            arr.push({
-              Id: pm.Id,
-              Type__c: pm.Type__c,
-              Placement__c: pm.Placement__c || null,
-              // Placements__c comes back from Salesforce as a ";"-joined
-              // string (multi-select picklist wire format). Split it into a
-              // clean array for the client; fall back to the single old
-              // Placement__c value for records never migrated to the new field.
-              Placements: pm.Placements__c
-                ? pm.Placements__c.split(";").filter(Boolean)
-                : (pm.Placement__c ? [pm.Placement__c] : []),
-              Status__c: pm.Status__c,
-              Vendor: (pm.Vendor__r && pm.Vendor__r.Name) || null,
-              Films_Printed__c: !!pm.Films_Printed__c,
-              Screens_Completed__c: !!pm.Screens_Completed__c,
-              Mix_Inks__c: !!pm.Mix_Inks__c,
-              Digitize_File__c: !!pm.Digitize_File__c,
-              Thread_Color_Materials__c: !!pm.Thread_Color_Materials__c,
-              Transfers_Received__c: !!pm.Transfers_Received__c,
-              Transfers_Ready__c: !!pm.Transfers_Ready__c,
-            });
-            byOrder.set(pm.Order__c, arr);
+        const soqlItems =
+          `SELECT OrderId, Product2.Name, Color__c, Size__c, Quantity ` +
+          `FROM OrderItem WHERE OrderId IN (${quoted})`;
+        const pathItems = `/services/data/${v}/query/?q=${encodeURIComponent(soqlItems)}`;
+        const respItems = await sfFetch(env, pathItems);
+        const dataItems = await respItems.json();
+        if (respItems.ok) {
+          const itemsByOrder = new Map();
+          (dataItems.records || []).forEach((it) => {
+            const arr = itemsByOrder.get(it.OrderId) || [];
+            arr.push(it);
+            itemsByOrder.set(it.OrderId, arr);
           });
-          (data.records || []).forEach((r) => {
-            const methods = byOrder.get(r.Id) || [];
-            r.HasProductionMethod = methods.length > 0;
-            r.ProductionMethods = methods;
+          orders.forEach((o) => {
+            const recs = itemsByOrder.get(o.Id) || [];
+            o.OrderItems = { totalSize: recs.length, done: true, records: recs };
           });
         } else {
-          console.error("Production method check failed", respPM.status, JSON.stringify(dataPM));
-          (data.records || []).forEach((r) => { r.HasProductionMethod = true; r.ProductionMethods = []; });
+          console.error("Order item fetch failed", respItems.status, JSON.stringify(dataItems));
         }
       } catch (e) {
-        console.error("Production method check error", e);
-        (data.records || []).forEach((r) => { r.HasProductionMethod = true; r.ProductionMethods = []; });
+        console.error("Order item fetch error", e);
       }
     }
 
-    return Response.json(data, {
-      headers: { "Cache-Control": "no-store" },
+    const mockups = await fetchMockupsByOpportunity(
+      env,
+      orders.map((o) => o.OpportunityId),
+    );
+    orders.forEach((o) => {
+      o.DesignMockupUrl = mockups.get(o.OpportunityId) || null;
     });
+
+    // Match the old ORDER BY Print_Date__c ASC (SOQL's default puts nulls
+    // first on an ascending sort), so card order within a column reads the
+    // same as before.
+    orders.sort((a, b) => {
+      const da = a.Print_Date__c, db = b.Print_Date__c;
+      if (!da && !db) return 0;
+      if (!da) return -1;
+      if (!db) return 1;
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+
+    return Response.json(
+      { totalSize: orders.length, done: true, records: orders },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     console.error(err);
     return jsonError("internal_error", 500);
