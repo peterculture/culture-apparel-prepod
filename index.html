@@ -357,7 +357,7 @@ class Component extends DCLogic {
           const meta = (api.METHOD_META && api.METHOD_META[pm.Type__c]) || { key:'sp', short:pm.Type__c||'Method', color:'#8a8378' };
           const meth = meta.key;
           let pct, progressLabel;
-          if(stage==='ip'||stage==='pp'){ const s=PREREQ[meth]||PREREQ.sp; const done=s.filter(f=>r[f]).length; pct=Math.round(done/s.length*100); progressLabel = stage==='ip'?'On press':'Post-production'; }
+          if(stage==='ip'||stage==='pp'){ const s=PREREQ[meth]||PREREQ.sp; const done=s.filter(f=>pm[f]).length; pct=Math.round(done/s.length*100); progressLabel = stage==='ip'?'On press':'Post-production'; }
           const placements=(pm.Placements&&pm.Placements.length)?pm.Placements:(pm.Placement__c?[pm.Placement__c]:[]);
           cards.push({
             id:pm.Id, orderId:r.Id, stage, status:pm.Status__c, meth, placements:placements,
