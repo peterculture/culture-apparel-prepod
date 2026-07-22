@@ -376,6 +376,114 @@
           <button onClick="{{ onSubmitMethod }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;font:700 13px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-file-plus"></i>Create Production Plan &amp; Send</button>
         </div>
       </sc-if>
+
+      <sc-if value="{{mgrShowCreated}}" hint-placeholder-val="{{ false }}">
+        <div style="background:#0D0D0F;border:1px solid #1f1f23;border-left:4px solid #7FA644;border-radius:12px;padding:16px 18px;margin-bottom:22px">
+          <div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:9px 13px;margin-bottom:12px"><i class="ti ti-check"></i>Production method created</div>
+          <div style="font:600 19px/1.1 'Oswald';color:#ECEAE4">{{createdPanel.customer}}</div>
+          <div style="font:400 12px/1 'Archivo';color:#6C665C;margin-top:6px">{{createdPanel.num}} · {{createdPanel.qty}} pcs · {{createdPanel.methodLabel}}</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:22px">
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Garment Breakdown</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{createdPanel.sizeCells}}" as="s" hint-placeholder-count="5">
+                <div style="min-width:52px;text-align:center;background:#121215;border:1px solid #232327;border-radius:8px;padding:9px 8px"><div style="font:600 10px/1 'Oswald';letter-spacing:.06em;color:#6C665C;margin-bottom:5px">{{s.label}}</div><div style="font:600 16px/1 'Oswald';color:#ECEAE4">{{s.qty}}</div></div>
+              </sc-for>
+              <sc-if value="{{createdPanel.sizesEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f">No size breakdown on file for this order.</div></sc-if>
+            </div>
+          </div>
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Specifications for Printing</div>
+            <div style="font:400 13px/1.55 'Archivo';color:#C9C6BF;white-space:pre-wrap;background:#121215;border:1px solid #232327;border-radius:9px;padding:12px 14px;min-height:24px">{{createdPanel.printSpecsDisplay}}</div>
+          </div>
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#E0B870;margin-bottom:9px">Special Notes</div>
+            <div style="font:400 13px/1.55 'Archivo';color:#E0B870;white-space:pre-wrap;background:#241a09;border:1px solid #5E4214;border-radius:9px;padding:12px 14px;min-height:24px">{{createdPanel.specialNotesDisplay}}</div>
+          </div>
+
+          <button onClick="{{ onOpenRunModal }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;font:700 13px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-tools"></i>Create Production Run</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{runModalOpen}}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:95;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative">
+      <div style="position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:12px;padding:18px 22px;background:rgba(13,13,15,.96);backdrop-filter:blur(8px);border-bottom:1px solid #1f1f23">
+        <div style="font:600 17px/1.1 'Oswald';color:#ECEAE4">Create Production Run</div>
+        <button onClick="{{ onCloseRunModal }}" style="margin-left:auto;width:32px;height:32px;border-radius:9px;background:#16161a;border:1px solid #2a2a2f;color:#9C978C;cursor:pointer;font-size:15px" style-hover="color:#ECEAE4;border-color:#3a3a40"><i class="ti ti-x"></i></button>
+      </div>
+
+      <div style="padding:20px 22px;display:flex;flex-direction:column;gap:20px">
+        <div style="background:#121215;border:1px solid #232327;border-radius:11px;padding:14px 15px;display:flex;flex-direction:column;gap:12px">
+          <div style="font:600 10px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#6C665C">For reference</div>
+          <div>
+            <div style="font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:7px">Garment Breakdown</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap">
+              <sc-for list="{{createdPanel.sizeCells}}" as="s" hint-placeholder-count="5">
+                <div style="min-width:44px;text-align:center;background:#0D0D0F;border:1px solid #232327;border-radius:7px;padding:6px 7px"><div style="font:600 9px/1 'Oswald';letter-spacing:.05em;color:#6C665C;margin-bottom:3px">{{s.label}}</div><div style="font:600 13px/1 'Oswald';color:#ECEAE4">{{s.qty}}</div></div>
+              </sc-for>
+              <sc-if value="{{createdPanel.sizesEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f">No size breakdown on file.</div></sc-if>
+            </div>
+          </div>
+          <div>
+            <div style="font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Print Specs</div>
+            <div style="font:400 12px/1.5 'Archivo';color:#C9C6BF;white-space:pre-wrap">{{createdPanel.printSpecsDisplay}}</div>
+          </div>
+          <div>
+            <div style="font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#E0B870;margin-bottom:6px">Special Notes</div>
+            <div style="font:400 12px/1.5 'Archivo';color:#E0B870;white-space:pre-wrap">{{createdPanel.specialNotesDisplay}}</div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Print Method</div>
+          <div style="font:600 14px/1.3 'Archivo';color:#ECEAE4;background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px">{{createdPanel.methodLabel}}</div>
+        </div>
+
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Press</div>
+          <input value="{{runForm.pressQ}}" onInput="{{ onRunPressSearch }}" placeholder="Search presses/machines…" style="width:100%;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+          <sc-if value="{{runPressPicked}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:6px;font:600 11px/1 'Oswald';letter-spacing:.04em;color:#BBD382;margin-top:9px"><i class="ti ti-check"></i>{{runForm.pressName}}</div></sc-if>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:9px">
+            <sc-for list="{{runPressResultsView}}" as="p" hint-placeholder-count="0">
+              <button onClick="{{ p.onPick }}" style="text-align:left;font:500 12px/1.2 'Archivo';color:#ECEAE4;background:#141417;border:1px solid #232327;border-radius:8px;padding:10px 12px;cursor:pointer" style-hover="border-color:#C6372B">{{p.name}}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Scheduled Start</div>
+          <div style="display:flex;gap:8px">
+            <input type="date" value="{{runForm.startDate}}" onInput="{{ onRunStartDate }}" style="flex:1;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+            <input type="time" value="{{runForm.startTime}}" onInput="{{ onRunStartTime }}" style="width:120px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+          </div>
+        </div>
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Scheduled End</div>
+          <div style="display:flex;gap:8px">
+            <input type="date" value="{{runForm.endDate}}" onInput="{{ onRunEndDate }}" style="flex:1;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+            <input type="time" value="{{runForm.endTime}}" onInput="{{ onRunEndTime }}" style="width:120px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+          </div>
+        </div>
+
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Total Garments to Print</div>
+          <input type="number" min="1" value="{{runForm.qty}}" onInput="{{ onRunQty }}" placeholder="e.g. 48" style="width:100%;max-width:180px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+        </div>
+
+        <sc-if value="{{runHasMsg}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:10px 13px"><i class="ti ti-check"></i>{{runMsg}}</div></sc-if>
+        <sc-if value="{{runHasErr}}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;font:600 11px/1.3 'Oswald';letter-spacing:.03em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:9px;padding:12px 14px"><i class="ti ti-alert-triangle"></i>{{runErr}}</div></sc-if>
+
+        <div style="display:flex;gap:9px;flex-direction:column">
+          <button onClick="{{ onSaveShopFloor }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;font:700 13px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-send"></i>Save and Send to Shop Floor</button>
+          <button onClick="{{ onSaveNew }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;font:700 12px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:11px;padding:15px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-plus"></i>Save and New</button>
+        </div>
+      </div>
     </div>
   </div>
 </sc-if></x-dc>
@@ -411,6 +519,9 @@ class Component extends DCLogic {
       now:new Date(), nameOk: VALID_NAMES.includes(storedName), orders:[], connection:'loading', q:'', openId:null, ppItemsById:{}, weekMode:'all', pickDate:'',
       view:'board', inbox:[], inboxLoaded:false, mgrId:null, mgrSource:null, form:null, vendorResults:[], planResults:[], submitting:false, mgrErr:'', mgrMsg:'',
       sent:{},
+      // Post-creation "Production Method Created" panel + the Create
+      // Production Run modal it launches -- see submitMethod()/submitRun().
+      createdPanel:null, runModalOpen:false, runForm:null, runPressResults:[], runSubmitting:false, runErr:'', runMsg:'',
     };
   }
   componentDidMount(){ this._t=setInterval(()=>this.setState({now:new Date()}),1000); this.load(); this._ar=setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && this.state.view!=='mgr') this.load(); },15000); }
@@ -491,7 +602,10 @@ class Component extends DCLogic {
   // Toggles one location in/out of the form's multi-select Placements list.
   togglePlacement(x){ this.setState(st=>{ const f=Object.assign({},st.form||this.defaultForm()); const cur=f.placements||[]; f.placements = cur.includes(x) ? cur.filter(v=>v!==x) : cur.concat([x]); return {form:f}; }); }
   openMgr(){ this.setState({view:'mgr', mgrId:null, mgrErr:'', mgrMsg:''}); this.loadInbox(); }
-  closeMgr(){ this.setState({view:'board', mgrId:null}); }
+  // Also the general "leave Management" exit -- clears the created-method
+  // panel and Create Production Run modal too, so returning here always
+  // lands cleanly back on the board regardless of where the manager was.
+  closeMgr(){ this.setState({view:'board', mgrId:null, createdPanel:null, runModalOpen:false}); }
   async loadInbox(){ if(!this._api) this._api=window.CAApi; if(!this._api || this.state.connection!=='live'){ this.setState({inbox:[], inboxLoaded:true}); return; } try{ const recs=await this._api.getInbox(); this.setState({inbox:recs, inboxLoaded:true}); }catch(_){ this.setState({inbox:[], inboxLoaded:true}); } }
   pickInbox(id){
     const rec=(this.state.inbox||[]).find(r=>r.Id===id)||{};
@@ -571,16 +685,90 @@ class Component extends DCLogic {
     try{
       const res=await this._api.createMethod(body);
       if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed');
-      if(st.mgrSource==='order'){
-        // Added a location to an order that's already staffed -- go back to
-        // the board and pull fresh data so the drawer shows the new method.
-        this.setState({submitting:false, mgrId:null, mgrSource:null});
+      // 2026-07-22: instead of bouncing straight back to the inbox/board,
+      // land on a "Production Method Created" panel for THIS method --
+      // garment breakdown + specs/notes for reference, and a button into
+      // the new Create Production Run modal. The manager can still leave
+      // any time via the mgr header's "Back to Board" (closeMgr(), which
+      // now also clears this panel/modal -- see above).
+      const pmId = res && res.productionMethodId;
+      const ref = this.referenceForOrder(oid);
+      const methodLabel = f.method + ((f.placements && f.placements.length) ? (' – '+f.placements.join(' + ')) : '');
+      this.setState(s2=>({
+        submitting:false, mgrSource:null,
+        inbox:(s2.inbox||[]).filter(o=>o.Id!==oid),
+        createdPanel:{ pmId, orderId:oid, methodLabel, customer:ref.customer, num:ref.num, qty:ref.qty, garment:ref.garment, sizeCells:ref.sizeCells, printSpecs:ref.printSpecs, specialNotes:ref.specialNotes },
+        runModalOpen:false, runForm:this.defaultRunForm(), runPressResults:[], runErr:'', runMsg:'',
+      }));
+      // Best-effort refresh of the underlying board data in the background
+      // (new method now exists; if a run gets sent to the shop floor before
+      // the manager returns here, that should be reflected too).
+      this.load();
+    }catch(e){ this.setState({submitting:false, mgrErr:'Create failed — check vendor / plan and try again'}); }
+  }
+  // Best-effort reference data (garment breakdown, print specs, special
+  // notes) for the order the manager just created a method for -- read from
+  // whichever source already has it in memory: a board card (already-staffed
+  // orders, via openMgrForOrder) or the raw inbox record (brand-new orders,
+  // via pickInbox). Never re-fetches -- if neither is loaded, returns blanks
+  // rather than blocking the created-panel from showing.
+  referenceForOrder(oid){
+    const api=this._api||window.CAApi;
+    const boardCard=(this.state.orders||[]).find(o=>o.orderId===oid);
+    if(boardCard){
+      const sizeCells=String(boardCard.sizes||'').split('·').map(t=>t.trim()).filter(Boolean).map(tok=>{ const mm=tok.match(/^([A-Za-z0-9]+?)(\d+)$/); return mm?{label:mm[1],qty:mm[2]}:{label:tok,qty:''}; });
+      return { customer:boardCard.customer||'', num:boardCard.num||'', qty:boardCard.qty||'', garment:boardCard.garment||'', sizeCells, printSpecs:boardCard.printSpecs||'', specialNotes:boardCard.specialNotes||'' };
+    }
+    const inboxRec=(this.state.inbox||[]).find(r=>r.Id===oid);
+    if(inboxRec && api && api.pivotItems){
+      const piv=api.pivotItems(inboxRec), t=(v)=>(api.text?api.text(v):(v||''));
+      return { customer:t(inboxRec.Customer_Order_Name__c)||t(inboxRec.Account&&inboxRec.Account.Name)||'—', num:t(inboxRec.GOA_Order_Number__c)||inboxRec.OrderNumber||inboxRec.Id, qty:piv.qty, garment:piv.garment, sizeCells:piv.sizeCells, printSpecs:t(inboxRec.Specifications_for_Printing__c), specialNotes:t(inboxRec.Special_Notes__c) };
+    }
+    return { customer:'', num:'', qty:'', garment:'', sizeCells:[], printSpecs:'', specialNotes:'' };
+  }
+
+  /* ── Create Production Run modal ── */
+  defaultRunForm(){ return { pressId:null, pressName:'', pressQ:'', startDate:'', startTime:'', endDate:'', endTime:'', qty:'' }; }
+  openRunModal(){ this.setState({ runModalOpen:true, runForm:this.defaultRunForm(), runPressResults:[], runErr:'', runMsg:'' }); }
+  closeRunModal(){ this.setState({ runModalOpen:false }); }
+  setRunField(patch){ this.setState(st=>({ runForm:Object.assign({}, st.runForm||this.defaultRunForm(), patch) })); }
+  runPressSearch(q){ this.setRunField({pressQ:q, pressId:null, pressName:''}); if(!this._api) return; clearTimeout(this._rpt); this._rpt=setTimeout(()=>{ this._api.searchPresses(q).then(r=>this.setState({runPressResults:r})).catch(()=>{}); },250); }
+  pickRunPress(id,name){ this.setRunField({pressId:id, pressName:name, pressQ:name}); this.setState({runPressResults:[]}); }
+  // Combines a <input type=date> + <input type=time> pair (both in the
+  // browser's local time) into the ISO string Salesforce expects for a
+  // Date/Time field. Returns null if either half is missing/unparseable.
+  buildRunDateTime(dateStr,timeStr){
+    if(!dateStr || !timeStr) return null;
+    const d=new Date(dateStr+'T'+timeStr+':00');
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  async submitRun(mode){
+    // mode: 'shopfloor' (create + advance the method to Ready for Print +
+    // leave Management) or 'new' (create + reset the form for another run
+    // under this same method, without leaving).
+    if(this.state.runSubmitting) return;
+    const st=this.state, f=st.runForm, cp=st.createdPanel;
+    if(!f || !cp) return;
+    if(!f.pressId){ this.setState({runErr:'Pick a press', runMsg:''}); return; }
+    const start=this.buildRunDateTime(f.startDate,f.startTime);
+    if(!start){ this.setState({runErr:'Set a scheduled start date & time', runMsg:''}); return; }
+    const end=this.buildRunDateTime(f.endDate,f.endTime);
+    if(!end){ this.setState({runErr:'Set a scheduled end date & time', runMsg:''}); return; }
+    const qtyNum=Number(f.qty);
+    if(!f.qty || !Number.isFinite(qtyNum) || qtyNum<=0){ this.setState({runErr:'Enter how many garments this run will print', runMsg:''}); return; }
+    if(!this._api || this.state.connection!=='live'){ this.setState({runErr:'Not connected to Salesforce (demo mode) — deploy to create runs'}); return; }
+    this.setState({runSubmitting:true, runErr:'', runMsg:''});
+    try{
+      const res=await this._api.createProductionRun({ printMethodId:cp.pmId, pressId:f.pressId, scheduledStart:start, scheduledEnd:end, quantity:qtyNum });
+      if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed');
+      if(mode==='shopfloor'){
+        try{ await this._api.patchMethodStatus(cp.pmId,'Ready for Print',cp.orderId); }catch(_){}
         this.closeMgr();
         this.load();
       } else {
-        this.setState(s2=>({ submitting:false, mgrId:null, mgrSource:null, inbox:(s2.inbox||[]).filter(o=>o.Id!==oid), mgrMsg:'Production plan created' }));
+        this.setState({runSubmitting:false, runForm:this.defaultRunForm(), runPressResults:[], runErr:'', runMsg:'Run created — add another for this method, or close this window when done.'});
       }
-    }catch(e){ this.setState({submitting:false, mgrErr:'Create failed — check vendor / plan and try again'}); }
+    }catch(e){ this.setState({runSubmitting:false, runErr:'Create failed — check press / schedule and try again'}); }
   }
   mgrVals(){
     const st=this.state, api=this._api||window.CAApi;
@@ -613,8 +801,18 @@ class Component extends DCLogic {
       }));
       itemTypeButtons=['Screen','Ink','Thread','Digitization','Transfer'].map(x=>({ label:x, onAdd:()=>this.addItem(x) }));
     }
+    // Created-panel + Create Production Run modal render values.
+    const cpRaw = st.createdPanel;
+    const createdPanel = cpRaw ? Object.assign({}, cpRaw, {
+      printSpecsDisplay: cpRaw.printSpecs || 'None on file.',
+      specialNotesDisplay: cpRaw.specialNotes || 'None on file.',
+      sizesEmpty: !(cpRaw.sizeCells && cpRaw.sizeCells.length),
+    }) : { customer:'', num:'', qty:'', methodLabel:'', sizeCells:[], sizesEmpty:true, printSpecsDisplay:'', specialNotesDisplay:'' };
+    const rf = st.runForm || this.defaultRunForm();
+    const runPressResultsView = (st.runPressResults||[]).map(p=>({ id:p.Id, name:p.Name, onPick:()=>this.pickRunPress(p.Id,p.Name) }));
+
     return {
-      mgrView, mgrShowInbox: mgrView && !hasOrder, mgrShowForm: mgrView && hasOrder,
+      mgrView, mgrShowInbox: mgrView && !hasOrder && !cpRaw, mgrShowForm: mgrView && hasOrder && !cpRaw, mgrShowCreated: mgrView && !!cpRaw,
       inbox, inboxEmpty:(st.inbox||[]).length===0 && st.inboxLoaded,
       onOpenMgr:()=>this.openMgr(), onCloseMgr:()=>this.closeMgr(), onBackToInbox:()=>this.backToInbox(),
       mgrOrder, mgrSpecs:f?f.specs:'', onMgrSpecs:(e)=>this.setMgrSpecs(e.target.value), mgrNotes:f?f.notes:'', onMgrSpecial:(e)=>this.setMgrSpecial(e.target.value),
@@ -626,6 +824,17 @@ class Component extends DCLogic {
       planQ:f?f.planQ:'', onPlanSearch:(e)=>this.planSearch(e.target.value), planResults, planPicked:!!(f&&f.planId), planName:f?f.planName:'',
       itemsView, itemTypeButtons, itemsEmpty:!f||!(f.items&&f.items.length),
       onSubmitMethod:()=>this.submitMethod(), submitting:st.submitting, mgrErr:st.mgrErr, mgrMsg:st.mgrMsg, mgrHasMsg:!!st.mgrMsg, mgrHasErr:!!st.mgrErr,
+      // Created panel
+      createdPanel, onOpenRunModal:()=>this.openRunModal(),
+      // Create Production Run modal
+      runModalOpen:st.runModalOpen, onCloseRunModal:()=>this.closeRunModal(),
+      runForm:rf, runPressPicked:!!rf.pressId, runPressResultsView,
+      onRunPressSearch:(e)=>this.runPressSearch(e.target.value),
+      onRunStartDate:(e)=>this.setRunField({startDate:e.target.value}), onRunStartTime:(e)=>this.setRunField({startTime:e.target.value}),
+      onRunEndDate:(e)=>this.setRunField({endDate:e.target.value}), onRunEndTime:(e)=>this.setRunField({endTime:e.target.value}),
+      onRunQty:(e)=>this.setRunField({qty:e.target.value}),
+      onSaveShopFloor:()=>this.submitRun('shopfloor'), onSaveNew:()=>this.submitRun('new'),
+      runSubmitting:st.runSubmitting, runErr:st.runErr, runMsg:st.runMsg, runHasErr:!!st.runErr, runHasMsg:!!st.runMsg,
     };
   }
 
