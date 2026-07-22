@@ -743,9 +743,15 @@ class Component extends DCLogic {
     return isNaN(d.getTime()) ? null : d.toISOString();
   }
   async submitRun(mode){
-    // mode: 'shopfloor' (create + advance the method to Ready for Print +
-    // leave Management) or 'new' (create + reset the form for another run
-    // under this same method, without leaving).
+    // mode: 'shopfloor' (create the run + leave Management, back to the
+    // board) or 'new' (create + reset the form for another run under this
+    // same method, without leaving). NEITHER mode touches the Production
+    // Method's Status__c anymore -- 2026-07-22 fix: the method should keep
+    // showing on the Pre-Production board every time, regardless of how
+    // many runs get sent to the shop floor under it. Advancing the method
+    // off Pre-Production is a separate, manager-driven action elsewhere in
+    // the UI (the existing "Send to Production" button), not an automatic
+    // side effect of creating a run.
     if(this.state.runSubmitting) return;
     const st=this.state, f=st.runForm, cp=st.createdPanel;
     if(!f || !cp) return;
@@ -762,7 +768,6 @@ class Component extends DCLogic {
       const res=await this._api.createProductionRun({ printMethodId:cp.pmId, pressId:f.pressId, scheduledStart:start, scheduledEnd:end, quantity:qtyNum });
       if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed');
       if(mode==='shopfloor'){
-        try{ await this._api.patchMethodStatus(cp.pmId,'Ready for Print',cp.orderId); }catch(_){}
         this.closeMgr();
         this.load();
       } else {
