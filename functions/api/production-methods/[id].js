@@ -27,8 +27,10 @@
  *     "Digitize_File__c": true,
  *     "Thread_Color_Materials__c": true,
  *     "Transfers_Received__c": false,
- *     "Transfers_Ready__c": false
- *   }
+ *     "Transfers_Ready__c": false,
+ *     "Print_Setup_Timer__c": 1320,        // elapsed seconds, this method's own
+ *     "Production_Timer__c": 2460          // clock -- see ../_ppi-checklist.js note
+ *   }                                       // in index.html for the order-total sum
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 import { rollupOrderSubstatus } from "../_pm-rollup.js";
@@ -55,6 +57,15 @@ const CHECKLIST_FIELDS = new Set([
   "Thread_Color_Materials__c",
   "Transfers_Received__c",
   "Transfers_Ready__c",
+]);
+
+// Per-method timers (mirrors Order's Print_Setup_Timer__c/Production_Timer__c
+// -- same field names, same Number(18,0) type, now also on Production_Method__c
+// so sibling methods on one order time independently. Stored as whole elapsed
+// seconds; the client sums siblings for the order-level combined readout.
+const TIMER_FIELDS = new Set([
+  "Print_Setup_Timer__c",
+  "Production_Timer__c",
 ]);
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
@@ -89,6 +100,14 @@ export async function onRequestPatch({ params, request, env }) {
 
     for (const field of CHECKLIST_FIELDS) {
       if (field in body) payload[field] = !!body[field];
+    }
+
+    for (const field of TIMER_FIELDS) {
+      if (field in body) {
+        const n = Number(body[field]);
+        if (!Number.isFinite(n) || n < 0) return jsonError("bad_timer_value", 400);
+        payload[field] = Math.floor(n);
+      }
     }
 
     if (Object.keys(payload).length === 0) return jsonError("no_valid_fields", 400);
