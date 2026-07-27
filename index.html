@@ -303,6 +303,7 @@
             <button onClick="{{ open.onMisPlus }}" style="width:38px;height:38px;border-radius:9px;background:#16161a;border:1px solid #7A241C;color:#E8A89F;font-size:16px;cursor:pointer">+</button>
           </div>
           <textarea value="{{open.misDetails}}" onInput="{{ open.onMisDetails }}" placeholder="Misprint details — sizes, cause, reprint status…" style="width:100%;min-height:64px;background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none;resize:vertical"></textarea>
+          <button onClick="{{ open.onOpenReprint }}" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#E8A89F;background:#16161a;border:1px solid #7A241C;border-radius:8px;padding:11px;cursor:pointer" style-hover="filter:brightness(1.15)"><i class="ti ti-replace"></i>Production Error — Create Reprint</button>
         </div>
       </div>
 
@@ -315,6 +316,55 @@
         </sc-if>
       </div>
     </aside>
+  </sc-if>
+
+  <sc-if value="{{reprintOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:95;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
+      <div style="width:100%;max-width:600px;max-height:88vh;overflow-y:auto;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative">
+        <div style="position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:12px;padding:18px 22px;background:rgba(13,13,15,.96);backdrop-filter:blur(8px);border-bottom:1px solid #1f1f23">
+          <div>
+            <div style="font:600 17px/1.1 'Oswald';color:#ECEAE4">Production Error — Create Reprint</div>
+            <div style="font:400 11px/1 'Archivo';color:#6C665C;margin-top:4px">{{reprintNum}}</div>
+          </div>
+          <button onClick="{{ onCloseReprintModal }}" style="margin-left:auto;flex-shrink:0;width:32px;height:32px;border-radius:9px;background:#16161a;border:1px solid #2a2a2f;color:#9C978C;cursor:pointer;font-size:15px" style-hover="color:#ECEAE4;border-color:#3a3a40"><i class="ti ti-x"></i></button>
+        </div>
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:16px">
+          <div style="font:400 12px/1.5 'Archivo';color:#9C978C">Enter how many of each line were misprinted or damaged. A new order is created for just those quantities and routed back through Pre-Production.</div>
+
+          <sc-if value="{{reprintLoading}}" hint-placeholder-val="{{ false }}"><div style="font:400 11px/1 'Archivo';color:#4d483f">Loading order lines…</div></sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{reprintRowsView}}" as="row" hint-placeholder-count="0">
+              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px">
+                <div style="flex:1;min-width:0">
+                  <div style="font:500 12px/1.2 'Archivo';color:#ECEAE4">{{row.product}}</div>
+                  <div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:3px">{{row.color}} · {{row.size}} · Qty {{row.qty}}</div>
+                </div>
+                <div style="width:88px;flex-shrink:0">
+                  <div style="font:600 8px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:4px">Misprint</div>
+                  <input type="number" min="0" value="{{row.misprintQty}}" onInput="{{ row.onMisprintQty }}" style="width:100%;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:7px 9px;font-size:12px;color:#ECEAE4;outline:none">
+                </div>
+                <div style="width:88px;flex-shrink:0">
+                  <div style="font:600 8px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:4px">Damaged</div>
+                  <input type="number" min="0" value="{{row.damagedQty}}" onInput="{{ row.onDamagedQty }}" style="width:100%;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:7px 9px;font-size:12px;color:#ECEAE4;outline:none">
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{reprintRowsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f;padding:2px">No order lines found.</div></sc-if>
+          </div>
+
+          <div>
+            <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Misprint Details</div>
+            <textarea value="{{reprintDetails}}" onInput="{{ onReprintDetails }}" placeholder="Reason, cause, notes for the reprint…" style="width:100%;min-height:64px;background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none;resize:vertical"></textarea>
+          </div>
+
+          <sc-if value="{{reprintHasMsg}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:10px 13px"><i class="ti ti-check"></i>{{reprintMsg}}</div></sc-if>
+          <sc-if value="{{reprintHasErr}}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;font:600 11px/1.3 'Oswald';letter-spacing:.03em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:9px;padding:12px 14px"><i class="ti ti-alert-triangle"></i>{{reprintErr}}</div></sc-if>
+
+          <button onClick="{{ onSubmitReprint }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-replace"></i>{{reprintSubmitLabel}}</button>
+        </div>
+      </div>
+    </div>
   </sc-if>
 
   <sc-if value="{{nameGateOpen}}" hint-placeholder-val="{{ false }}">
@@ -380,6 +430,10 @@ class Component extends DCLogic {
       // Production_Method__c record once it's advanced past Pre-Production.
       // See openCard()/loadRunsForCard()/saveRunRow().
       runsByMethod:{}, runsLoadingFor:null, runEdits:{}, runRowPressResults:{}, runRowSaving:{}, runRowErr:{}, runRowMsg:{},
+      // "Production Error" modal -- ports Salesforce's Order -> Flow quick
+      // action of the same name. See openReprintModal()/submitReprint() and
+      // PRODUCTION-ERROR-REPRINT-ANALYSIS.md.
+      reprintOpen:false, reprintOrderId:null, reprintNum:'', reprintRows:null, reprintLoading:false, reprintDetails:'', reprintSubmitting:false, reprintErr:'', reprintMsg:'',
     };
   }
   componentDidMount(){ this._t = setInterval(()=>this.setState({ now:new Date() }), 1000); this.load(); this._ar = setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && !this.state.dragId) this.load(); }, 15000); }
@@ -565,6 +619,42 @@ class Component extends DCLogic {
       this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowMsg:Object.assign({}, st.runRowMsg, {[runId]:'Saved'}) }));
     }catch(e){
       this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowErr:Object.assign({}, st.runRowErr, {[runId]:'Save failed — check press / schedule and try again'}) }));
+    }
+  }
+  // ── Production Error / Reprint modal ──
+  // Per-line misprint/damaged quantities create a brand-new child Order
+  // (Original_Production_Order__c links back to this one), containing only
+  // the bad quantities, reset to Status/Order_Substatus__c = 'Pre-Production'
+  // so it re-enters the pipeline from scratch via the existing Management
+  // inbox -- no new board logic needed. See functions/api/orders/[id]/reprint.js.
+  openReprintModal(orderId,num){
+    this.setState({ reprintOpen:true, reprintOrderId:orderId, reprintNum:num||'', reprintRows:null, reprintLoading:true, reprintDetails:this.state.misDetails[orderId]||'', reprintErr:'', reprintMsg:'' });
+    if(!this._api || this.state.connection!=='live'){ this.setState({reprintLoading:false, reprintErr:'Not connected to Salesforce (demo mode) — deploy to file a production error'}); return; }
+    this._api.getOrderSizes(orderId).then(rows=>{
+      const lines=(rows||[]).filter(r=>r.Size__c).map(r=>({
+        id:r.Id, product:this._api.text(r.Product2&&r.Product2.Name)||'—', color:this._api.text(r.Color__c)||'—', size:r.Size__c, qty:Number(r.Quantity)||0,
+        misprintQty:'', damagedQty:'',
+      }));
+      this.setState({reprintRows:lines, reprintLoading:false});
+    }).catch(()=>{ this.setState({reprintLoading:false, reprintErr:'Could not load order lines — try again'}); });
+  }
+  closeReprintModal(){ this.setState({reprintOpen:false}); }
+  setReprintRowField(itemId,field,v){ this.setState(st=>({ reprintRows:(st.reprintRows||[]).map(r=>r.id===itemId?Object.assign({},r,{[field]:v}):r) })); }
+  setReprintDetails(v){ this.setState({reprintDetails:v}); }
+  async submitReprint(){
+    if(this.state.reprintSubmitting) return;
+    const orderId=this.state.reprintOrderId, rows=this.state.reprintRows||[];
+    const items=rows.map(r=>({ orderItemId:r.id, misprintQty:Number(r.misprintQty)||0, damagedQty:Number(r.damagedQty)||0 })).filter(r=>r.misprintQty>0||r.damagedQty>0);
+    if(!items.length){ this.setState({reprintErr:'Enter a misprint or damaged quantity for at least one line', reprintMsg:''}); return; }
+    if(!this._api || this.state.connection!=='live'){ this.setState({reprintErr:'Not connected to Salesforce (demo mode)'}); return; }
+    this.setState({reprintSubmitting:true, reprintErr:'', reprintMsg:''});
+    try{
+      const res=await this._api.createReprintOrder(orderId, items, this.state.reprintDetails||'');
+      if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed');
+      this.setState({reprintSubmitting:false, reprintMsg:'Reprint order created — it will appear in the Pre-Production Management inbox.'});
+      this.load();
+    }catch(e){
+      this.setState({reprintSubmitting:false, reprintErr:'Create failed — check the quantities and try again'});
     }
   }
   removePkg(orderId,idx){ const cur=(this.state.pkg[orderId]||[])[idx]; this.setState(st=>{ const arr=(st.pkg[orderId]||[]).slice(); arr.splice(idx,1); const p=Object.assign({},st.pkg); p[orderId]=arr; return {pkg:p}; }); if(this._api && this.state.connection==='live' && cur && cur.id) this._api.deletePackaging(cur.id).catch(()=>{}); }
@@ -756,6 +846,7 @@ class Component extends DCLogic {
         misBorder:(src.mis>0)?'#7A241C':'#232327', misColor:(src.mis>0)?'#E8A89F':'#ECEAE4',
         onMisPlus:()=>this.setMis(src.orderId,(src.mis||0)+1), onMisMinus:()=>this.setMis(src.orderId,(src.mis||0)-1),
         misDetails:st.misDetails[src.orderId]||'', onMisDetails:(e)=>this.setMisDetails(src.orderId,e.target.value),
+        onOpenReprint:()=>this.openReprintModal(src.orderId, src.num),
         canAdvance:!!nx, isDone:src.stage==='done', advanceLabel:nx?nx.label:'', advanceIcon:nx?nx.icon:'', onAdvance:nx?(()=>this.advanceStatus(src.id,nx.status,src.orderId)):null,
       });
     }
@@ -771,6 +862,14 @@ class Component extends DCLogic {
       q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(),
       drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}),
       nameGateOpen:!st.nameOk, names, onSwitchUser:()=>this.switchUser(),
+      reprintOpen:st.reprintOpen, onCloseReprintModal:()=>this.closeReprintModal(),
+      reprintNum:st.reprintNum, reprintLoading:st.reprintLoading,
+      reprintRowsView:(st.reprintRows||[]).map(r=>({ id:r.id, product:r.product, color:r.color, size:r.size, qty:r.qty, misprintQty:r.misprintQty, damagedQty:r.damagedQty, onMisprintQty:(e)=>this.setReprintRowField(r.id,'misprintQty',e.target.value), onDamagedQty:(e)=>this.setReprintRowField(r.id,'damagedQty',e.target.value) })),
+      reprintRowsEmpty: !st.reprintLoading && (st.reprintRows||[]).length===0,
+      reprintDetails:st.reprintDetails, onReprintDetails:(e)=>this.setReprintDetails(e.target.value),
+      reprintSubmitting:st.reprintSubmitting, reprintErr:st.reprintErr, reprintMsg:st.reprintMsg, reprintHasErr:!!st.reprintErr, reprintHasMsg:!!st.reprintMsg,
+      reprintSubmitLabel: st.reprintSubmitting?'Creating…':'Create Reprint Order',
+      onSubmitReprint:()=>this.submitReprint(),
     };
   }
 }
