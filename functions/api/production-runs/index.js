@@ -47,6 +47,18 @@
  * (confirmed via the native New Production Run form), but this endpoint
  * requires all five -- the app's UI treats Press/Scheduled Start & End/
  * Quantity as mandatory for a run to be usable on the shop floor.
+ *
+ * AUTO-SCHEDULER GOTCHA (found 2026-07-27): this org has an Apex "Auto
+ * Scheduling (POC)" system on Production_Run__c -- trigger ProductionRunTrigger
+ * (after insert/update) -> ProductionRunTriggerHelper -> ProductionAutoScheduler
+ * Service.scheduleFromRuns(). It runs on every insert/update and OVERWRITES
+ * Scheduled_Start__c/Scheduled_End__c with its own computed slot for any run
+ * whose Auto_Scheduling_Status__c isn't literally 'Confirmed'
+ * (ProductionAutoSchedulerSelector.getSchedulableByPress() excludes Confirmed
+ * runs from its query). Every write here sets Auto_Scheduling_Status__c =
+ * 'Confirmed' specifically to opt OUT of that auto-scheduler -- without it,
+ * the manager's manually-typed Scheduled Start/End get silently replaced
+ * moments after creation.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 
@@ -124,6 +136,19 @@ export async function onRequestPost({ env, request }) {
     [PR_SCHED_START_FIELD]: start.toISOString(),
     [PR_SCHED_END_FIELD]: end.toISOString(),
     [PR_QTY_FIELD]: qtyNum,
+    // CRITICAL (found 2026-07-27): the org has a pre-existing "Auto
+    // Scheduling (POC)" system -- ProductionRunTrigger (after insert/update)
+    // -> ProductionRunTriggerHelper -> ProductionAutoSchedulerService.
+    // scheduleFromRuns() -- that runs on EVERY Production_Run__c insert/update
+    // and silently OVERWRITES Scheduled_Start__c/Scheduled_End__c with its own
+    // computed slot (plus a fixed 9-hour block) for any run whose
+    // Auto_Scheduling_Status__c isn't exactly 'Confirmed'
+    // (ProductionAutoSchedulerSelector.getSchedulableByPress() filters
+    // `WHERE Auto_Scheduling_Status__c != 'Confirmed'`). This is why manually
+    // set Scheduled Start/End never stuck -- the trigger clobbered them right
+    // after our create. Writing 'Confirmed' here opts this run OUT of the
+    // auto-scheduler so the manager's manual schedule actually sticks.
+    Auto_Scheduling_Status__c: "Confirmed",
   };
 
   try {
