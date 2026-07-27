@@ -850,12 +850,16 @@ class Component extends DCLogic {
       // any time via the mgr header's "Back to Board" (closeMgr(), which
       // now also clears this panel/modal -- see above).
       const pmId = res && res.productionMethodId;
-      const ref = this.referenceForOrder(oid);
       const methodLabel = f.method + ((f.placements && f.placements.length) ? (' – '+f.placements.join(' + ')) : '');
+      // Only the transient identifiers live in state here -- customer/qty/
+      // garment/sizeCells/printSpecs/specialNotes are derived FRESH from
+      // referenceForOrder() every render (see mgrVals()) so this panel never
+      // goes stale if specs/notes get edited afterward. See FIXED 2026-07-27
+      // note in mgrVals().
       this.setState(s2=>({
         submitting:false, mgrSource:null,
         inbox:(s2.inbox||[]).filter(o=>o.Id!==oid),
-        createdPanel:{ pmId, orderId:oid, methodLabel, customer:ref.customer, num:ref.num, qty:ref.qty, garment:ref.garment, sizeCells:ref.sizeCells, printSpecs:ref.printSpecs, specialNotes:ref.specialNotes },
+        createdPanel:{ pmId, orderId:oid, methodLabel },
         runModalOpen:false, runForm:this.defaultRunForm(), runPressResults:[], runErr:'', runMsg:'',
       }));
       // Best-effort refresh of the underlying board data in the background
@@ -965,11 +969,22 @@ class Component extends DCLogic {
       itemTypeButtons=['Screen','Ink','Thread','Digitization','Transfer'].map(x=>({ label:x, onAdd:()=>this.addItem(x) }));
     }
     // Created-panel + Create Production Run modal render values.
+    // FIXED 2026-07-27: this used to freeze customer/qty/garment/sizeCells/
+    // printSpecs/specialNotes into createdPanel ONCE, at the moment the method
+    // was created -- so if a manager (or a teammate on another method's
+    // drawer for the SAME order) edited specs/notes afterward, this panel and
+    // the Create Production Run modal it launches kept showing the stale
+    // snapshot forever. printSpecs/specialNotes are Order-level fields shared
+    // by every sibling Production_Method__c and every run under them, so this
+    // now re-derives the reference block live from referenceForOrder() on
+    // every render -- cpRaw only carries the transient pmId/orderId/
+    // methodLabel, never a copy of the order data itself.
     const cpRaw = st.createdPanel;
-    const createdPanel = cpRaw ? Object.assign({}, cpRaw, {
-      printSpecsDisplay: cpRaw.printSpecs || 'None on file.',
-      specialNotesDisplay: cpRaw.specialNotes || 'None on file.',
-      sizesEmpty: !(cpRaw.sizeCells && cpRaw.sizeCells.length),
+    const cpRef = cpRaw ? this.referenceForOrder(cpRaw.orderId) : null;
+    const createdPanel = cpRaw ? Object.assign({}, cpRaw, cpRef, {
+      printSpecsDisplay: (cpRef && cpRef.printSpecs) || 'None on file.',
+      specialNotesDisplay: (cpRef && cpRef.specialNotes) || 'None on file.',
+      sizesEmpty: !(cpRef && cpRef.sizeCells && cpRef.sizeCells.length),
     }) : { customer:'', num:'', qty:'', methodLabel:'', sizeCells:[], sizesEmpty:true, printSpecsDisplay:'', specialNotesDisplay:'' };
     const rf = st.runForm || this.defaultRunForm();
     const runPressResultsView = (st.runPressResults||[]).map(p=>({ id:p.Id, name:p.Name, onPick:()=>this.pickRunPress(p.Id,p.Name) }));
