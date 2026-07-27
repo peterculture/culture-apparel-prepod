@@ -92,7 +92,7 @@
             <div style="padding:13px 14px;flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
               <div style="display:flex;align-items:flex-start;gap:8px">
                 <div style="min-width:0">
-                  <div style="font:600 15px/1.1 'Oswald';color:#ECEAE4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{o.customer}}</div>
+                  <div style="display:flex;align-items:center;gap:6px"><div style="font:600 15px/1.1 'Oswald';color:#ECEAE4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{o.customer}}</div><sc-if value="{{o.isReprint}}" hint-placeholder-val="{{ false }}"><span style="flex-shrink:0;display:inline-flex;align-items:center;gap:3px;font:700 8px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:5px;padding:3px 6px"><i class="ti ti-replace"></i>Reprint</span></sc-if></div>
                   <div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:4px">{{o.num}} · {{o.account}}</div>
                 </div>
                 <span style="margin-left:auto;flex-shrink:0;font:600 12px/1 'Oswald';color:#ECEAE4;background:#1e1e22;border-radius:5px;padding:4px 8px">{{o.qty}} pcs</span>
@@ -628,6 +628,7 @@ class Component extends DCLogic {
           cards.push({
             id:pm.Id, orderId:r.Id, meth:meta.key, placements:placements,
             num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'',
+            isReprint: !!r.Misprint__c,
             qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel:due.label, urg:due.urg,
             worker:null, workerName:wn||null, recv:(api.RECV_FROM_SF[r.Receiving_Status__c]||'none'), printDateISO:r.Print_Date__c||null,
             mockupUrl:r.DesignMockupUrl||null, printSpecs:api.text(r.Specifications_for_Printing__c)||'', specialNotes:api.text(r.Special_Notes__c)||'',
