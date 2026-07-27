@@ -695,7 +695,18 @@ class Component extends DCLogic {
   // order that already has "Front - Screen Print" gets a "Tag - Heat Press"
   // added without ever needing to touch the inbox.
   openMgrForOrder(orderId){
-    const src=(this.state.orders||[]).find(o=>o.id===orderId);
+    // FIXED 2026-07-27: this compared orderId (an Order Id) against o.id
+    // (each card's Production_Method__c Id) -- never a match, so `src` was
+    // always undefined and the form was silently seeded with BLANK specs/
+    // notes. submitMethod() then unconditionally flushes f.specs/f.notes to
+    // the Order before creating the new method (since '' != null), which
+    // erased the real, shared, Order-level Specifications_for_Printing__c/
+    // Special_Notes__c for every sibling card the instant a manager added a
+    // second method/location to an order that already had notes on file --
+    // exactly the "specs/notes not carrying over" symptom. Compare on
+    // o.orderId instead, matching referenceForOrder() (line ~879) and the
+    // mgrOrder lookup (line ~955), which both already do this correctly.
+    const src=(this.state.orders||[]).find(o=>o.orderId===orderId);
     const form=Object.assign(this.defaultForm(),{ specs:(src&&src.printSpecs)||'', notes:(src&&src.specialNotes)||'' });
     this.setState({view:'mgr', mgrId:orderId, mgrSource:'order', form, vendorResults:[], planResults:[], mgrErr:'', mgrMsg:'', openId:null});
   }
