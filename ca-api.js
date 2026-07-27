@@ -111,6 +111,18 @@
     return jsend('/api/orders/' + encodeURIComponent(id), 'PATCH', body);
   }
   function getOrderSizes(orderId){ return jget('/api/order-sizes?orderId=' + encodeURIComponent(orderId)).then(function (d) { return d.records || []; }); }
+  // Ports Salesforce's "Production Error" quick action (Order -> Flow
+  // "SCREEN Order Reprint Process"). items: [{ orderItemId, misprintQty, damagedQty }, ...]
+  // -- only lines with misprintQty + damagedQty > 0 get actioned server-side.
+  // Creates a new child Order (linked back via Original_Production_Order__c,
+  // Status/Order_Substatus__c reset to Pre-Production) with matching reprint
+  // OrderItems, and stamps Misprint_Details__c / TotalQtyMisprints__c onto the
+  // original order. See functions/api/orders/[id]/reprint.js.
+  function createReprintOrder(orderId, items, misprintDetails){
+    return jsend('/api/orders/' + encodeURIComponent(orderId) + '/reprint', 'POST', {
+      items: items, misprintDetails: misprintDetails, by: workerName()
+    });
+  }
 
   /* ── packaging (Order_Packaging__c) ── */
   function getPackaging(orderId){ return jget('/api/packaging?orderId=' + encodeURIComponent(orderId)).then(function (d) { return d.records || []; }); }
@@ -246,7 +258,7 @@
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf, stageOfMethod: stageOfMethod,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
     PLACEMENTS: PLACEMENTS, methodsList: methodsList, METHOD_META: METHOD_META,
-    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, searchPresses: searchPresses, createMethod: createMethod, createProductionRun: createProductionRun, getProductionRuns: getProductionRuns, patchProductionRun: patchProductionRun, patchMethodStatus: patchMethodStatus, patchMethodChecklist: patchMethodChecklist, patchOrder: patchOrder, getOrderSizes: getOrderSizes,
+    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, searchPresses: searchPresses, createMethod: createMethod, createProductionRun: createProductionRun, getProductionRuns: getProductionRuns, patchProductionRun: patchProductionRun, patchMethodStatus: patchMethodStatus, patchMethodChecklist: patchMethodChecklist, patchOrder: patchOrder, getOrderSizes: getOrderSizes, createReprintOrder: createReprintOrder,
     getPackaging: getPackaging, postPackaging: postPackaging, deletePackaging: deletePackaging,
     getShipments: getShipments, postShipment: postShipment,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
