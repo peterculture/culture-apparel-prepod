@@ -24,7 +24,11 @@
  * nullable -- the drawer lets a manager blank out either date/time pair to
  * clear it (e.g. correcting a mis-logged Actual Start) without touching the
  * other. Field names match production-runs/index.js exactly -- see that
- * file's docblock for the Quantity_Planned_c__c naming quirk.
+ * file's docblock for the Quantity_Planned_c__c naming quirk AND the
+ * Auto-Scheduling (POC) trigger gotcha -- this endpoint sets
+ * Auto_Scheduling_Status__c = 'Confirmed' whenever the schedule is touched,
+ * for the same reason (otherwise the org's auto-scheduler trigger silently
+ * overwrites Scheduled_Start__c/Scheduled_End__c right back after this save).
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 
@@ -74,6 +78,13 @@ export async function onRequestPatch({ params, request, env }) {
       }
       if (start) payload[PR_SCHED_START_FIELD] = start.toISOString();
       if (end) payload[PR_SCHED_END_FIELD] = end.toISOString();
+      // See production-runs/index.js for the full writeup: the org's
+      // "Auto-Scheduling (POC)" trigger rewrites Scheduled_Start__c/
+      // Scheduled_End__c on every insert/update unless Auto_Scheduling_
+      // Status__c = 'Confirmed'. A manager editing the schedule from the
+      // drawer is deliberately overriding it, same as at creation -- keep it
+      // marked Confirmed so the auto-scheduler leaves this run alone.
+      if (start || end) payload.Auto_Scheduling_Status__c = "Confirmed";
     }
 
     if ("quantity" in body) {
