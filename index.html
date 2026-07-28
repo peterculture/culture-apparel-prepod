@@ -46,6 +46,7 @@
       <div style="font:600 13px/1 'Oswald';letter-spacing:.1em;color:#9C978C;white-space:nowrap">{{clock}} <span style="color:#4d483f">·</span> {{dateStr}}</div>
       <sc-if value="{{rushCount}}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#E0B870;background:#241a09;border:1px solid #5E4214;border-radius:8px;padding:8px 11px;white-space:nowrap"><i class="ti ti-alert-triangle"></i>{{rushCount}} rush</div></sc-if>
       <div style="display:flex;align-items:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#9C978C;white-space:nowrap"><span style="width:8px;height:8px;border-radius:50%;background:{{connColor}};box-shadow:0 0 7px {{connColor}}"></span>{{connLabel}}</div>
+      <button onClick="{{ onOpenSfEnv }}" title="Salesforce environment -- click to switch" style="display:flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:8px;padding:8px 11px;cursor:pointer;white-space:nowrap" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-cloud" style="font-size:12px"></i>{{sfEnvLabel}}</button>
       <div style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#5E9B9A;color:#08080A;font:700 10px/28px 'Oswald';text-align:center">{{workerInit}}</span><span style="font:400 12px/1 'Archivo';color:#9C978C;white-space:nowrap">{{worker}}</span><button onClick="{{ onSwitchUser }}" title="Switch user" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:transparent;border:1px solid #2a2a2f;color:#6C665C;cursor:pointer;flex-shrink:0" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-repeat" style="font-size:12px"></i></button></div>
     </div>
   </header>
@@ -368,6 +369,44 @@
     </div>
   </sc-if>
 
+  <sc-if value="{{sfEnvOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:96;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
+      <div style="width:100%;max-width:440px;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative">
+        <div style="display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #1f1f23">
+          <div>
+            <div style="font:600 17px/1.1 'Oswald';color:#ECEAE4">Salesforce Environment</div>
+            <div style="font:400 11px/1.4 'Archivo';color:#6C665C;margin-top:4px">Switches which org every tablet talks to — applies to everyone immediately.</div>
+          </div>
+          <button onClick="{{ onCloseSfEnv }}" style="margin-left:auto;flex-shrink:0;width:32px;height:32px;border-radius:9px;background:#16161a;border:1px solid #2a2a2f;color:#9C978C;cursor:pointer;font-size:15px" style-hover="color:#ECEAE4;border-color:#3a3a40"><i class="ti ti-x"></i></button>
+        </div>
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{sfEnvOptions}}" as="e" hint-placeholder-count="3">
+              <button onClick="{{ e.onPick }}" style="display:flex;align-items:center;gap:10px;text-align:left;background:{{e.bg}};border:1px solid {{e.border}};border-radius:10px;padding:12px 14px;cursor:{{e.cursor}}">
+                <span style="width:9px;height:9px;border-radius:50%;background:{{e.dotColor}};flex-shrink:0"></span>
+                <div style="flex:1;min-width:0">
+                  <div style="font:600 13px/1.1 'Oswald';color:{{e.textColor}}">{{e.label}}</div>
+                  <div style="font:400 10px/1.3 'Archivo';color:#6C665C;margin-top:3px">{{e.statusLabel}}</div>
+                </div>
+                <sc-if value="{{e.isActive}}" hint-placeholder-val="{{ false }}"><span style="font:600 8px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#7FA644;background:#18230D;border:1px solid #3D5418;border-radius:6px;padding:4px 7px;flex-shrink:0">Active</span></sc-if>
+              </button>
+            </sc-for>
+          </div>
+
+          <div>
+            <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Switch PIN</div>
+            <input type="password" value="{{sfEnvPin}}" onInput="{{ onSfEnvPin }}" placeholder="Enter PIN to confirm switch" style="width:100%;background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+          </div>
+
+          <sc-if value="{{sfEnvHasMsg}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:10px 13px"><i class="ti ti-check"></i>{{sfEnvMsg}}</div></sc-if>
+          <sc-if value="{{sfEnvHasErr}}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;font:600 11px/1.3 'Oswald';letter-spacing:.03em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:9px;padding:12px 14px"><i class="ti ti-alert-triangle"></i>{{sfEnvErr}}</div></sc-if>
+
+          <button onClick="{{ onSubmitSfEnv }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-repeat"></i>{{sfEnvSubmitLabel}}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{nameGateOpen}}" hint-placeholder-val="{{ false }}">
     <div style="position:fixed;inset:0;z-index:90;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
       <div style="width:100%;max-width:420px;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;padding:34px 30px;text-align:center;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative;overflow:hidden">
@@ -441,9 +480,15 @@ class Component extends DCLogic {
       // not built/cached here, since it depends on which org is currently
       // connected (functions/api/orders/[id]/zk-wizard-url.js).
       zkErr:{},
+      // Multi-org Salesforce switcher -- global toggle (every tablet, not
+      // per-browser) between dev2/Staging/Production, PIN-gated. See
+      // loadSfEnv()/openSfEnvModal()/submitSfEnv() and
+      // functions/api/admin/sf-env.js. sfEnvActive/sfEnvActiveLabel default
+      // to dev2 to match _sf.js's DEFAULT_ENV until the real value loads.
+      sfEnvOpen:false, sfEnvList:[], sfEnvActive:'dev2', sfEnvActiveLabel:'Dev2', sfEnvSelected:'dev2', sfEnvPin:'', sfEnvSubmitting:false, sfEnvErr:'', sfEnvMsg:'',
     };
   }
-  componentDidMount(){ this._t = setInterval(()=>this.setState({ now:new Date() }), 1000); this.load(); this._ar = setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && !this.state.dragId) this.load(); }, 15000); }
+  componentDidMount(){ this._t = setInterval(()=>this.setState({ now:new Date() }), 1000); this.load(); this.loadSfEnv(); this._ar = setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && !this.state.dragId) this.load(); }, 15000); }
   componentWillUnmount(){ clearInterval(this._t); clearInterval(this._ar); }
   // Advances/rewinds ONE card (== one Production_Method__c). cardId is the
   // method's Id; orderId is passed in from the caller (always has it handy)
@@ -516,6 +561,51 @@ class Component extends DCLogic {
   }
   pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
   switchUser(){ try{localStorage.removeItem('caShopWorkerName');}catch(_){} this.setState({nameOk:false}); }
+  // ── Salesforce environment switcher (global -- affects every tablet) ──
+  loadSfEnv(){
+    if(!this._api) return;
+    this._api.getSfEnv().then(d=>{
+      if(!d) return;
+      const environments=d.environments||[];
+      const activeObj=environments.find(e=>e.key===d.active);
+      this.setState({ sfEnvList:environments, sfEnvActive:d.active, sfEnvActiveLabel:(activeObj&&activeObj.label)||d.active, sfEnvSelected:d.active });
+    }).catch(()=>{});
+  }
+  openSfEnvModal(){ this.setState({ sfEnvOpen:true, sfEnvPin:'', sfEnvErr:'', sfEnvMsg:'' }); this.loadSfEnv(); }
+  closeSfEnvModal(){ this.setState({sfEnvOpen:false}); }
+  pickSfEnvKey(key){ this.setState({sfEnvSelected:key, sfEnvErr:'', sfEnvMsg:''}); }
+  setSfEnvPin(v){ this.setState({sfEnvPin:v}); }
+  async submitSfEnv(){
+    if(this.state.sfEnvSubmitting || !this._api) return;
+    const key=this.state.sfEnvSelected;
+    if(!key) return;
+    if(key===this.state.sfEnvActive){ this.setState({sfEnvMsg:'Already active', sfEnvErr:''}); return; }
+    if(!this.state.sfEnvPin){ this.setState({sfEnvErr:'Enter the switch PIN', sfEnvMsg:''}); return; }
+    this.setState({sfEnvSubmitting:true, sfEnvErr:'', sfEnvMsg:''});
+    try{
+      const res = await this._api.setSfEnv(key, this.state.sfEnvPin);
+      const active = (res && res.active) || key;
+      const opt = (this.state.sfEnvList||[]).find(e=>e.key===active);
+      const label = (opt&&opt.label)||active;
+      this.setState(st=>({
+        sfEnvSubmitting:false, sfEnvActive:active, sfEnvActiveLabel:label, sfEnvPin:'',
+        sfEnvMsg:'Switched — every tablet now talks to '+label,
+        sfEnvList:(st.sfEnvList||[]).map(e=>Object.assign({}, e, {active:e.key===active})),
+      }));
+    }catch(e){
+      // jsend() (ca-api.js) only throws "METHOD url -> <status>", discarding
+      // the JSON error body -- pull the status back out to distinguish the
+      // common cases rather than showing one generic message for all of them.
+      const m=/-> (\d+)/.exec((e&&e.message)||'');
+      const code=m?Number(m[1]):0;
+      const msg = code===401?'Wrong PIN'
+        : code===409?'That environment is not configured yet'
+        : code===500?'Switch PIN is not configured on the server'
+        : code===400?'Unknown environment'
+        : 'Could not switch — try again';
+      this.setState({sfEnvSubmitting:false, sfEnvErr:msg, sfEnvMsg:''});
+    }
+  }
   // Per-method write (Production_Method__c.Status__c) -- drives this board's
   // stage columns now.
   pushMethod(cardId,statusLabel,orderId){ if(this._api && this.state.connection==='live') this._api.patchMethodStatus(cardId,statusLabel,orderId).catch(()=>{}); }
@@ -873,9 +963,31 @@ class Component extends DCLogic {
     const connLabel = live?'Live · Salesforce':(st.connection==='loading'?'Connecting…':'Demo data');
     const connColor = live?'#7FA644':(st.connection==='loading'?'#6C665C':'#C9923A');
     const names = VALID_NAMES.map(n=>({ label:n, onPick:()=>this.pickName(n) }));
+    // Salesforce environment switcher -- each row picks e.key as the pending
+    // selection (st.sfEnvSelected), submitted together with the PIN by the
+    // modal's single "Switch Environment" button (see submitSfEnv()).
+    const sfEnvOptions = (st.sfEnvList||[]).map(e=>{
+      const isSelected = st.sfEnvSelected===e.key;
+      const isActive = e.key===st.sfEnvActive;
+      return {
+        key:e.key, label:e.label, isActive,
+        statusLabel: e.configured ? (isActive?'Currently active':'Configured') : 'Not configured yet',
+        dotColor: isActive?'#7FA644':(e.configured?'#6C665C':'#3a3a3f'),
+        bg: isSelected?'#1a1410':'#121215',
+        border: isSelected?'#5E4214':'#232327',
+        textColor: e.configured?'#ECEAE4':'#4d483f',
+        cursor: e.configured?'pointer':'not-allowed',
+        onPick: e.configured?(()=>this.pickSfEnvKey(e.key)):(()=>{}),
+      };
+    });
     return {
       columns, kpis, methodFilters, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), rushCount:String(rushCount), shownLabel,
       connLabel, connColor,
+      sfEnvLabel:st.sfEnvActiveLabel||'Dev2', onOpenSfEnv:()=>this.openSfEnvModal(),
+      sfEnvOpen:st.sfEnvOpen, onCloseSfEnv:()=>this.closeSfEnvModal(), sfEnvOptions,
+      sfEnvPin:st.sfEnvPin, onSfEnvPin:(e)=>this.setSfEnvPin(e.target.value),
+      sfEnvSubmitLabel: st.sfEnvSubmitting?'Switching…':'Switch Environment', onSubmitSfEnv:()=>this.submitSfEnv(),
+      sfEnvErr:st.sfEnvErr, sfEnvMsg:st.sfEnvMsg, sfEnvHasErr:!!st.sfEnvErr, sfEnvHasMsg:!!st.sfEnvMsg,
       q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(),
       drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}),
       nameGateOpen:!st.nameOk, names, onSwitchUser:()=>this.switchUser(),
