@@ -55,7 +55,22 @@
   }
   function jsend(url, method, body){
     return fetch(url, { method: method, headers: { 'Content-Type':'application/json' }, body: JSON.stringify(body || {}) }).then(function (r) {
-      if (!r.ok && r.status !== 204) throw new Error(method + ' ' + url + ' -> ' + r.status);
+      if (!r.ok && r.status !== 204) {
+        // FIXED 2026-07-28: this used to throw a bare "POST /api/x -> 502"
+        // Error and never touch the response body, so callers (e.g.
+        // pre-production.html's Create Production Plan handler) had no way
+        // to show the real Salesforce error -- endpoints like
+        // /api/production-methods already return detailed JSON on failure
+        // ({error, failedRef, detail, all}), it just never got read. Parse
+        // that body (best-effort) and attach it to the thrown Error so
+        // callers can surface the actual cause instead of a generic message.
+        return r.json().catch(function () { return null; }).then(function (data) {
+          var err = new Error(method + ' ' + url + ' -> ' + r.status);
+          err.status = r.status;
+          err.data = data;
+          throw err;
+        });
+      }
       return r.status === 204 ? null : r.json().catch(function () { return null; });
     });
   }
