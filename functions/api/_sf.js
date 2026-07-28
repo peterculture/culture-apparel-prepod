@@ -13,6 +13,16 @@
  *   SF_CLIENT_ID     Consumer Key from the External Client App / Connected App
  *   SF_CLIENT_SECRET Consumer Secret (mark as encrypted/secret in the dashboard)
  *   SF_API_VERSION   optional, defaults to v60.0
+ *
+ * One more org-specific env var lives outside this file, used only by
+ * orders/[id]/zk-wizard-url.js:
+ *   SF_ZK_ORDER_FIELD_ID   Id of the zkmulti__MCShipment__c.Order__c custom
+ *                          lookup field in this org (see that file's header
+ *                          comment for how to find it). Unlike the vars
+ *                          above, this one has no stable value across orgs
+ *                          even for the identically-named field -- Salesforce
+ *                          regenerates field Ids per org -- so it must be
+ *                          re-looked-up any time SF_LOGIN_URL is repointed.
  */
 
 // Lives in module scope -> survives across requests handled by the same isolate.
