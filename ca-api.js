@@ -137,6 +137,11 @@
   // nothing org-specific is hardcoded on this side.
   function getZkWizardUrl(orderId, num){ return jget('/api/orders/' + encodeURIComponent(orderId) + '/zk-wizard-url?num=' + encodeURIComponent(num || '')); }
 
+  /* ── active Salesforce environment (dev2 / staging / production) ──
+     Global, shared across every user -- see functions/api/admin/sf-env.js */
+  function getSfEnv(){ return jget('/api/admin/sf-env'); }
+  function setSfEnv(envKey, pin){ return jsend('/api/admin/sf-env', 'POST', { env: envKey, pin: pin }); }
+
   /* ── station worker board ── */
   function getStationItems(station){ return jget('/api/station-items?station=' + encodeURIComponent(station)).then(function (d) { return d.records || []; }); }
   function updateItemStatus(station, itemId, subStatus){ return jsend('/api/update-item-status', 'POST', { station: station, itemId: itemId, subStatus: subStatus, by: workerName() }); }
@@ -265,6 +270,7 @@
     getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, searchPresses: searchPresses, createMethod: createMethod, createProductionRun: createProductionRun, getProductionRuns: getProductionRuns, patchProductionRun: patchProductionRun, patchMethodStatus: patchMethodStatus, patchMethodChecklist: patchMethodChecklist, patchOrder: patchOrder, getOrderSizes: getOrderSizes, createReprintOrder: createReprintOrder,
     getPackaging: getPackaging, postPackaging: postPackaging, deletePackaging: deletePackaging,
     getShipments: getShipments, postShipment: postShipment, getZkWizardUrl: getZkWizardUrl,
+    getSfEnv: getSfEnv, setSfEnv: setSfEnv,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
     getInventory: getInventory, postInventory: postInventory, stationLogin: stationLogin,
     SIZE_ORDER: SIZE_ORDER, text: text, initials: initials, colorForName: colorForName, methodOf: methodOf, dueInfo: dueInfo, parseSfDate: parseSfDate, pivotItems: pivotItems
