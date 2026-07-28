@@ -12,26 +12,20 @@
  * carry over via a change set/metadata deploy the way the API name does).
  *
  * Both org-specific pieces this URL used to hardcode are resolved here
- * instead, so this endpoint (and the button that calls it) keeps working
- * unmodified when SF_LOGIN_URL/SF_CLIENT_ID/SF_CLIENT_SECRET are switched to
- * point at a different org (e.g. dev2 -> Staging):
+ * instead, so this endpoint (and the button that calls it) keep working
+ * unmodified no matter which environment is currently active (see _sf.js's
+ * getActiveSfEnv/admin/sf-env.js -- the whole point of that switcher is that
+ * nothing downstream, including this file, needs to change when it flips):
  *   1. The wizard's own Visualforce domain, derived from the live
- *      instance_url returned with the org's access token (see _sf.js) --
- *      not hardcoded to a specific sandbox name.
- *   2. The Order__c lookup field's Id, read from SF_ZK_ORDER_FIELD_ID below
- *      rather than baked into the code, since that value is genuinely
- *      different per org and has to be looked up by hand once per org.
- *
- * Required additional env var (set in the Cloudflare Pages dashboard,
- * alongside the SF_* vars documented in _sf.js):
- *   SF_ZK_ORDER_FIELD_ID   Id of zkmulti__MCShipment__c.Order__c in *this*
- *                          org (just the raw Id, no "CF" prefix), e.g.
- *                          "00NRi000001mOHB" for dev2. Find it in Setup ->
- *                          Object Manager -> Shipment -> Fields &
- *                          Relationships -> Order -> the Id is in the
- *                          browser URL on that field's detail page.
+ *      instance_url returned with the active environment's access token
+ *      (see _sf.js) -- not hardcoded to a specific sandbox name.
+ *   2. The Order__c lookup field's Id, read via getZkOrderFieldId() (checks
+ *      SF_ZK_ORDER_FIELD_ID_<ENV> first, falls back to the unsuffixed
+ *      SF_ZK_ORDER_FIELD_ID) rather than baked into the code, since that
+ *      value is genuinely different per org and has to be looked up by hand
+ *      once per org -- see _sf.js's header comment for where to find it.
  */
-import { getSalesforceToken, jsonError } from "../../_sf.js";
+import { getSalesforceToken, getZkOrderFieldId, jsonError } from "../../_sf.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
@@ -58,9 +52,9 @@ export async function onRequestGet({ params, request, env }) {
     const orderId = params && params.id;
     if (!SF_ID.test(orderId)) return jsonError("invalid_id", 400);
 
-    const fieldId = env.SF_ZK_ORDER_FIELD_ID;
+    const fieldId = await getZkOrderFieldId(env);
     if (!fieldId) {
-      console.error("zk-wizard-url: SF_ZK_ORDER_FIELD_ID is not set");
+      console.error("zk-wizard-url: no SF_ZK_ORDER_FIELD_ID configured for the active environment");
       return jsonError("zk_field_id_not_configured", 500);
     }
 
