@@ -887,7 +887,19 @@ class Component extends DCLogic {
       // (new method now exists; if a run gets sent to the shop floor before
       // the manager returns here, that should be reflected too).
       this.load();
-    }catch(e){ this.setState({submitting:false, mgrErr:'Create failed — check vendor / plan and try again'}); }
+    }catch(e){
+      // FIXED 2026-07-28: this used to always show the same generic
+      // "Create failed — check vendor / plan and try again" no matter what
+      // actually went wrong, which is why the real cause (an FLS gap on a
+      // Pre_Production_Item__c field, then a restricted-picklist mismatch on
+      // Mesh Count) stayed invisible. jsend() (ca-api.js) now attaches the
+      // server's parsed error body as e.data -- surface its first concrete
+      // Salesforce error message when present, and only fall back to the
+      // generic copy if the server didn't return anything useful.
+      var detail = e && e.data && (e.data.detail || e.data.all);
+      var sfMsg = Array.isArray(detail) && detail[0] && detail[0].message;
+      this.setState({submitting:false, mgrErr: sfMsg ? ('Create failed — '+sfMsg) : 'Create failed — check vendor / plan and try again'});
+    }
   }
   // Best-effort reference data (garment breakdown, print specs, special
   // notes) for the order the manager just created a method for -- read from
