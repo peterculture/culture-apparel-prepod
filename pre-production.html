@@ -622,6 +622,12 @@ class Component extends DCLogic {
         const methods=r.ProductionMethods||[];
         const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c), wn=r.Last_Updated_By__c||'';
         methods.forEach(pm=>{
+          // Order.Status = 'Completed' (set directly in Salesforce) wins
+          // outright, same override as the Production floor board -- a
+          // method that never got its own Status__c advanced shouldn't
+          // keep sitting here as a pending pre-production task once the
+          // order itself is done.
+          if(r.Status==='Completed') return;
           if(pm.Status__c!=='Pre-Production') return;
           const meta=(api.METHOD_META && api.METHOD_META[pm.Type__c]) || {key:'sp'};
           const placements=(pm.Placements&&pm.Placements.length)?pm.Placements:(pm.Placement__c?[pm.Placement__c]:[]);
