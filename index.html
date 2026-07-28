@@ -525,15 +525,27 @@ class Component extends DCLogic {
       recs.forEach(r=>{
         const methods = r.ProductionMethods || [];
         const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c), wn=r.Last_Updated_By__c||'';
+        // Order.Status is the standard Salesforce field a person sets
+        // directly (Setup, a Flow, etc.) -- it used to have zero code path
+        // into this board (only each Production_Method__c's own Status__c
+        // decided a card's column, see stageOfMethod() in ca-api.js), so
+        // marking an order Completed in Salesforce never moved its cards
+        // here. Order.Status = 'Completed' now wins outright: every method
+        // on that order shows as done regardless of its own Status__c.
+        const orderCompleted = r.Status === 'Completed';
         methods.forEach(pm=>{
-          const stage = api.stageOfMethod(pm.Status__c); if(!stage) return;
+          const stage = orderCompleted ? 'done' : api.stageOfMethod(pm.Status__c); if(!stage) return;
           const meta = (api.METHOD_META && api.METHOD_META[pm.Type__c]) || { key:'sp', short:pm.Type__c||'Method', color:'#8a8378' };
           const meth = meta.key;
           let pct, progressLabel;
           if(stage==='ip'||stage==='pp'){ const s=PREREQ[meth]||PREREQ.sp; const done=s.filter(f=>pm[f]).length; pct=Math.round(done/s.length*100); progressLabel = stage==='ip'?'On press':'Post-production'; }
           const placements=(pm.Placements&&pm.Placements.length)?pm.Placements:(pm.Placement__c?[pm.Placement__c]:[]);
+          // Keep the per-method status text in lockstep with the forced
+          // column so the detail panel's status steps (src.status, below)
+          // don't show a stale "In Production" on a card sitting in Done.
+          const pmStatus = orderCompleted ? 'Completed' : pm.Status__c;
           cards.push({
-            id:pm.Id, orderId:r.Id, stage, status:pm.Status__c, meth, placements:placements,
+            id:pm.Id, orderId:r.Id, stage, status:pmStatus, meth, placements:placements,
             num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'',
             qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel: stage==='done'?'Completed':due.label, urg: stage==='done'?'done':due.urg,
             worker:null, workerName:wn||null, workerInit: wn?api.initials(wn):'—', workerColor: wn?api.colorForName(wn):'#3a3a40',
