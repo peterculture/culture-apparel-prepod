@@ -106,10 +106,18 @@ export async function onRequestGet({ env }) {
   try {
     const v = apiVersion(env);
     const statusList = BOARD_STATUSES.map((s) => `'${s}'`).join(",");
+    // Order__r.Status = 'Complete' (the standard field, set directly in
+    // Salesforce -- NOT the same string as Production_Method__c.Status__c's
+    // "Completed") is pulled in here even when a method's own Status__c
+    // never advanced past Pre-Production/Cancelled/On Hold. Without this,
+    // a method stuck in Pre-Production on an order someone just marked
+    // Complete would never be fetched at all, so the client-side override
+    // in index.html (which forces it into the Done column) would never get
+    // the chance to run.
     const soql =
       `SELECT ${PM_FIELDS.join(", ")}, ${ORDER_FIELDS.join(", ")} ` +
       `FROM Production_Method__c ` +
-      `WHERE Status__c IN (${statusList}) AND Order__c != null`;
+      `WHERE (Status__c IN (${statusList}) OR Order__r.Status = 'Complete') AND Order__c != null`;
     const path = `/services/data/${v}/query/?q=${encodeURIComponent(soql)}`;
     const resp = await sfFetch(env, path);
     const data = await resp.json();
