@@ -286,7 +286,8 @@
         </div>
 
         <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Shipments</span><a href="{{open.zkUrl}}" target="_blank" rel="noopener" title="Open the Zenkraft Shipment Wizard in Salesforce" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#E0B870;background:transparent;border:1px solid #5E4214;border-radius:7px;padding:6px 9px;text-decoration:none"><i class="ti ti-printer"></i>Print Label</a><button onClick="{{ open.onAddShip }}" style="margin-left:8px;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:7px;padding:6px 9px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-truck-delivery"></i>New</button></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Shipments</span><button onClick="{{ open.onZk }}" title="Open the Zenkraft Shipment Wizard in Salesforce" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#E0B870;background:transparent;border:1px solid #5E4214;border-radius:7px;padding:6px 9px;cursor:pointer"><i class="ti ti-printer"></i>Print Label</button><button onClick="{{ open.onAddShip }}" style="margin-left:8px;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:7px;padding:6px 9px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-truck-delivery"></i>New</button></div>
+          <sc-if value="{{open.hasZkErr}}" hint-placeholder-val="{{ false }}"><div style="font:400 10px/1 'Archivo';color:#C6372B;margin:-5px 0 8px">{{open.zkErrMsg}}</div></sc-if>
           <div style="display:flex;flex-direction:column;gap:6px">
             <sc-for list="{{open.shipments}}" as="s" hint-placeholder-count="1">
               <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><i class="ti ti-truck" style="color:#7FA644;font-size:15px"></i><div style="min-width:0"><div style="font:500 12px/1 'Archivo';color:#ECEAE4">{{s.carrier}}</div><div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:3px">{{s.tracking}}</div></div></div>
@@ -434,6 +435,12 @@ class Component extends DCLogic {
       // action of the same name. See openReprintModal()/submitReprint() and
       // PRODUCTION-ERROR-REPRINT-ANALYSIS.md.
       reprintOpen:false, reprintOrderId:null, reprintNum:'', reprintRows:null, reprintLoading:false, reprintDetails:'', reprintSubmitting:false, reprintErr:'', reprintMsg:'',
+      // "Print Label" (Zenkraft wizard link) -- keyed by orderId since more
+      // than one card's drawer-adjacent button could fail independently.
+      // See openZk(); the actual URL is resolved server-side per request,
+      // not built/cached here, since it depends on which org is currently
+      // connected (functions/api/orders/[id]/zk-wizard-url.js).
+      zkErr:{},
     };
   }
   componentDidMount(){ this._t = setInterval(()=>this.setState({ now:new Date() }), 1000); this.load(); this._ar = setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && !this.state.dragId) this.load(); }, 15000); }
@@ -687,7 +694,17 @@ class Component extends DCLogic {
   }
   setMis(orderId,val){ const v=Math.max(0,val); this.updateOrderFieldLocally(orderId,{mis:v}); this.pushOrder(orderId,{TotalQtyMisprints__c:v, Misprint__c:v>0}); }
   addPkg(orderId){ const type=this.state.pkgType||'Standard Culture Box'; const qty=Math.max(1,parseInt(this.state.pkgQty,10)||1); const localKey='local-'+Date.now()+'-'+Math.random(); this.setState(st=>{ const p=Object.assign({},st.pkg); p[orderId]=(p[orderId]||[]).concat([{type,qty,_local:localKey}]); return {pkg:p}; }); if(this._api && this.state.connection==='live') this._api.postPackaging(orderId,type,qty).then(res=>{ const newId=res&&res.id; if(!newId) return; this.setState(st=>{ const p=Object.assign({},st.pkg); p[orderId]=(p[orderId]||[]).map(x=>x._local===localKey?Object.assign({},x,{id:newId}):x); return {pkg:p}; }); }).catch(()=>{}); }
-  zkUrl(o){ const id15=((o&&o.orderId)||'').slice(0,15); const F='CF00NRi000001mOHB'; const qs=new URLSearchParams({ [F]:(o&&o.num)||'', [F+'_lkid']:id15, navigationLocation:'RELATED_LIST', lexiSObjectName:'zkmulti__MCShipment__c', lexiActionName:'new', 'sfdc.override':'1' }); return 'https://cultureapparel--dev2--zkmulti.sandbox.vf.force.com/apex/Wizard?'+qs.toString(); }
+  // Fetches the Zenkraft wizard URL from the server (org-specific pieces are
+  // resolved there, see functions/api/orders/[id]/zk-wizard-url.js) and opens
+  // it in a new tab. Replaces the old client-built, hardcoded-to-dev2 zkUrl().
+  openZk(orderId,num){
+    this.setState(st=>{ const z=Object.assign({},st.zkErr); delete z[orderId]; return {zkErr:z}; });
+    if(!this._api || this.state.connection!=='live'){ this.setState(st=>{ const z=Object.assign({},st.zkErr); z[orderId]='Not connected to Salesforce (demo mode)'; return {zkErr:z}; }); return; }
+    this._api.getZkWizardUrl(orderId,num).then(d=>{
+      if(d && d.url) window.open(d.url,'_blank','noopener');
+      else this.setState(st=>{ const z=Object.assign({},st.zkErr); z[orderId]='Could not open the Zenkraft wizard'; return {zkErr:z}; });
+    }).catch(()=>{ this.setState(st=>{ const z=Object.assign({},st.zkErr); z[orderId]='Could not open the Zenkraft wizard'; return {zkErr:z}; }); });
+  }
   addShip(orderId){ this.setState(st=>{ const s=Object.assign({},st.ship); s[orderId]=(s[orderId]||[]).concat([{carrier:'FedEx Ground',tracking:'Draft · rate shopping'}]); return {ship:s}; }); if(this._api && this.state.connection==='live') this._api.postShipment(orderId,{carrier:'FedEx Ground',serviceType:'Ground',tracking:'PENDING'}).catch(()=>{}); }
   assign(cardId,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===cardId?Object.assign({},o,{worker: o.worker===w?null:w}):o) })); }
 
@@ -829,7 +846,7 @@ class Component extends DCLogic {
       open=Object.assign({}, d, {
         runsView, runsEmpty:runsView.length===0, runsLoading: st.runsLoadingFor===src.id,
         assignees, timers,
-        hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode: d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Production mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, zkUrl:this.zkUrl(src),
+        hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode: d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Production mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, onZk:()=>this.openZk(src.orderId,src.num), zkErrMsg:(st.zkErr&&st.zkErr[src.orderId])||'', hasZkErr:!!(st.zkErr&&st.zkErr[src.orderId]),
         specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.orderId,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.orderId,e.target.value), orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.orderId),
         delivery:d.shipDelivery||'', deliveryOptions:[{value:'',label:'— not set —'},{value:'Shipping',label:'Shipping'},{value:'Local Dropoff',label:'Local Dropoff'},{value:'Pickup',label:'Pickup'},{value:'Order Fulfillment',label:'Order Fulfillment'},{value:'Split Ship',label:'Split Ship'},{value:'Delivery',label:'Delivery'}], onDelivery:(e)=>this.setDelivery(src.orderId,e.target.value),
         labelPrinted:!!d.labelPrinted, onToggleLabel:()=>this.toggleLabel(src.orderId), labelBg:d.labelPrinted?'#18230D':'#16161a', labelBorder:d.labelPrinted?'#3D5418':'#2a2a2f', labelColor:d.labelPrinted?'#BBD382':'#9C978C', labelIcon:d.labelPrinted?'ti-checkbox':'ti-square',
