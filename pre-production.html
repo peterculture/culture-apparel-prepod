@@ -24,7 +24,6 @@
     ::-webkit-scrollbar{width:9px;height:9px}
     ::-webkit-scrollbar-thumb{background:#2a2a2e;border-radius:6px}
     ::-webkit-scrollbar-track{background:transparent}
-    @keyframes ca-pulse{0%,100%{box-shadow:0 0 0 0 rgba(226,74,58,.5)}50%{box-shadow:0 0 0 5px rgba(226,74,58,0)}}
     @keyframes ca-slide{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
   </style>
 </helmet>
@@ -35,19 +34,18 @@
     <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true" style="flex-shrink:0"><g fill="#C6372B"><rect x="12" y="9" width="24" height="3.1" rx="1.5"/><rect x="8" y="14" width="32" height="3.1" rx="1.5"/><rect x="5" y="19" width="38" height="3.1" rx="1.5"/><rect x="5" y="24" width="38" height="3.1" rx="1.5"/><rect x="6" y="29" width="36" height="3.1" rx="1.5"/><rect x="9" y="34" width="30" height="3.1" rx="1.5"/><rect x="13" y="39" width="22" height="3.1" rx="1.5"/></g></svg>
     <div style="min-width:0">
       <div style="font:700 16px/1 'Oswald';letter-spacing:.12em;color:#ECEAE4">CULTURE APPAREL</div>
-      <div style="font:500 9px/1 'Oswald';letter-spacing:.4em;text-transform:uppercase;color:#C6372B;margin-top:4px">Production Floor</div>
+      <div style="font:500 9px/1 'Oswald';letter-spacing:.4em;text-transform:uppercase;color:#C6372B;margin-top:4px">Pre-Production</div>
     </div>
     <nav style="display:flex;gap:4px;margin-left:18px">
-      <a href="pre-production.html" style="font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#8a8378;border:1px solid #242428;border-radius:8px;padding:9px 12px">← Pre-Production</a>
-      <span style="font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#ECEAE4;background:#1a1a1e;border:1px solid #3a2422;border-radius:8px;padding:9px 12px">Production</span>
+      <span style="font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#ECEAE4;background:#1a1a1e;border:1px solid #2f2a24;border-radius:8px;padding:9px 12px">Pre-Production</span>
+      <a href="index.html" style="font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#8a8378;border:1px solid #242428;border-radius:8px;padding:9px 12px">Production →</a>
       <a href="station.html" style="font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#8a8378;border:1px solid #242428;border-radius:8px;padding:9px 12px">Station</a>
+      <button onClick="{{ onOpenMgr }}" style="display:inline-flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#8a8378;background:transparent;border:1px solid #242428;border-radius:8px;padding:9px 12px;cursor:pointer" style-hover="border-color:#C6372B;color:#ECEAE4"><i class="ti ti-settings"></i>Management</button>
     </nav>
     <div style="margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end">
       <div style="font:600 13px/1 'Oswald';letter-spacing:.1em;color:#9C978C;white-space:nowrap">{{clock}} <span style="color:#4d483f">·</span> {{dateStr}}</div>
-      <sc-if value="{{rushCount}}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#E0B870;background:#241a09;border:1px solid #5E4214;border-radius:8px;padding:8px 11px;white-space:nowrap"><i class="ti ti-alert-triangle"></i>{{rushCount}} rush</div></sc-if>
       <div style="display:flex;align-items:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#9C978C;white-space:nowrap"><span style="width:8px;height:8px;border-radius:50%;background:{{connColor}};box-shadow:0 0 7px {{connColor}}"></span>{{connLabel}}</div>
-      <button onClick="{{ onOpenSfEnv }}" title="Salesforce environment -- click to switch" style="display:flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:8px;padding:8px 11px;cursor:pointer;white-space:nowrap" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-cloud" style="font-size:12px"></i>{{sfEnvLabel}}</button>
-      <div style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#5E9B9A;color:#08080A;font:700 10px/28px 'Oswald';text-align:center">{{workerInit}}</span><span style="font:400 12px/1 'Archivo';color:#9C978C;white-space:nowrap">{{worker}}</span><button onClick="{{ onSwitchUser }}" title="Switch user" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:transparent;border:1px solid #2a2a2f;color:#6C665C;cursor:pointer;flex-shrink:0" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-repeat" style="font-size:12px"></i></button></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#C9923A;color:#08080A;font:700 10px/28px 'Oswald';text-align:center">{{workerInit}}</span><span style="font:400 12px/1 'Archivo';color:#9C978C;white-space:nowrap">{{worker}}</span><button onClick="{{ onSwitchUser }}" title="Switch user" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:transparent;border:1px solid #2a2a2f;color:#6C665C;cursor:pointer;flex-shrink:0" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-repeat" style="font-size:12px"></i></button></div>
     </div>
   </header>
 
@@ -56,10 +54,9 @@
       <i class="ti ti-search" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#4d483f;font-size:15px"></i>
       <input value="{{q}}" onInput="{{ onSearch }}" placeholder="Search order #, customer, account…" style="width:100%;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px 11px 36px;font-size:13px;color:#ECEAE4;outline:none">
     </div>
-    <div style="display:flex;gap:7px">
-      <sc-for list="{{methodFilters}}" as="m" hint-placeholder-count="3">
-        <button onClick="{{ m.onToggle }}" style="display:inline-flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:{{m.textColor}};background:{{m.bg}};border:1px solid {{m.border}};border-radius:8px;padding:9px 12px;cursor:pointer"><span style="width:8px;height:8px;border-radius:50%;background:{{m.color}}"></span>{{m.label}}</button>
-      </sc-for>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <sc-for list="{{weekBtns}}" as="w" hint-placeholder-count="3"><button onClick="{{ w.onPick }}" style="font:600 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:{{w.color}};background:{{w.bg}};border:1px solid {{w.border}};border-radius:8px;padding:9px 11px;cursor:pointer">{{w.label}}</button></sc-for>
+      <sc-if value="{{showPick}}" hint-placeholder-val="{{ false }}"><input type="date" value="{{pickDate}}" onInput="{{ onPickDate }}" style="background:#121215;border:1px solid #242428;border-radius:8px;padding:8px 10px;font-size:12px;color:#ECEAE4;outline:none"></sc-if>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
       <span style="font:400 11px/1 'Archivo';color:#6C665C">{{shownLabel}}</span>
@@ -68,62 +65,58 @@
   </div>
 
   <div style="display:flex;gap:12px;padding:14px 26px;flex-wrap:wrap">
-    <sc-for list="{{kpis}}" as="k" hint-placeholder-count="6">
+    <sc-for list="{{kpis}}" as="k" hint-placeholder-count="5">
       <div style="flex:1;min-width:150px;display:flex;gap:11px;align-items:stretch;background:#0D0D0F;border:1px solid #1b1b1e;border-radius:12px;padding:14px 16px">
         <div style="width:4px;border-radius:3px;background:{{k.accent}};flex-shrink:0"></div>
         <div style="min-width:0">
           <div style="font:500 10px/1 'Oswald';letter-spacing:.13em;text-transform:uppercase;color:#6C665C;margin-bottom:9px">{{k.label}}</div>
           <div style="display:flex;align-items:baseline;gap:4px"><span style="font:600 27px/0.85 'Oswald';color:#ECEAE4">{{k.value}}</span><span style="font:500 10px/1 'Archivo';color:#6C665C">{{k.unit}}</span></div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
-            <sc-if value="{{k.hasTrend}}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:3px;font:600 9px/1 'Oswald';color:{{k.trendColor}}"><i class="ti {{k.trendIcon}}"></i>{{k.trendVal}}</span></sc-if>
-            <span style="font:400 9px/1.3 'Archivo';color:#4d483f">{{k.sub}}</span>
-          </div>
+          <div style="font:400 9px/1.3 'Archivo';color:#4d483f;margin-top:8px">{{k.sub}}</div>
         </div>
       </div>
     </sc-for>
   </div>
 
-  <div style="flex:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:6px 26px 40px;align-items:start">
-    <sc-for list="{{columns}}" as="col" hint-placeholder-count="4">
-      <div onDragOver="{{ col.onDragOver }}" onDrop="{{ col.onDrop }}" onDragLeave="{{ col.onDragLeave }}" style="display:flex;flex-direction:column;gap:12px;min-width:0;background:{{col.colBg}};border:1px solid {{col.colBorder}};border-radius:14px;padding:12px;transition:background .12s,border-color .12s">
+  <div style="flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:6px 26px 40px;align-items:start">
+    <sc-for list="{{columns}}" as="col" hint-placeholder-count="3">
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
         <div style="display:flex;align-items:center;gap:10px;background:#101013;border:1px solid #202024;border-left:4px solid {{col.color}};border-radius:9px;padding:12px 14px">
           <i class="ti {{col.icon}}" style="color:{{col.color}};font-size:17px"></i>
           <span style="font:600 12px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#ECEAE4">{{col.label}}</span>
           <span style="margin-left:auto;font:700 15px/1 'Oswald';color:{{col.color}}">{{col.count}}</span>
         </div>
-        <div style="font:400 10px/1 'Archivo';letter-spacing:.03em;color:#4d483f;padding:0 4px;margin-top:-4px">{{col.unitsLabel}} in stage</div>
+        <div style="font:400 10px/1 'Archivo';letter-spacing:.03em;color:#4d483f;padding:0 4px;margin-top:-4px">{{col.readyLabel}}</div>
         <sc-for list="{{col.items}}" as="o" hint-placeholder-count="2">
-          <div draggable="true" onDragStart="{{ o.onDragStart }}" onDragEnd="{{ o.onDragEnd }}" onClick="{{ o.onOpen }}" style="display:flex;background:#141417;border:1px solid #232327;border-radius:11px;overflow:hidden;cursor:pointer;opacity:{{o.cardOpacity}};transition:border-color .12s,transform .12s" style-hover="border-color:#3a3a40;transform:translateY(-1px)">
+          <div onClick="{{ o.onOpen }}" style="display:flex;background:#141417;border:1px solid #232327;border-radius:11px;overflow:hidden;cursor:pointer;transition:border-color .12s,transform .12s" style-hover="border-color:#3a3a40;transform:translateY(-1px)">
             <div style="width:6px;background:{{o.urgColor}};flex-shrink:0"></div>
             <div style="padding:13px 14px;flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
               <div style="display:flex;align-items:flex-start;gap:8px">
                 <div style="min-width:0">
-                  <div style="font:600 15px/1.1 'Oswald';color:#ECEAE4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{o.customer}}</div>
+                  <div style="display:flex;align-items:center;gap:6px"><div style="font:600 15px/1.1 'Oswald';color:#ECEAE4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{o.customer}}</div><sc-if value="{{o.isReprint}}" hint-placeholder-val="{{ false }}"><span style="flex-shrink:0;display:inline-flex;align-items:center;gap:3px;font:700 8px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:5px;padding:3px 6px"><i class="ti ti-replace"></i>Reprint</span></sc-if></div>
                   <div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:4px">{{o.num}} · {{o.account}}</div>
                 </div>
-                <span style="margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#9C978C"><span style="width:8px;height:8px;border-radius:50%;background:{{o.methColor}}"></span>{{o.methShort}}</span>
+                <span style="margin-left:auto;flex-shrink:0;font:600 12px/1 'Oswald';color:#ECEAE4;background:#1e1e22;border-radius:5px;padding:4px 8px">{{o.qty}} pcs</span>
               </div>
-              <div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font:600 12px/1 'Oswald';color:#ECEAE4;background:#1e1e22;border-radius:5px;padding:4px 8px;flex-shrink:0">{{o.qty}} pcs</span><span style="font:400 11px/1 'Archivo';color:#9C978C;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{o.garment}}</span></div>
-              <sc-if value="{{o.hasProgress}}" hint-placeholder-val="{{ true }}">
-                <div>
-                  <div style="display:flex;justify-content:space-between;font:500 9px/1 'Archivo';color:#6C665C;margin-bottom:5px"><span>{{o.progressLabel}}</span><span>{{o.pct}}%</span></div>
-                  <div style="height:6px;background:#232327;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{o.progressWidth}};background:{{o.methColor}}"></div></div>
-                </div>
-              </sc-if>
-              <sc-if value="{{o.hasMisprints}}" hint-placeholder-val="{{ true }}">
-                <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font:700 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:6px;padding:5px 9px"><i class="ti ti-alert-triangle"></i>{{o.mis}} misprint</span>
-              </sc-if>
+              <div style="font:400 11px/1 'Archivo';color:#9C978C;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{o.garment}}</div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font:500 9px/1 'Archivo';color:#6C665C;margin-bottom:5px"><span>Pre-prod prerequisites</span><span>{{o.checkLabel}}</span></div>
+                <div style="height:6px;background:#232327;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{o.checkWidth}};background:{{o.color}}"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:{{o.recvTextColor}};background:{{o.recvBg}};border:1px solid {{o.recvBorder}};border-radius:6px;padding:5px 8px"><i class="ti {{o.recvIcon}}"></i>{{o.recvLabel}}</span>
+                <sc-if value="{{o.ready}}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:5px;font:700 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:6px;padding:5px 8px"><i class="ti ti-send"></i>Ready to send</span></sc-if>
+              </div>
               <div style="display:flex;align-items:center;gap:10px;padding-top:9px;border-top:1px solid #202024">
                 <span style="display:inline-flex;align-items:center;gap:5px;font:700 11px/1 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:{{o.urgColor}}"><i class="ti ti-clock-hour-4"></i>{{o.dueLabel}}</span>
-                <span style="margin-left:auto;display:flex;align-items:center;gap:7px">
-                  <sc-if value="{{o.hasWorker}}" hint-placeholder-val="{{ true }}"><span style="width:30px;height:30px;border-radius:50%;background:{{o.workerColor}};color:#08080A;font:700 11px/30px 'Oswald';text-align:center;display:inline-block" title="{{o.workerName}}">{{o.workerInit}}</span></sc-if>
+                <span style="margin-left:auto">
+                  <sc-if value="{{o.hasWorker}}" hint-placeholder-val="{{ true }}"><span style="width:28px;height:28px;border-radius:50%;background:{{o.workerColor}};color:#08080A;font:700 10px/28px 'Oswald';text-align:center;display:inline-block" title="{{o.workerName}}">{{o.workerInit}}</span></sc-if>
                 </span>
               </div>
             </div>
           </div>
         </sc-for>
-        <sc-if value="{{col.isEmpty}}" hint-placeholder-val="{{ true }}">
-          <div style="border:1px dashed #2a2a2f;border-radius:11px;padding:22px 12px;text-align:center;font:400 11px/1.4 'Archivo';color:#4d483f">No orders — drag one here</div>
+        <sc-if value="{{col.isEmpty}}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #2a2a2f;border-radius:11px;padding:22px 12px;text-align:center;font:400 11px/1.4 'Archivo';color:#4d483f">Nothing in pre-production.</div>
         </sc-if>
       </div>
     </sc-for>
@@ -132,9 +125,9 @@
   <sc-if value="{{drawerOpen}}" hint-placeholder-val="{{ false }}">
     <div onClick="{{ onClose }}" style="position:fixed;inset:0;z-index:60;background:rgba(6,6,7,.66);backdrop-filter:blur(3px)"></div>
     <aside style="position:fixed;top:0;right:0;bottom:0;z-index:61;width:min(460px,100vw);background:#0C0C0E;border-left:1px solid #232327;box-shadow:-30px 0 70px -20px rgba(0,0,0,.8);display:flex;flex-direction:column;animation:ca-slide .22s ease">
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:20px 22px;border-bottom:1px solid #1b1b1e;border-top:4px solid {{open.urgColor}}">
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:20px 22px;border-bottom:1px solid #1b1b1e;border-top:4px solid {{open.color}}">
         <div style="min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font:600 10px/1 'Oswald';letter-spacing:.08em;color:#6C665C">{{open.num}}</span><span style="display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#9C978C"><span style="width:7px;height:7px;border-radius:50%;background:{{open.methColor}}"></span>{{open.methLabel}}</span></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font:600 10px/1 'Oswald';letter-spacing:.08em;color:#6C665C">{{open.num}}</span><span style="display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#9C978C"><span style="width:7px;height:7px;border-radius:50%;background:{{open.color}}"></span>{{open.methLabel}}</span></div>
           <div style="font:600 21px/1.05 'Oswald';color:#ECEAE4">{{open.customer}}</div>
           <div style="font:400 12px/1 'Archivo';color:#6C665C;margin-top:5px">{{open.account}}</div>
         </div>
@@ -142,42 +135,46 @@
       </div>
 
       <div style="flex:1;overflow-y:auto;padding:20px 22px;display:flex;flex-direction:column;gap:24px">
-
         <div style="display:flex;gap:12px;align-items:center">
           <sc-if value="{{open.hasMockup}}" hint-placeholder-val="{{ false }}">{{open.mockupNode}}</sc-if>
           <sc-if value="{{open.noMockup}}" hint-placeholder-val="{{ true }}"><div style="width:96px;height:96px;flex-shrink:0;border-radius:11px;background-image:repeating-linear-gradient(45deg,#17171b 0 9px,#131317 9px 18px);border:1px solid #232327;display:flex;align-items:center;justify-content:center;font:500 8px/1 ui-monospace,monospace;letter-spacing:.2em;color:#4d483f;text-transform:uppercase">Mockup</div></sc-if>
           <div style="flex:1;display:flex;flex-direction:column;gap:9px">
-            <div style="display:flex;align-items:center;gap:8px"><span style="font:600 15px/1 'Oswald';color:#ECEAE4">{{open.qty}} pieces</span><span style="font:400 11px/1 'Archivo';color:#9C978C">{{open.garment}}</span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font:600 15px/1 'Oswald';color:#ECEAE4">{{open.qty}} pieces</span></div>
+            <div style="font:400 11px/1.3 'Archivo';color:#9C978C">{{open.garment}}</div>
             <div style="display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font:700 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{open.urgColor}}"><i class="ti ti-clock-hour-4"></i>{{open.dueLabel}}</div>
+            <a href="{{open.orderSheetUrl}}" target="_blank" rel="noopener" style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font:700 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#ECEAE4;background:#141417;border:1px solid #2a2a2f;border-radius:8px;padding:8px 11px;text-decoration:none" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-printer"></i>Order Sheet</a>
           </div>
         </div>
 
         <div>
-          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Status</div>
-          <div style="display:flex;gap:4px">
-            <sc-for list="{{open.statusSteps}}" as="s" hint-placeholder-count="5">
-              <button onClick="{{ s.onClick }}" style="flex:1;min-width:0;font:600 8px/1.25 'Oswald';letter-spacing:.02em;text-transform:uppercase;color:{{s.textColor}};background:{{s.bg}};border:1px solid {{s.border}};border-radius:6px;padding:9px 3px;cursor:pointer;text-align:center">{{s.label}}</button>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Garment Receiving</div>
+          <div style="display:flex;gap:6px">
+            <sc-for list="{{open.recvSteps}}" as="r" hint-placeholder-count="3">
+              <button onClick="{{ r.onPick }}" style="flex:1;font:600 10px/1.1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{r.textColor}};background:{{r.bg}};border:1px solid {{r.border}};border-radius:9px;padding:12px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px"><i class="ti {{r.icon}}" style="font-size:16px"></i>{{r.label}}</button>
             </sc-for>
           </div>
         </div>
 
         <div>
-          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Time Logged</div>
-          <div style="display:flex;gap:10px">
-            <sc-for list="{{open.timers}}" as="t" hint-placeholder-count="2">
-              <div style="flex:1;background:#121215;border:1px solid #232327;border-radius:11px;padding:13px 14px">
-                <div style="font:500 9px/1 'Oswald';letter-spacing:.11em;text-transform:uppercase;color:#6C665C;margin-bottom:9px">{{t.label}} · this method</div>
-                <div style="font:600 25px/0.9 'Oswald';color:{{t.timeColor}};font-variant-numeric:tabular-nums;margin-bottom:11px">{{t.display}}</div>
-                <button onClick="{{ t.onToggle }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:{{t.btnText}};background:{{t.btnBg}};border:1px solid {{t.btnBorder}};border-radius:8px;padding:9px;cursor:pointer"><i class="ti {{t.btnIcon}}"></i>{{t.btnLabel}}</button>
-                <sc-if value="{{t.showOrderTotal}}" hint-placeholder-val="{{ false }}">
-                  <div style="font:500 9px/1 'Archivo';color:#6C665C;margin-top:9px;text-align:center">Order total (all methods): {{t.orderTotalDisplay}}</div>
-                </sc-if>
-              </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Pre-Production Checklist</span><span style="margin-left:auto;font:600 10px/1 'Oswald';color:#6C665C">{{open.checkLabel}}</span></div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{open.checklist}}" as="c" hint-placeholder-count="3">
+              <button onClick="{{ c.onToggle }}" style="display:flex;align-items:center;gap:11px;background:#121215;border:1px solid {{c.border}};border-radius:9px;padding:11px 13px;cursor:pointer;text-align:left">
+                <span style="width:20px;height:20px;border-radius:6px;border:2px solid {{c.boxBorder}};background:{{c.boxBg}};color:#08080A;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0"><i class="ti {{c.icon}}"></i></span>
+                <span style="font:500 13px/1 'Archivo';color:{{c.textColor}}">{{c.label}}</span>
+              </button>
             </sc-for>
           </div>
         </div>
 
-        <a href="{{open.orderSheetUrl}}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 11px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#ECEAE4;background:#141417;border:1px solid #2a2a2f;border-radius:10px;padding:13px;text-decoration:none" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-printer"></i>Open Order Sheet</a>
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Garment Size Breakdown</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-for list="{{open.sizeCells}}" as="s" hint-placeholder-count="5">
+              <div style="min-width:52px;text-align:center;background:#121215;border:1px solid #232327;border-radius:8px;padding:9px 8px"><div style="font:600 10px/1 'Oswald';letter-spacing:.06em;color:#6C665C;margin-bottom:5px">{{s.label}}</div><div style="font:600 16px/1 'Oswald';color:#ECEAE4">{{s.qty}}</div></div>
+            </sc-for>
+          </div>
+        </div>
 
         <div>
           <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Specifications for Printing</div>
@@ -190,11 +187,33 @@
 
         <div>
           <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Items</div>
-          <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;flex-direction:column;gap:8px">
             <sc-for list="{{open.ppItemsView}}" as="it" hint-placeholder-count="1">
-              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><span style="font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#5E9B9A;min-width:74px">{{it.type}}</span><span style="font:500 12px/1.3 'Archivo';color:#ECEAE4;flex:1;min-width:0">{{it.detail}}</span><span style="font:600 9px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#9C978C">{{it.status}}</span><button onClick="{{ it.onRemove }}" title="Remove item" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:transparent;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;flex-shrink:0"><i class="ti ti-trash" style="font-size:13px"></i></button></div>
+              <div style="background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;align-items:center;gap:10px"><span style="font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#5E9B9A;min-width:74px">{{it.type}}</span><select value="{{it.status}}" onChange="{{ it.onStatus }}" style="margin-left:auto;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:7px 10px;font-size:12px;color:#ECEAE4;outline:none"><sc-for list="{{it.statusOptions}}" as="o" hint-placeholder-count="3"><option value="{{o.value}}">{{o.label}}</option></sc-for></select><button onClick="{{ it.onRemove }}" title="Remove item" style="width:28px;height:28px;flex-shrink:0;border-radius:7px;background:#16161a;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;font-size:13px" style-hover="color:#E8A89F;border-color:#7A241C"><i class="ti ti-trash"></i></button></div>
+                <sc-if value="{{it.isScreen}}" hint-placeholder-val="{{ false }}"><select value="{{it.mesh}}" onChange="{{ it.onMesh }}" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Mesh count…</option><sc-for list="{{it.meshOptions}}" as="m" hint-placeholder-count="7"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+                <sc-if value="{{it.isInk}}" hint-placeholder-val="{{ false }}"><input value="{{it.pantone}}" onInput="{{ it.onPantone }}" placeholder="Pantone / color" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                <sc-if value="{{it.isThread}}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:7px"><input value="{{it.threadColor}}" onInput="{{ it.onThreadColor }}" placeholder="Thread color" style="flex:1;min-width:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><input value="{{it.threadNumber}}" onInput="{{ it.onThreadNumber }}" placeholder="Thread #" style="width:96px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></div></sc-if>
+                <sc-if value="{{it.isDigit}}" hint-placeholder-val="{{ false }}"><input value="{{it.stitch}}" onInput="{{ it.onStitch }}" type="number" placeholder="Stitch count" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                <sc-if value="{{it.isTransfer}}" hint-placeholder-val="{{ false }}"><select value="{{it.transferType}}" onChange="{{ it.onTransfer }}" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Transfer type…</option><sc-for list="{{it.ttOptions}}" as="m" hint-placeholder-count="4"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+              </div>
             </sc-for>
-            <sc-if value="{{open.ppItemsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:4px 2px">No production items on this order.</div></sc-if>
+            <sc-if value="{{open.ppItemsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:2px">No production items on this order yet — create them in Management.</div></sc-if>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Methods</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{open.methodsView}}" as="pm" hint-placeholder-count="1">
+              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:11px 13px">
+                <span style="width:8px;height:8px;border-radius:50%;background:{{pm.color}};flex-shrink:0"></span>
+                <span style="font:500 12px/1 'Archivo';color:#ECEAE4">{{pm.label}}</span>
+                <span style="margin-left:auto;font:400 11px/1 'Archivo';color:#6C665C">{{pm.vendor}}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{open.methodsEmpty}}" hint-placeholder-val="{{ false }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f;padding:2px">No production method set up yet.</div></sc-if>
+            <button onClick="{{ open.onAddMethod }}" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#5E9B9A;background:transparent;border:1px dashed #3D5418;border-radius:8px;padding:11px;cursor:pointer;margin-top:2px" style-hover="background:#18230D"><i class="ti ti-plus"></i>Add another method / location</button>
           </div>
         </div>
 
@@ -265,402 +284,471 @@
           </div>
         </div>
 
-        <div>
-          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Shipping &amp; Delivery</div>
-          <select value="{{open.delivery}}" onChange="{{ open.onDelivery }}" style="width:100%;background:#16161a;border:1px solid #2a2a2f;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none;margin-bottom:9px"><sc-for list="{{open.deliveryOptions}}" as="d" hint-placeholder-count="6"><option value="{{d.value}}">{{d.label}}</option></sc-for></select>
-          <button onClick="{{ open.onToggleLabel }}" style="width:100%;display:flex;align-items:center;gap:10px;background:{{open.labelBg}};border:1px solid {{open.labelBorder}};border-radius:9px;padding:11px 13px;cursor:pointer;text-align:left"><i class="ti {{open.labelIcon}}" style="color:{{open.labelColor}};font-size:18px"></i><span style="font:500 13px/1 'Archivo';color:{{open.labelColor}}">Shipping label printed</span></button>
-        </div>
-
-        <div>
-          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Packaging</div>
-          <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-            <select value="{{open.pkgType}}" onChange="{{ open.onPkgType }}" style="flex:1;min-width:150px;background:#16161a;border:1px solid #2a2a2f;border-radius:8px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><sc-for list="{{open.pkgTypeOptions}}" as="pt" hint-placeholder-count="4"><option value="{{pt.value}}">{{pt.label}}</option></sc-for></select>
-            <input value="{{open.pkgQty}}" onInput="{{ open.onPkgQty }}" type="number" min="1" style="width:72px;background:#16161a;border:1px solid #2a2a2f;border-radius:8px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none">
-            <button onClick="{{ open.onAddPkg }}" style="display:inline-flex;align-items:center;gap:5px;font:600 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#5E9B9A;background:transparent;border:1px solid #3D5418;border-radius:8px;padding:9px 13px;cursor:pointer" style-hover="background:#18230D"><i class="ti ti-plus"></i>Add</button>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <sc-for list="{{open.packaging}}" as="p" hint-placeholder-count="1">
-              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><i class="ti ti-box" style="color:#5E9B9A;font-size:15px"></i><span style="font:500 12px/1 'Archivo';color:#ECEAE4">{{p.type}}</span><span style="margin-left:auto;font:600 12px/1 'Oswald';color:#9C978C">×{{p.qty}}</span><button onClick="{{ p.onRemove }}" title="Remove packaging" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:transparent;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;flex-shrink:0"><i class="ti ti-trash" style="font-size:13px"></i></button></div>
-            </sc-for>
-            <sc-if value="{{open.pkgEmpty}}" hint-placeholder-val="{{ false }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:4px 2px">No packaging logged yet.</div></sc-if>
-          </div>
-        </div>
-
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Shipments</span><button onClick="{{ open.onZk }}" title="Open the Zenkraft Shipment Wizard in Salesforce" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#E0B870;background:transparent;border:1px solid #5E4214;border-radius:7px;padding:6px 9px;cursor:pointer"><i class="ti ti-printer"></i>Print Label</button><button onClick="{{ open.onAddShip }}" style="margin-left:8px;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:7px;padding:6px 9px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-truck-delivery"></i>New</button></div>
-          <sc-if value="{{open.hasZkErr}}" hint-placeholder-val="{{ false }}"><div style="font:400 10px/1 'Archivo';color:#C6372B;margin:-5px 0 8px">{{open.zkErrMsg}}</div></sc-if>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <sc-for list="{{open.shipments}}" as="s" hint-placeholder-count="1">
-              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><i class="ti ti-truck" style="color:#7FA644;font-size:15px"></i><div style="min-width:0"><div style="font:500 12px/1 'Archivo';color:#ECEAE4">{{s.carrier}}</div><div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:3px">{{s.tracking}}</div></div></div>
-            </sc-for>
-            <sc-if value="{{open.shipEmpty}}" hint-placeholder-val="{{ false }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:4px 2px">No shipments created yet.</div></sc-if>
-          </div>
-        </div>
-
-        <div>
-          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Misprints</div>
-          <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-            <button onClick="{{ open.onMisMinus }}" style="width:38px;height:38px;border-radius:9px;background:#16161a;border:1px solid #2a2a2f;color:#ECEAE4;font-size:16px;cursor:pointer">−</button>
-            <div style="flex:1;text-align:center;background:#121215;border:1px solid {{open.misBorder}};border-radius:9px;padding:9px"><div style="font:600 24px/1 'Oswald';color:{{open.misColor}}">{{open.mis}}</div><div style="font:400 9px/1 'Archivo';color:#6C665C;margin-top:3px">of {{open.qty}} pcs</div></div>
-            <button onClick="{{ open.onMisPlus }}" style="width:38px;height:38px;border-radius:9px;background:#16161a;border:1px solid #7A241C;color:#E8A89F;font-size:16px;cursor:pointer">+</button>
-          </div>
-          <textarea value="{{open.misDetails}}" onInput="{{ open.onMisDetails }}" placeholder="Misprint details — sizes, cause, reprint status…" style="width:100%;min-height:64px;background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none;resize:vertical"></textarea>
-          <button onClick="{{ open.onOpenReprint }}" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#E8A89F;background:#16161a;border:1px solid #7A241C;border-radius:8px;padding:11px;cursor:pointer" style-hover="filter:brightness(1.15)"><i class="ti ti-replace"></i>Production Error — Create Reprint</button>
-        </div>
       </div>
 
-      <div style="padding:16px 22px;border-top:1px solid #1b1b1e;display:flex;gap:10px">
-        <sc-if value="{{open.canAdvance}}" hint-placeholder-val="{{ true }}">
-          <button onClick="{{ open.onAdvance }}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:10px;padding:15px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti {{open.advanceIcon}}"></i>{{open.advanceLabel}}</button>
+      <div style="padding:16px 22px;border-top:1px solid #1b1b1e;display:flex;flex-direction:column;gap:9px">
+        <button onClick="{{ open.onCreateRun }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:10px;padding:14px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-tools"></i>Create Production Run</button>
+        <sc-if value="{{open.ready}}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ open.onSend }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:10px;padding:15px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-send"></i>Send to Production</button>
         </sc-if>
-        <sc-if value="{{open.isDone}}" hint-placeholder-val="{{ false }}">
-          <div style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#7FA644;background:#18230D;border:1px solid #3D5418;border-radius:10px;padding:15px"><i class="ti ti-circle-check"></i>Order Completed</div>
+        <sc-if value="{{open.notReady}}" hint-placeholder-val="{{ false }}">
+          <div style="width:100%;text-align:center;font:600 11px/1.4 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#8a8378;background:#141417;border:1px solid #232327;border-radius:10px;padding:15px">{{open.notReadyLabel}}</div>
         </sc-if>
       </div>
     </aside>
   </sc-if>
-
-  <sc-if value="{{reprintOpen}}" hint-placeholder-val="{{ false }}">
-    <div style="position:fixed;inset:0;z-index:95;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
-      <div style="width:100%;max-width:600px;max-height:88vh;overflow-y:auto;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative">
-        <div style="position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:12px;padding:18px 22px;background:rgba(13,13,15,.96);backdrop-filter:blur(8px);border-bottom:1px solid #1f1f23">
-          <div>
-            <div style="font:600 17px/1.1 'Oswald';color:#ECEAE4">Production Error — Create Reprint</div>
-            <div style="font:400 11px/1 'Archivo';color:#6C665C;margin-top:4px">{{reprintNum}}</div>
-          </div>
-          <button onClick="{{ onCloseReprintModal }}" style="margin-left:auto;flex-shrink:0;width:32px;height:32px;border-radius:9px;background:#16161a;border:1px solid #2a2a2f;color:#9C978C;cursor:pointer;font-size:15px" style-hover="color:#ECEAE4;border-color:#3a3a40"><i class="ti ti-x"></i></button>
-        </div>
-        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:16px">
-          <div style="font:400 12px/1.5 'Archivo';color:#9C978C">Enter how many of each line were misprinted or damaged. A new order is created for just those quantities and routed back through Pre-Production.</div>
-
-          <sc-if value="{{reprintLoading}}" hint-placeholder-val="{{ false }}"><div style="font:400 11px/1 'Archivo';color:#4d483f">Loading order lines…</div></sc-if>
-
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <sc-for list="{{reprintRowsView}}" as="row" hint-placeholder-count="0">
-              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px">
-                <div style="flex:1;min-width:0">
-                  <div style="font:500 12px/1.2 'Archivo';color:#ECEAE4">{{row.product}}</div>
-                  <div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:3px">{{row.color}} · {{row.size}} · Qty {{row.qty}}</div>
-                </div>
-                <div style="width:88px;flex-shrink:0">
-                  <div style="font:600 8px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:4px">Misprint</div>
-                  <input type="number" min="0" value="{{row.misprintQty}}" onInput="{{ row.onMisprintQty }}" style="width:100%;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:7px 9px;font-size:12px;color:#ECEAE4;outline:none">
-                </div>
-                <div style="width:88px;flex-shrink:0">
-                  <div style="font:600 8px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:4px">Damaged</div>
-                  <input type="number" min="0" value="{{row.damagedQty}}" onInput="{{ row.onDamagedQty }}" style="width:100%;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:7px 9px;font-size:12px;color:#ECEAE4;outline:none">
-                </div>
-              </div>
-            </sc-for>
-            <sc-if value="{{reprintRowsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f;padding:2px">No order lines found.</div></sc-if>
-          </div>
-
-          <div>
-            <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Misprint Details</div>
-            <textarea value="{{reprintDetails}}" onInput="{{ onReprintDetails }}" placeholder="Reason, cause, notes for the reprint…" style="width:100%;min-height:64px;background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none;resize:vertical"></textarea>
-          </div>
-
-          <sc-if value="{{reprintHasMsg}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:10px 13px"><i class="ti ti-check"></i>{{reprintMsg}}</div></sc-if>
-          <sc-if value="{{reprintHasErr}}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;font:600 11px/1.3 'Oswald';letter-spacing:.03em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:9px;padding:12px 14px"><i class="ti ti-alert-triangle"></i>{{reprintErr}}</div></sc-if>
-
-          <button onClick="{{ onSubmitReprint }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-replace"></i>{{reprintSubmitLabel}}</button>
-        </div>
-      </div>
-    </div>
-  </sc-if>
-
-  <sc-if value="{{sfEnvOpen}}" hint-placeholder-val="{{ false }}">
-    <div style="position:fixed;inset:0;z-index:96;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
-      <div style="width:100%;max-width:440px;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative">
-        <div style="display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #1f1f23">
-          <div>
-            <div style="font:600 17px/1.1 'Oswald';color:#ECEAE4">Salesforce Environment</div>
-            <div style="font:400 11px/1.4 'Archivo';color:#6C665C;margin-top:4px">Switches which org every tablet talks to — applies to everyone immediately.</div>
-          </div>
-          <button onClick="{{ onCloseSfEnv }}" style="margin-left:auto;flex-shrink:0;width:32px;height:32px;border-radius:9px;background:#16161a;border:1px solid #2a2a2f;color:#9C978C;cursor:pointer;font-size:15px" style-hover="color:#ECEAE4;border-color:#3a3a40"><i class="ti ti-x"></i></button>
-        </div>
-        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <sc-for list="{{sfEnvOptions}}" as="e" hint-placeholder-count="3">
-              <button onClick="{{ e.onPick }}" style="display:flex;align-items:center;gap:10px;text-align:left;background:{{e.bg}};border:1px solid {{e.border}};border-radius:10px;padding:12px 14px;cursor:{{e.cursor}}">
-                <span style="width:9px;height:9px;border-radius:50%;background:{{e.dotColor}};flex-shrink:0"></span>
-                <div style="flex:1;min-width:0">
-                  <div style="font:600 13px/1.1 'Oswald';color:{{e.textColor}}">{{e.label}}</div>
-                  <div style="font:400 10px/1.3 'Archivo';color:#6C665C;margin-top:3px">{{e.statusLabel}}</div>
-                </div>
-                <sc-if value="{{e.isActive}}" hint-placeholder-val="{{ false }}"><span style="font:600 8px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#7FA644;background:#18230D;border:1px solid #3D5418;border-radius:6px;padding:4px 7px;flex-shrink:0">Active</span></sc-if>
-              </button>
-            </sc-for>
-          </div>
-
-          <div>
-            <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Switch PIN</div>
-            <input type="password" value="{{sfEnvPin}}" onInput="{{ onSfEnvPin }}" placeholder="Enter PIN to confirm switch" style="width:100%;background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
-          </div>
-
-          <sc-if value="{{sfEnvHasMsg}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:10px 13px"><i class="ti ti-check"></i>{{sfEnvMsg}}</div></sc-if>
-          <sc-if value="{{sfEnvHasErr}}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;font:600 11px/1.3 'Oswald';letter-spacing:.03em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:9px;padding:12px 14px"><i class="ti ti-alert-triangle"></i>{{sfEnvErr}}</div></sc-if>
-
-          <button onClick="{{ onSubmitSfEnv }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-repeat"></i>{{sfEnvSubmitLabel}}</button>
-        </div>
-      </div>
-    </div>
-  </sc-if>
-
-  <sc-if value="{{nameGateOpen}}" hint-placeholder-val="{{ false }}">
-    <div style="position:fixed;inset:0;z-index:90;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
-      <div style="width:100%;max-width:420px;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;padding:34px 30px;text-align:center;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#C6372B"></div>
-        <div style="width:52px;height:52px;border-radius:14px;background:#1a1a1e;border:1px solid #2a2a2f;display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-user" style="color:#C6372B;font-size:26px"></i></div>
-        <div style="font:600 21px/1.1 'Oswald';color:#ECEAE4;margin-bottom:8px">Who's this?</div>
-        <div style="font:400 12px/1.5 'Archivo';color:#8a8378;margin-bottom:22px">Pick your name so changes made this shift can be traced back to you.</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
-          <sc-for list="{{names}}" as="n" hint-placeholder-count="12">
-            <button onClick="{{ n.onPick }}" style="font:600 13px/1 'Oswald';letter-spacing:.02em;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:10px;padding:13px 6px;cursor:pointer" style-hover="border-color:#C6372B;color:#C6372B">{{n.label}}</button>
-          </sc-for>
-        </div>
-      </div>
-    </div>
-  </sc-if>
 </div>
 
-<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C6372B"/><text x="50" y="60" font-family="Oswald,Arial" font-size="30" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="2">CA</text><text x="50" y="78" font-family="Arial" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="1">PRODUCTION</text></svg></template></x-dc>
+<sc-if value="{{nameGateOpen}}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:90;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:100%;max-width:420px;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;padding:34px 30px;text-align:center;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#C6372B"></div>
+      <div style="width:52px;height:52px;border-radius:14px;background:#1a1a1e;border:1px solid #2a2a2f;display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-user" style="color:#C6372B;font-size:26px"></i></div>
+      <div style="font:600 21px/1.1 'Oswald';color:#ECEAE4;margin-bottom:8px">Who's this?</div>
+      <div style="font:400 12px/1.5 'Archivo';color:#8a8378;margin-bottom:22px">Pick your name so changes made this shift can be traced back to you.</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+        <sc-for list="{{names}}" as="n" hint-placeholder-count="12">
+          <button onClick="{{ n.onPick }}" style="font:600 13px/1 'Oswald';letter-spacing:.02em;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:10px;padding:13px 6px;cursor:pointer" style-hover="border-color:#C6372B;color:#C6372B">{{n.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C6372B"/><text x="50" y="60" font-family="Oswald,Arial" font-size="30" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="2">CA</text><text x="50" y="78" font-family="Arial" font-size="7" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="1">PRE-PROD</text></svg></template>
+<sc-if value="{{mgrView}}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:55;background:radial-gradient(circle at 30% -10%,#101013,#08080A 55%);overflow-y:auto">
+    <header style="position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:14px;padding:15px 26px;background:rgba(6,6,7,.94);backdrop-filter:blur(10px);border-bottom:1px solid rgba(198,55,43,.4)">
+      <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true" style="flex-shrink:0"><g fill="#C6372B"><rect x="12" y="9" width="24" height="3.1" rx="1.5"/><rect x="8" y="14" width="32" height="3.1" rx="1.5"/><rect x="5" y="19" width="38" height="3.1" rx="1.5"/><rect x="5" y="24" width="38" height="3.1" rx="1.5"/><rect x="6" y="29" width="36" height="3.1" rx="1.5"/><rect x="9" y="34" width="30" height="3.1" rx="1.5"/><rect x="13" y="39" width="22" height="3.1" rx="1.5"/></g></svg>
+      <div style="font:700 15px/1 'Oswald';letter-spacing:.1em;color:#ECEAE4">PRE-PRODUCTION MANAGEMENT</div>
+      <span style="font:700 9px/1 'Oswald';letter-spacing:.1em;color:#08080A;background:#C6372B;border-radius:5px;padding:4px 7px">MGR</span>
+      <button onClick="{{ onCloseMgr }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#ECEAE4;background:#141417;border:1px solid #2a2a2f;border-radius:9px;padding:10px 14px;cursor:pointer"><i class="ti ti-arrow-left"></i>Back to Board</button>
+    </header>
+
+    <div style="max-width:920px;margin:0 auto;padding:24px 26px 70px">
+      <sc-if value="{{mgrShowInbox}}" hint-placeholder-val="{{ true }}">
+        <div style="font:600 12px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Incoming orders</div>
+        <div style="font:400 12px/1.4 'Archivo';color:#6C665C;margin-bottom:18px">Orders in pre-production with no production method yet. Set one up to create its production plan.</div>
+        <sc-if value="{{mgrHasMsg}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:10px 13px;margin-bottom:16px"><i class="ti ti-check"></i>{{mgrMsg}}</div></sc-if>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+          <sc-for list="{{inbox}}" as="o" hint-placeholder-count="3">
+            <div style="display:flex;background:#141417;border:1px solid #232327;border-radius:12px;overflow:hidden">
+              <div style="width:5px;background:{{o.urgColor}};flex-shrink:0"></div>
+              <div style="padding:15px 16px;flex:1;min-width:0;display:flex;flex-direction:column;gap:11px">
+                <div><div style="font:600 16px/1.1 'Oswald';color:#ECEAE4">{{o.customer}}</div><div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:5px">{{o.num}} · {{o.account}}</div></div>
+                <div style="display:flex;align-items:center;gap:8px"><span style="font:600 12px/1 'Oswald';color:#ECEAE4;background:#1e1e22;border-radius:5px;padding:4px 8px">{{o.qty}} pcs</span><span style="display:inline-flex;align-items:center;gap:5px;font:600 10px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{o.urgColor}}"><i class="ti ti-clock-hour-4"></i>{{o.dueLabel}}</span></div>
+                <button onClick="{{ o.onPick }}" style="margin-top:2px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 11px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:9px;padding:12px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-tools"></i>Begin Set-up</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{inboxEmpty}}" hint-placeholder-val="{{ false }}"><div style="border:1px dashed #2a2a2f;border-radius:12px;padding:40px 20px;text-align:center;font:400 13px/1.5 'Archivo';color:#4d483f">No orders waiting for a production method. (Empty in demo mode — live once deployed against Salesforce.)</div></sc-if>
+      </sc-if>
+
+      <sc-if value="{{mgrShowForm}}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ onBackToInbox }}" style="display:inline-flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#8a8378;background:transparent;border:1px solid #242428;border-radius:8px;padding:8px 12px;cursor:pointer;margin-bottom:16px"><i class="ti ti-chevron-left"></i>All incoming</button>
+        <div style="background:#0D0D0F;border:1px solid #1f1f23;border-left:4px solid #C6372B;border-radius:12px;padding:16px 18px;margin-bottom:22px">
+          <div style="font:600 19px/1.1 'Oswald';color:#ECEAE4">{{mgrOrder.customer}}</div>
+          <div style="font:400 12px/1 'Archivo';color:#6C665C;margin-top:6px">{{mgrOrder.num}} · {{mgrOrder.account}} · {{mgrOrder.qty}} pcs</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:22px">
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Specifications for Printing</div>
+            <textarea value="{{mgrSpecs}}" onInput="{{ onMgrSpecs }}" placeholder="Print specs — placement, colors, screens, digitizing notes…" style="width:100%;min-height:72px;font:400 13px/1.55 'Archivo';color:#C9C6BF;white-space:pre-wrap;background:#121215;border:1px solid #232327;border-radius:9px;padding:12px 14px;outline:none;resize:vertical"></textarea>
+          </div>
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#E0B870;margin-bottom:9px">Special Notes</div>
+            <textarea value="{{mgrNotes}}" onInput="{{ onMgrSpecial }}" placeholder="Rush notes, VIP handling, anything the floor needs to know…" style="width:100%;min-height:72px;font:400 13px/1.55 'Archivo';color:#E0B870;white-space:pre-wrap;background:#241a09;border:1px solid #5E4214;border-radius:9px;padding:12px 14px;outline:none;resize:vertical"></textarea>
+          </div>
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Print Method</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{formMethodOptions}}" as="m" hint-placeholder-count="4">
+                <button onClick="{{ m.onPick }}" style="font:600 12px/1 'Oswald';letter-spacing:.04em;color:{{m.color}};background:{{m.bg}};border:1px solid {{m.border}};border-radius:9px;padding:11px 15px;cursor:pointer">{{m.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Placements</div>
+            <div style="font:400 11px/1.4 'Archivo';color:#6C665C;margin-bottom:11px">Every location this method prints — pick as many as apply (e.g. front + back for one screen print plan). A genuinely different print method (like a heat-press tag) still gets its own plan — use "Add another method" from the order's drawer for that.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{formPlacementOptions}}" as="p" hint-placeholder-count="4">
+                <button onClick="{{ p.onPick }}" style="font:600 12px/1 'Oswald';letter-spacing:.04em;color:{{p.color}};background:{{p.bg}};border:1px solid {{p.border}};border-radius:9px;padding:11px 15px;cursor:pointer">{{p.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Vendor</div>
+            <input value="{{vendorQ}}" onInput="{{ onVendorSearch }}" placeholder="Search accounts…" style="width:100%;max-width:420px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+            <sc-if value="{{vendorPicked}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:6px;font:600 11px/1 'Oswald';letter-spacing:.04em;color:#BBD382;margin-top:9px"><i class="ti ti-check"></i>{{vendorName}}</div></sc-if>
+            <div style="display:flex;flex-direction:column;gap:5px;margin-top:9px;max-width:420px">
+              <sc-for list="{{vendorResults}}" as="v" hint-placeholder-count="0">
+                <button onClick="{{ v.onPick }}" style="text-align:left;font:500 12px/1.2 'Archivo';color:#ECEAE4;background:#141417;border:1px solid #232327;border-radius:8px;padding:10px 12px;cursor:pointer" style-hover="border-color:#C6372B">{{v.name}}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Plan</div>
+            <div style="display:flex;gap:8px;margin-bottom:11px">
+              <button onClick="{{ onPlanNew }}" style="flex:1;max-width:200px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{planNewColor}};background:{{planNewBg}};border:1px solid {{planNewBorder}};border-radius:9px;padding:11px;cursor:pointer">Create new plan</button>
+              <button onClick="{{ onPlanExisting }}" style="flex:1;max-width:200px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:{{planExColor}};background:{{planExBg}};border:1px solid {{planExBorder}};border-radius:9px;padding:11px;cursor:pointer">Attach existing</button>
+            </div>
+            <sc-if value="{{planIsNew}}" hint-placeholder-val="{{ true }}"><div style="font:400 12px/1.4 'Archivo';color:#6C665C">A new Production Requirement + Plan will be created from this order automatically.</div></sc-if>
+            <sc-if value="{{planIsExisting}}" hint-placeholder-val="{{ false }}">
+              <input value="{{planQ}}" onInput="{{ onPlanSearch }}" placeholder="Search plans (e.g. PP-0018)…" style="width:100%;max-width:420px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+              <sc-if value="{{planPicked}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:6px;font:600 11px/1 'Oswald';letter-spacing:.04em;color:#BBD382;margin-top:9px"><i class="ti ti-check"></i>{{planName}}</div></sc-if>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:9px;max-width:420px">
+                <sc-for list="{{planResults}}" as="p" hint-placeholder-count="0">
+                  <button onClick="{{ p.onPick }}" style="text-align:left;font:500 12px/1.2 'Archivo';color:#ECEAE4;background:#141417;border:1px solid #232327;border-radius:8px;padding:10px 12px;cursor:pointer" style-hover="border-color:#C6372B">{{p.name}}</button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Method Status</div>
+            <select value="{{formStatus}}" onChange="{{ onStatus }}" style="width:100%;max-width:280px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+              <sc-for list="{{statusOptions}}" as="s" hint-placeholder-count="7"><option value="{{s.value}}">{{s.label}}</option></sc-for>
+            </select>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Pre-Production Items</span></div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
+              <sc-for list="{{itemTypeButtons}}" as="b" hint-placeholder-count="5">
+                <button onClick="{{ b.onAdd }}" style="display:inline-flex;align-items:center;gap:5px;font:600 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px dashed #3a3a40;border-radius:8px;padding:9px 12px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-plus"></i>{{b.label}}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{itemsView}}" as="it" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:9px;padding:10px 12px;flex-wrap:wrap">
+                  <span style="font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#5E9B9A;min-width:76px">{{it.type}}</span>
+                  <sc-if value="{{it.isScreen}}" hint-placeholder-val="{{ false }}"><select value="{{it.mesh}}" onChange="{{ it.onMesh }}" style="flex:1;min-width:120px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Mesh count…</option><sc-for list="{{it.meshOptions}}" as="m" hint-placeholder-count="7"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+                  <sc-if value="{{it.isInk}}" hint-placeholder-val="{{ false }}"><input value="{{it.pantone}}" onInput="{{ it.onPantone }}" placeholder="Pantone / color" style="flex:1;min-width:120px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                  <sc-if value="{{it.isThread}}" hint-placeholder-val="{{ false }}"><input value="{{it.threadColor}}" onInput="{{ it.onThreadColor }}" placeholder="Thread color" style="flex:1;min-width:110px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><input value="{{it.threadNumber}}" onInput="{{ it.onThreadNumber }}" placeholder="Thread #" style="width:100px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                  <sc-if value="{{it.isDigit}}" hint-placeholder-val="{{ false }}"><input value="{{it.stitch}}" onInput="{{ it.onStitch }}" type="number" placeholder="Stitch count" style="flex:1;min-width:120px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+                  <sc-if value="{{it.isTransfer}}" hint-placeholder-val="{{ false }}"><select value="{{it.transferType}}" onChange="{{ it.onTransferType }}" style="flex:1;min-width:140px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Transfer type…</option><sc-for list="{{it.ttOptions}}" as="m" hint-placeholder-count="4"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+                  <button onClick="{{ it.onRemove }}" style="margin-left:auto;width:32px;height:32px;border-radius:7px;background:#16161a;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;font-size:14px" style-hover="color:#E8A89F;border-color:#7A241C"><i class="ti ti-x"></i></button>
+                </div>
+              </sc-for>
+              <sc-if value="{{itemsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f;padding:2px">No items yet — add the screens, inks, threads, digitization or transfers this method needs (optional).</div></sc-if>
+            </div>
+          </div>
+
+          <sc-if value="{{mgrHasErr}}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;font:600 11px/1.3 'Oswald';letter-spacing:.03em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:9px;padding:12px 14px"><i class="ti ti-alert-triangle"></i>{{mgrErr}}</div></sc-if>
+
+          <button onClick="{{ onSubmitMethod }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;font:700 13px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-file-plus"></i>Create Production Plan &amp; Send</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{mgrShowCreated}}" hint-placeholder-val="{{ false }}">
+        <div style="background:#0D0D0F;border:1px solid #1f1f23;border-left:4px solid #7FA644;border-radius:12px;padding:16px 18px;margin-bottom:22px">
+          <div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:9px 13px;margin-bottom:12px"><i class="ti ti-check"></i>Production method created</div>
+          <div style="font:600 19px/1.1 'Oswald';color:#ECEAE4">{{createdPanel.customer}}</div>
+          <div style="font:400 12px/1 'Archivo';color:#6C665C;margin-top:6px">{{createdPanel.num}} · {{createdPanel.qty}} pcs · {{createdPanel.methodLabel}}</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:22px">
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Garment Breakdown</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{createdPanel.sizeCells}}" as="s" hint-placeholder-count="5">
+                <div style="min-width:52px;text-align:center;background:#121215;border:1px solid #232327;border-radius:8px;padding:9px 8px"><div style="font:600 10px/1 'Oswald';letter-spacing:.06em;color:#6C665C;margin-bottom:5px">{{s.label}}</div><div style="font:600 16px/1 'Oswald';color:#ECEAE4">{{s.qty}}</div></div>
+              </sc-for>
+              <sc-if value="{{createdPanel.sizesEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f">No size breakdown on file for this order.</div></sc-if>
+            </div>
+          </div>
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:9px">Specifications for Printing</div>
+            <div style="font:400 13px/1.55 'Archivo';color:#C9C6BF;white-space:pre-wrap;background:#121215;border:1px solid #232327;border-radius:9px;padding:12px 14px;min-height:24px">{{createdPanel.printSpecsDisplay}}</div>
+          </div>
+          <div>
+            <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#E0B870;margin-bottom:9px">Special Notes</div>
+            <div style="font:400 13px/1.55 'Archivo';color:#E0B870;white-space:pre-wrap;background:#241a09;border:1px solid #5E4214;border-radius:9px;padding:12px 14px;min-height:24px">{{createdPanel.specialNotesDisplay}}</div>
+          </div>
+
+          <button onClick="{{ onOpenRunModal }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;font:700 13px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-tools"></i>Create Production Run</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{runModalOpen}}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:95;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative">
+      <div style="position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:12px;padding:18px 22px;background:rgba(13,13,15,.96);backdrop-filter:blur(8px);border-bottom:1px solid #1f1f23">
+        <div style="font:600 17px/1.1 'Oswald';color:#ECEAE4">Create Production Run</div>
+        <button onClick="{{ onCloseRunModal }}" style="margin-left:auto;width:32px;height:32px;border-radius:9px;background:#16161a;border:1px solid #2a2a2f;color:#9C978C;cursor:pointer;font-size:15px" style-hover="color:#ECEAE4;border-color:#3a3a40"><i class="ti ti-x"></i></button>
+      </div>
+
+      <div style="padding:20px 22px;display:flex;flex-direction:column;gap:20px">
+        <div style="background:#121215;border:1px solid #232327;border-radius:11px;padding:14px 15px;display:flex;flex-direction:column;gap:12px">
+          <div style="font:600 10px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#6C665C">For reference</div>
+          <div>
+            <div style="font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:7px">Garment Breakdown</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap">
+              <sc-for list="{{createdPanel.sizeCells}}" as="s" hint-placeholder-count="5">
+                <div style="min-width:44px;text-align:center;background:#0D0D0F;border:1px solid #232327;border-radius:7px;padding:6px 7px"><div style="font:600 9px/1 'Oswald';letter-spacing:.05em;color:#6C665C;margin-bottom:3px">{{s.label}}</div><div style="font:600 13px/1 'Oswald';color:#ECEAE4">{{s.qty}}</div></div>
+              </sc-for>
+              <sc-if value="{{createdPanel.sizesEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f">No size breakdown on file.</div></sc-if>
+            </div>
+          </div>
+          <div>
+            <div style="font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Print Specs</div>
+            <div style="font:400 12px/1.5 'Archivo';color:#C9C6BF;white-space:pre-wrap">{{createdPanel.printSpecsDisplay}}</div>
+          </div>
+          <div>
+            <div style="font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#E0B870;margin-bottom:6px">Special Notes</div>
+            <div style="font:400 12px/1.5 'Archivo';color:#E0B870;white-space:pre-wrap">{{createdPanel.specialNotesDisplay}}</div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Print Method</div>
+          <div style="font:600 14px/1.3 'Archivo';color:#ECEAE4;background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px">{{createdPanel.methodLabel}}</div>
+        </div>
+
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Press</div>
+          <input value="{{runForm.pressQ}}" onInput="{{ onRunPressSearch }}" placeholder="Search presses/machines…" style="width:100%;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+          <sc-if value="{{runPressPicked}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:6px;font:600 11px/1 'Oswald';letter-spacing:.04em;color:#BBD382;margin-top:9px"><i class="ti ti-check"></i>{{runForm.pressName}}</div></sc-if>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:9px">
+            <sc-for list="{{runPressResultsView}}" as="p" hint-placeholder-count="0">
+              <button onClick="{{ p.onPick }}" style="text-align:left;font:500 12px/1.2 'Archivo';color:#ECEAE4;background:#141417;border:1px solid #232327;border-radius:8px;padding:10px 12px;cursor:pointer" style-hover="border-color:#C6372B">{{p.name}}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Scheduled Start</div>
+          <div style="display:flex;gap:8px">
+            <input type="date" value="{{runForm.startDate}}" onInput="{{ onRunStartDate }}" style="flex:1;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+            <input type="time" value="{{runForm.startTime}}" onInput="{{ onRunStartTime }}" style="width:120px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+          </div>
+        </div>
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Scheduled End</div>
+          <div style="display:flex;gap:8px">
+            <input type="date" value="{{runForm.endDate}}" onInput="{{ onRunEndDate }}" style="flex:1;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+            <input type="time" value="{{runForm.endTime}}" onInput="{{ onRunEndTime }}" style="width:120px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+          </div>
+        </div>
+
+        <div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.1em;text-transform:uppercase;color:#8a8378;margin-bottom:8px">Total Garments to Print</div>
+          <input type="number" min="1" value="{{runForm.qty}}" onInput="{{ onRunQty }}" placeholder="e.g. 48" style="width:100%;max-width:180px;background:#121215;border:1px solid #242428;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+        </div>
+
+        <sc-if value="{{runHasMsg}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:10px 13px"><i class="ti ti-check"></i>{{runMsg}}</div></sc-if>
+        <sc-if value="{{runHasErr}}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;font:600 11px/1.3 'Oswald';letter-spacing:.03em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:9px;padding:12px 14px"><i class="ti ti-alert-triangle"></i>{{runErr}}</div></sc-if>
+
+        <div style="display:flex;gap:9px;flex-direction:column">
+          <button onClick="{{ onSaveShopFloor }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;font:700 13px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-send"></i>Save and Send to Shop Floor</button>
+          <button onClick="{{ onSaveNew }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;font:700 12px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:11px;padding:15px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-plus"></i>Save and New</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</sc-if></x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#C6372B&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;}}">
 // The only names the app accepts for shift attribution -- keep in sync with
-// the copies in login.html and pre-production.html if this list ever changes.
+// the copies in login.html and index.html if this list ever changes.
 const VALID_NAMES = ['Anthony','Asher','Beau','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
 
 class Component extends DCLogic {
   constructor(props){
     super(props);
-    const seedOrders = [
-      { id:'GOA-4821', stage:'rfp', num:'GOA-4821', customer:'Ridgeline HS Boosters', account:'Ridgeline Athletics', meth:'sp', qty:'144', garment:'Gildan 5000 · Maroon', sizes:'S12 · M40 · L52 · XL28 · 2XL12', dueLabel:'Jul 22 · 2d', urg:'soon', worker:null, mis:0 },
-      { id:'GOA-4830', stage:'rfp', num:'GOA-4830', customer:'Delgado Brewing Co.', account:'Delgado Brewing', meth:'em', qty:'60', garment:'Independent Hoodie · Black', sizes:'S8 · M18 · L20 · XL10 · 2XL4', dueLabel:'Jul 23 · 3d', urg:'ok', worker:null, mis:0 },
-      { id:'GOA-4835', stage:'rfp', num:'GOA-4835', customer:'Vega Family Reunion', account:'Vega Family', meth:'hp', qty:'48', garment:'Bella+Canvas · Sand', sizes:'YS6 · YM8 · S10 · M12 · L8 · XL4', dueLabel:'Jul 24 · 4d', urg:'ok', worker:null, mis:0 },
-      { id:'GOA-4809', stage:'ip', num:'GOA-4809', customer:'Cypress Trail 10K', account:'Cypress Events', meth:'sp', qty:'300', garment:'Next Level · Heather', sizes:'S60 · M90 · L90 · XL45 · 2XL15', dueLabel:'Due tomorrow', urg:'soon', worker:'DK', pct:55, progressLabel:'Printing · station 2', mis:0 },
-      { id:'GOA-4814', stage:'ip', num:'GOA-4814', customer:'North Star Robotics', account:'North Star Inc.', meth:'em', qty:'96', garment:'Port Authority Jacket · Navy', sizes:'S10 · M28 · L30 · XL20 · 2XL8', dueLabel:'Due tomorrow', urg:'soon', worker:'MA', pct:40, progressLabel:'Stitching run', mis:0 },
-      { id:'GOA-4790', stage:'pp', num:'GOA-4790', customer:'Lakeside Church VBS', account:'Lakeside Church', meth:'sp', qty:'120', garment:'Gildan 5000 · Royal', sizes:'YS20 · YM24 · YL20 · S24 · M20 · L12', dueLabel:'Ship today', urg:'today', worker:'PR', pct:70, progressLabel:'Folding & bagging', mis:2 },
-      { id:'GOA-4795', stage:'pp', num:'GOA-4795', customer:'Meyer & Sons Plumbing', account:'Meyer & Sons', meth:'em', qty:'36', garment:'Carhartt Polo · Black', sizes:'M10 · L14 · XL8 · 2XL4', dueLabel:'Ship today', urg:'today', worker:'MA', pct:85, progressLabel:'Quality check', mis:0 },
-      { id:'GOA-4760', stage:'done', num:'GOA-4760', customer:'Harbor City Marathon', account:'Harbor City', meth:'sp', qty:'500', garment:'Sport-Tek · White', sizes:'S100 · M150 · L150 · XL75 · 2XL25', dueLabel:'Shipped Jul 18', urg:'done', worker:'DK', mis:4 },
-      { id:'GOA-4772', stage:'done', num:'GOA-4772', customer:'Twin Pines Coffee', account:'Twin Pines', meth:'hp', qty:'72', garment:'Comfort Colors · Ivory', sizes:'S12 · M24 · L24 · XL12', dueLabel:'Shipped Jul 19', urg:'done', worker:'JT', mis:0 },
-      { id:'GOA-4755', stage:'done', num:'GOA-4755', customer:'Alderwood FC Kits', account:'Alderwood FC', meth:'em', qty:'88', garment:'Augusta Jersey · Green', sizes:'YM10 · YL14 · S20 · M24 · L14 · XL6', dueLabel:'Shipped Jul 17', urg:'done', worker:'MA', mis:0 },
+    const seed = [
+      { id:'GOA-4842', meth:'sp', num:'GOA-4842', customer:'Summit Cycling Club', account:'Summit CC', qty:'96', garment:'Next Level 3600 · Black', sizes:'S12 · M28 · L34 · XL16 · 2XL6', dueLabel:'Jul 25 · 5d', urg:'ok', worker:'PR', recv:'partial', vendor:'In-house · Press 2', plan:'PP-2291 · new' },
+      { id:'GOA-4849', meth:'sp', num:'GOA-4849', customer:'Baker St. Diner', account:'Baker Street Group', qty:'60', garment:'Gildan 5000 · Red', sizes:'S10 · M20 · L20 · XL10', dueLabel:'Overdue · 1d', urg:'over', worker:null, recv:'none', vendor:'In-house · Press 1', plan:'—' },
+      { id:'GOA-4838', meth:'sp', num:'GOA-4838', customer:'Northgate Prep', account:'Northgate Academy', qty:'220', garment:'Port & Co PC61 · Gold', sizes:'YS20 · YM30 · S50 · M60 · L50 · XL30', dueLabel:'Jul 24 · 4d', urg:'soon', worker:'DK', recv:'staged', vendor:'In-house · Press 3', plan:'PP-2287 · new' },
+      { id:'GOA-4845', meth:'em', num:'GOA-4845', customer:'Vero Landscaping', account:'Vero Land Co.', qty:'48', garment:'Carhartt Beanie · Black', sizes:'OS48', dueLabel:'Jul 25 · 5d', urg:'ok', worker:'PR', recv:'staged', vendor:'Stitch Lab (ext.)', plan:'PP-2290 · attach' },
+      { id:'GOA-4851', meth:'em', num:'GOA-4851', customer:'Kestrel Aviation', account:'Kestrel Inc.', qty:'30', garment:'Nike Dri-FIT Polo · White', sizes:'S4 · M8 · L10 · XL6 · 2XL2', dueLabel:'Jul 27 · 7d', urg:'ok', worker:null, recv:'none', vendor:'—', plan:'—' },
+      { id:'GOA-4847', meth:'hp', num:'GOA-4847', customer:'Junior Rangers Camp', account:'City Parks Dept.', qty:'120', garment:'Bella+Canvas Youth · Green', sizes:'YS30 · YM40 · YL30 · YXL20', dueLabel:'Jul 26 · 6d', urg:'ok', worker:'MA', recv:'partial', vendor:'HeatCo Transfers', plan:'PP-2293 · new' },
+      { id:'GOA-4853', meth:'hp', num:'GOA-4853', customer:'Fiesta Foods', account:'Fiesta Markets', qty:'200', garment:'Gildan 5000 · White', sizes:'M50 · L70 · XL50 · 2XL30', dueLabel:'Jul 28 · 8d', urg:'ok', worker:null, recv:'none', vendor:'—', plan:'—' },
     ];
-    // Demo cards are already one-per-order; give each an orderId matching its
-    // own id so the order-level lookups added for multi-method support (timers,
-    // packaging, shipments, etc.) work the same in demo mode as live mode.
-    this._demoOrders = seedOrders.map(o=>Object.assign({orderId:o.id, status:({rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'})[o.stage]}, o));
+    // Each demo card is one Production_Method__c's worth of pre-production
+    // work (not a whole order); orderId matches id since demo data doesn't
+    // model multiple methods per order, and the checklist booleans live
+    // directly on the card now instead of a separate `checks` dict, matching
+    // the live per-method fields on Production_Method__c.
+    this._demoOrders = seed.map(o=>Object.assign({orderId:o.id}, o));
+    this._demoOrders[0].Films_Printed__c=true; // GOA-4842
+    this._demoOrders[2].Films_Printed__c=true; this._demoOrders[2].Screens_Completed__c=true; this._demoOrders[2].Mix_Inks__c=true; // GOA-4838
+    this._demoOrders[3].Digitize_File__c=true; // GOA-4845
+    this._demoOrders[5].Transfers_Received__c=true; // GOA-4847
     let storedName=''; try{ storedName=localStorage.getItem('caShopWorkerName')||''; }catch(_){}
     this.state = {
-      now: new Date(),
-      nameOk: VALID_NAMES.includes(storedName),
-      orders: [], connection:'loading',
-      q:'', methods:{ sp:true, em:true, hp:true, promo:true },
-      openId:null, dragId:null, dragOverStage:null,
-      // Keyed by CARD id (== Production_Method__c id), not order id -- each
-      // method times itself independently now. Demo cards use their own id
-      // as both card id and order id (see _demoOrders above), so this still
-      // reads correctly in demo mode.
-      timers:{ 'GOA-4809':{ setup:{elapsed:1320,running:false,startedAt:0}, prod:{elapsed:2460,running:true,startedAt:Date.now()} }, 'GOA-4814':{ setup:{elapsed:900,running:false,startedAt:0}, prod:{elapsed:1560,running:false,startedAt:0} }, 'GOA-4790':{ setup:{elapsed:1080,running:false,startedAt:0}, prod:{elapsed:3900,running:false,startedAt:0} } },
-      pkg:{ 'GOA-4790':[{type:'Poly mailers',qty:6}], 'GOA-4760':[{type:'Master cartons',qty:10},{type:'Poly bags',qty:500}] },
-      ship:{ 'GOA-4760':[{carrier:'FedEx Ground',tracking:'7712 4490 1183'}], 'GOA-4755':[{carrier:'UPS Ground',tracking:'1Z 998 A21 55'}], 'GOA-4772':[{carrier:'USPS Priority',tracking:'9405 5118 9922'}] },
-      misDetails:{}, pkgType:'Standard Culture Box', pkgQty:1, ppItemsById:{},
+      now:new Date(), nameOk: VALID_NAMES.includes(storedName), orders:[], connection:'loading', q:'', openId:null, ppItemsById:{}, weekMode:'all', pickDate:'',
+      view:'board', inbox:[], inboxLoaded:false, mgrId:null, mgrSource:null, form:null, vendorResults:[], planResults:[], submitting:false, mgrErr:'', mgrMsg:'',
+      sent:{},
+      // Post-creation "Production Method Created" panel + the Create
+      // Production Run modal it launches -- see submitMethod()/submitRun().
+      createdPanel:null, runModalOpen:false, runForm:null, runPressResults:[], runSubmitting:false, runErr:'', runMsg:'',
       // Card drawer's "Production Runs" section (view + edit existing runs
-      // under this card's Production_Method__c) -- mirrors pre-production.html's
-      // copy of the same feature, since a card here is the SAME
-      // Production_Method__c record once it's advanced past Pre-Production.
-      // See openCard()/loadRunsForCard()/saveRunRow().
+      // under this card's Production_Method__c) -- see openOrder()/
+      // loadRunsForCard()/saveRunRow(). runsByMethod caches the raw records
+      // per methodId; runEdits holds each run's own editable form buffer,
+      // seeded from the record and diverging as the manager types, until
+      // Save writes it back and (on success) it's re-seeded from the fetch.
       runsByMethod:{}, runsLoadingFor:null, runEdits:{}, runRowPressResults:{}, runRowSaving:{}, runRowErr:{}, runRowMsg:{},
-      // "Production Error" modal -- ports Salesforce's Order -> Flow quick
-      // action of the same name. See openReprintModal()/submitReprint() and
-      // PRODUCTION-ERROR-REPRINT-ANALYSIS.md.
-      reprintOpen:false, reprintOrderId:null, reprintNum:'', reprintRows:null, reprintLoading:false, reprintDetails:'', reprintSubmitting:false, reprintErr:'', reprintMsg:'',
-      // "Print Label" (Zenkraft wizard link) -- keyed by orderId since more
-      // than one card's drawer-adjacent button could fail independently.
-      // See openZk(); the actual URL is resolved server-side per request,
-      // not built/cached here, since it depends on which org is currently
-      // connected (functions/api/orders/[id]/zk-wizard-url.js).
-      zkErr:{},
-      // Multi-org Salesforce switcher -- global toggle (every tablet, not
-      // per-browser) between dev2/Staging/Production, PIN-gated. See
-      // loadSfEnv()/openSfEnvModal()/submitSfEnv() and
-      // functions/api/admin/sf-env.js. sfEnvActive/sfEnvActiveLabel default
-      // to dev2 to match _sf.js's DEFAULT_ENV until the real value loads.
-      sfEnvOpen:false, sfEnvList:[], sfEnvActive:'dev2', sfEnvActiveLabel:'Dev2', sfEnvSelected:'dev2', sfEnvPin:'', sfEnvSubmitting:false, sfEnvErr:'', sfEnvMsg:'',
     };
   }
-  componentDidMount(){ this._t = setInterval(()=>this.setState({ now:new Date() }), 1000); this.load(); this.loadSfEnv(); this._ar = setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && !this.state.dragId) this.load(); }, 15000); }
+  componentDidMount(){ this._t=setInterval(()=>this.setState({now:new Date()}),1000); this.load(); this._ar=setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && this.state.view!=='mgr') this.load(); },15000); }
   componentWillUnmount(){ clearInterval(this._t); clearInterval(this._ar); }
-  // Advances/rewinds ONE card (== one Production_Method__c). cardId is the
-  // method's Id; orderId is passed in from the caller (always has it handy)
-  // rather than looked up, since this fires from inside the drawer where the
-  // card object is already in scope.
-  advanceStatus(cardId,label,orderId){
-    const stageOf={'Ready for Print':'rfp','In Production':'ip','Post-Production':'pp','Completed':'done'}[label];
-    if(label==='Pre-Production'){
-      // Sends this ONE method back to Pre-Production -- it drops off this
-      // board (back into the pre-production queue) without touching its
-      // sibling methods on the same order.
-      this.setState(st=>({orders:st.orders.filter(o=>o.id!==cardId), openId:null}));
-      this.pushMethod(cardId,'Pre-Production',orderId);
-      return;
-    }
-    this.setState(st=>({orders:st.orders.map(o=>o.id===cardId?Object.assign({},o,{stage:stageOf,status:label}):o)}));
-    this.pushMethod(cardId,label,orderId);
-  }
   async load(){
     try {
       this._api = window.CAApi; if(!this._api) throw new Error('CAApi not loaded');
       const api=this._api;
-      const recs = await api.getProductionOrders();
-      const PREREQ={ sp:['Films_Printed__c','Screens_Completed__c','Mix_Inks__c'], em:['Digitize_File__c','Thread_Color_Materials__c'], hp:['Transfers_Received__c','Transfers_Ready__c'] };
-      // One order can carry several Production_Method__c children (one per
-      // decoration location/method -- e.g. "Front - Screen Print" and
-      // "Tag - Heat Press" on the same order). Flatten those into one BOARD
-      // CARD per method instead of one per order, so an order with two
-      // methods correctly sorts into two places -- each with its own real
-      // stage (Production_Method__c.Status__c), not a single shared guess.
-      // A method still sitting in Pre-Production (or Cancelled/On Hold)
-      // hasn't reached this board yet, so it's skipped here.
-      const cards = [];
+      const recs = await api.getOrders();
+      // One card per Production_Method__c that's STILL in Pre-Production --
+      // not one per order. An order with a screen print method and a heat
+      // press method now shows two separate cards here, each reading its
+      // OWN copy of the 7 checklist booleans (created directly on
+      // Production_Method__c) instead of guessing a single method for the
+      // whole order and sharing one set of checkboxes between unrelated
+      // jobs. A method whose Status__c has already moved past
+      // Pre-Production has left this board -- it now lives on the
+      // Production floor board (index.html) instead. Orders with zero
+      // methods yet (still in the Management inbox) simply contribute no
+      // cards here.
+      const cards=[];
       recs.forEach(r=>{
-        const methods = r.ProductionMethods || [];
+        const methods=r.ProductionMethods||[];
         const piv=api.pivotItems(r), due=api.dueInfo(r.Print_Date__c), wn=r.Last_Updated_By__c||'';
-        // Order.Status is the standard Salesforce field a person sets
-        // directly (Setup, a Flow, etc.) -- it used to have zero code path
-        // into this board (only each Production_Method__c's own Status__c
-        // decided a card's column, see stageOfMethod() in ca-api.js), so
-        // marking an order Completed in Salesforce never moved its cards
-        // here. Order.Status = 'Complete' now wins outright: every method
-        // on that order shows as done regardless of its own Status__c.
-        // NOTE: the real picklist value is "Complete", NOT "Completed" --
-        // confirmed against live data (order 00006228). Production_Method__c
-        // .Status__c uses "Completed" (with the d); Order.Status doesn't.
-        // Mixing these up is exactly why the first pass of this fix never
-        // fired.
-        const orderCompleted = r.Status === 'Complete';
         methods.forEach(pm=>{
-          const stage = orderCompleted ? 'done' : api.stageOfMethod(pm.Status__c); if(!stage) return;
-          const meta = (api.METHOD_META && api.METHOD_META[pm.Type__c]) || { key:'sp', short:pm.Type__c||'Method', color:'#8a8378' };
-          const meth = meta.key;
-          let pct, progressLabel;
-          if(stage==='ip'||stage==='pp'){ const s=PREREQ[meth]||PREREQ.sp; const done=s.filter(f=>pm[f]).length; pct=Math.round(done/s.length*100); progressLabel = stage==='ip'?'On press':'Post-production'; }
+          // Order.Status = 'Complete' (set directly in Salesforce) wins
+          // outright, same override as the Production floor board -- a
+          // method that never got its own Status__c advanced shouldn't
+          // keep sitting here as a pending pre-production task once the
+          // order itself is done. NOTE: the real picklist value is
+          // "Complete", NOT "Completed" -- Production_Method__c.Status__c
+          // uses "Completed" (with the d), Order.Status doesn't.
+          if(r.Status==='Complete') return;
+          if(pm.Status__c!=='Pre-Production') return;
+          const meta=(api.METHOD_META && api.METHOD_META[pm.Type__c]) || {key:'sp'};
           const placements=(pm.Placements&&pm.Placements.length)?pm.Placements:(pm.Placement__c?[pm.Placement__c]:[]);
-          // Keep the per-method status text in lockstep with the forced
-          // column so the detail panel's status steps (src.status, below)
-          // don't show a stale "In Production" on a card sitting in Done.
-          const pmStatus = orderCompleted ? 'Completed' : pm.Status__c;
           cards.push({
-            id:pm.Id, orderId:r.Id, stage, status:pmStatus, meth, placements:placements,
+            id:pm.Id, orderId:r.Id, meth:meta.key, placements:placements,
             num:api.text(r.GOA_Order_Number__c)||r.OrderNumber||r.Id, customer:api.text(r.Customer_Order_Name__c)||api.text(r.Account&&r.Account.Name)||'—', account:api.text(r.Account&&r.Account.Name)||'',
-            qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel: stage==='done'?'Completed':due.label, urg: stage==='done'?'done':due.urg,
-            worker:null, workerName:wn||null, workerInit: wn?api.initials(wn):'—', workerColor: wn?api.colorForName(wn):'#3a3a40',
-            pct, progressLabel, mis:Number(r.TotalQtyMisprints__c)||0, mockupUrl:r.DesignMockupUrl||null,
-            printSpecs:api.text(r.Specifications_for_Printing__c)||'', specialNotes:api.text(r.Special_Notes__c)||'',
-            shipDelivery:r.Shipping_Delivery__c||'', labelPrinted:!!r.Shipping_Label_Printed__c,
-            // This method's OWN timers -- each Production_Method__c now has
-            // its own Print_Setup_Timer__c/Production_Timer__c in Salesforce,
-            // so sibling methods on the same order time independently. The
-            // order-level fields (r.Print_Setup_Timer__c/r.Production_Timer__c)
-            // are the server-computed SUM across all sibling methods -- see
-            // production-orders/index.js -- used below for the combined
-            // "order total" readout in the drawer.
-            _setup:Number(pm.Print_Setup_Timer__c)||0, _prod:Number(pm.Production_Timer__c)||0,
+            isReprint: !!r.Misprint__c,
+            qty:piv.qty, garment:piv.garment, sizes:piv.sizes, dueLabel:due.label, urg:due.urg,
+            worker:null, workerName:wn||null, recv:(api.RECV_FROM_SF[r.Receiving_Status__c]||'none'), printDateISO:r.Print_Date__c||null,
+            mockupUrl:r.DesignMockupUrl||null, printSpecs:api.text(r.Specifications_for_Printing__c)||'', specialNotes:api.text(r.Special_Notes__c)||'',
+            methods:(api.methodsList?api.methodsList(r):[]),
+            Films_Printed__c: !!pm.Films_Printed__c, Screens_Completed__c: !!pm.Screens_Completed__c, Mix_Inks__c: !!pm.Mix_Inks__c,
+            Digitize_File__c: !!pm.Digitize_File__c, Thread_Color_Materials__c: !!pm.Thread_Color_Materials__c,
+            Transfers_Received__c: !!pm.Transfers_Received__c, Transfers_Ready__c: !!pm.Transfers_Ready__c,
           });
         });
       });
-      // Timers keyed by CARD id (== method id) now -- each method times
-      // itself. Misprint details still live on the Order.
-      const timers={}, misD={};
-      cards.forEach(c=>{ timers[c.id]={setup:{elapsed:c._setup||0,running:false,startedAt:0},prod:{elapsed:c._prod||0,running:false,startedAt:0}}; });
-      recs.forEach(r=>{ if(r.Misprint_Details__c) misD[r.Id]=r.Misprint_Details__c; });
-      this.setState(st=>({ orders:cards, connection:'live', timers:Object.assign({},st.timers,timers), misDetails:Object.assign({},st.misDetails,misD) }));
+      this.setState({ orders:cards, connection:'live', sent:{} });
     } catch(_) { this.setState({orders:this._demoOrders, connection:'demo'}); }
+  }
+  // Toggles one of this CARD's (method's) own checklist booleans -- writes
+  // straight to Production_Method__c, not Order, via patchMethodChecklist.
+  toggleCheck(cardId,label){
+    const field=this._api&&this._api.CHECK_FIELD[label]; if(!field) return;
+    const card=(this.state.orders||[]).find(o=>o.id===cardId); if(!card) return;
+    const nv=!card[field];
+    this.setState(st=>({orders:st.orders.map(o=>o.id===cardId?Object.assign({},o,{[field]:nv}):o)}));
+    if(this._api && this.state.connection==='live') this._api.patchMethodChecklist(cardId,{[field]:nv}).catch(()=>{});
   }
   pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
   switchUser(){ try{localStorage.removeItem('caShopWorkerName');}catch(_){} this.setState({nameOk:false}); }
-  // ── Salesforce environment switcher (global -- affects every tablet) ──
-  loadSfEnv(){
-    if(!this._api) return;
-    this._api.getSfEnv().then(d=>{
-      if(!d) return;
-      const environments=d.environments||[];
-      const activeObj=environments.find(e=>e.key===d.active);
-      this.setState({ sfEnvList:environments, sfEnvActive:d.active, sfEnvActiveLabel:(activeObj&&activeObj.label)||d.active, sfEnvSelected:d.active });
-    }).catch(()=>{});
-  }
-  openSfEnvModal(){ this.setState({ sfEnvOpen:true, sfEnvPin:'', sfEnvErr:'', sfEnvMsg:'' }); this.loadSfEnv(); }
-  closeSfEnvModal(){ this.setState({sfEnvOpen:false}); }
-  pickSfEnvKey(key){ this.setState({sfEnvSelected:key, sfEnvErr:'', sfEnvMsg:''}); }
-  setSfEnvPin(v){ this.setState({sfEnvPin:v}); }
-  async submitSfEnv(){
-    if(this.state.sfEnvSubmitting || !this._api) return;
-    const key=this.state.sfEnvSelected;
-    if(!key) return;
-    if(key===this.state.sfEnvActive){ this.setState({sfEnvMsg:'Already active', sfEnvErr:''}); return; }
-    if(!this.state.sfEnvPin){ this.setState({sfEnvErr:'Enter the switch PIN', sfEnvMsg:''}); return; }
-    this.setState({sfEnvSubmitting:true, sfEnvErr:'', sfEnvMsg:''});
-    try{
-      const res = await this._api.setSfEnv(key, this.state.sfEnvPin);
-      const active = (res && res.active) || key;
-      const opt = (this.state.sfEnvList||[]).find(e=>e.key===active);
-      const label = (opt&&opt.label)||active;
-      this.setState(st=>({
-        sfEnvSubmitting:false, sfEnvActive:active, sfEnvActiveLabel:label, sfEnvPin:'',
-        sfEnvMsg:'Switched — every tablet now talks to '+label,
-        sfEnvList:(st.sfEnvList||[]).map(e=>Object.assign({}, e, {active:e.key===active})),
-      }));
-    }catch(e){
-      // jsend() (ca-api.js) only throws "METHOD url -> <status>", discarding
-      // the JSON error body -- pull the status back out to distinguish the
-      // common cases rather than showing one generic message for all of them.
-      const m=/-> (\d+)/.exec((e&&e.message)||'');
-      const code=m?Number(m[1]):0;
-      const msg = code===401?'Wrong PIN'
-        : code===409?'That environment is not configured yet'
-        : code===500?'Switch PIN is not configured on the server'
-        : code===400?'Unknown environment'
-        : 'Could not switch — try again';
-      this.setState({sfEnvSubmitting:false, sfEnvErr:msg, sfEnvMsg:''});
-    }
-  }
-  // Per-method write (Production_Method__c.Status__c) -- drives this board's
-  // stage columns now.
-  pushMethod(cardId,statusLabel,orderId){ if(this._api && this.state.connection==='live') this._api.patchMethodStatus(cardId,statusLabel,orderId).catch(()=>{}); }
-  // Generic per-method write, reusing the same PATCH endpoint as the
-  // checklist fields (production-methods/[id].js accepts any allow-listed
-  // field). Used for this card's own timer fields.
-  pushMethodFields(cardId,fields){ if(this._api && this.state.connection==='live') this._api.patchMethodChecklist(cardId,fields).catch(()=>{}); }
-  // Per-order write -- everything else on the drawer (specs, notes,
-  // packaging, shipments, misprints, delivery) still lives on the Order.
-  pushOrder(orderId,fields){ if(this._api && this.state.connection==='live') this._api.patchOrder(orderId,fields).catch(()=>{}); }
-  // Applies a field change to EVERY card sharing an orderId, so editing an
-  // order-level field (notes, misprint count, etc.) from one method's
-  // drawer stays in sync if the sibling method's drawer is opened next.
+  // Garment receiving, specs, and special notes are still Order-level fields
+  // -- shared across every card from the same order, so these apply the
+  // change to ALL sibling cards, not just the one whose drawer is open.
   updateOrderFieldLocally(orderId,fields){ this.setState(st=>({ orders: st.orders.map(o=>o.orderId===orderId?Object.assign({},o,fields):o) })); }
-  openCard(cardId){
+  setRecv(orderId,v){ this.updateOrderFieldLocally(orderId,{recv:v}); if(this._api && this.state.connection==='live') this._api.patchOrder(orderId,{Receiving_Status__c:(this._api.RECV_TO_SF[v]||'Not Received')}).catch(()=>{}); }
+  setSpecs(orderId,v){ this.updateOrderFieldLocally(orderId,{printSpecs:v}); clearTimeout(this._specsT); this._specsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(orderId,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
+  setSpecial(orderId,v){ this.updateOrderFieldLocally(orderId,{specialNotes:v}); clearTimeout(this._specialT); this._specialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(orderId,{Special_Notes__c:v}).catch(()=>{}); },600); }
+  assign(cardId,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===cardId?Object.assign({},o,{worker:o.worker===w?null:w}):o) })); }
+  // "Send to Production" -- advances THIS ONE method's Status__c to Ready
+  // for Print, so it leaves this board and shows up on the Production floor
+  // board independently of its sibling methods (e.g. the front+back screen
+  // print can go out while the tag's heat press is still waiting on
+  // transfers). The rollup in ../functions/api/_pm-rollup.js keeps the
+  // order-level Order_Substatus__c an honest summary automatically.
+  send(cardId){
+    const card=(this.state.orders||[]).find(o=>o.id===cardId);
+    this.setState(st=>({ sent:Object.assign({},st.sent,{[cardId]:true}), openId:null }));
+    if(!this._api || this.state.connection!=='live' || !card) return;
+    this._api.patchMethodStatus(cardId,'Ready for Print',card.orderId).catch(()=>{});
+  }
+
+  defaultForm(){ return { method:'', placements:[], vendorId:null, vendorName:'', vendorQ:'', planMode:'new', planId:null, planName:'', planQ:'', status:'Pre-Production', items:[] }; }
+  // Toggles one location in/out of the form's multi-select Placements list.
+  togglePlacement(x){ this.setState(st=>{ const f=Object.assign({},st.form||this.defaultForm()); const cur=f.placements||[]; f.placements = cur.includes(x) ? cur.filter(v=>v!==x) : cur.concat([x]); return {form:f}; }); }
+  openMgr(){ this.setState({view:'mgr', mgrId:null, mgrErr:'', mgrMsg:''}); this.loadInbox(); }
+  // Also the general "leave Management" exit -- clears the created-method
+  // panel and Create Production Run modal too, so returning here always
+  // lands cleanly back on the board regardless of where the manager was.
+  closeMgr(){ this.setState({view:'board', mgrId:null, createdPanel:null, runModalOpen:false}); }
+  async loadInbox(){ if(!this._api) this._api=window.CAApi; if(!this._api || this.state.connection!=='live'){ this.setState({inbox:[], inboxLoaded:true}); return; } try{ const recs=await this._api.getInbox(); this.setState({inbox:recs, inboxLoaded:true}); }catch(_){ this.setState({inbox:[], inboxLoaded:true}); } }
+  pickInbox(id){
+    const rec=(this.state.inbox||[]).find(r=>r.Id===id)||{};
+    const api=this._api||window.CAApi; const t=(v)=>(api&&api.text?api.text(v):(v||''));
+    const form=Object.assign(this.defaultForm(),{ specs:t(rec.Specifications_for_Printing__c)||'', notes:t(rec.Special_Notes__c)||'' });
+    this.setState({mgrId:id, mgrSource:'inbox', form, vendorResults:[], planResults:[], mgrErr:'', mgrMsg:''});
+  }
+  // Entry point for an order that's already staffed with at least one
+  // production method (so it won't be in /api/inbox any more -- that list
+  // only shows orders with zero methods). Opens the SAME manager form,
+  // seeded from the order data the worker board already has loaded, so a
+  // manager can add a second (or third) placement/method to it -- e.g. an
+  // order that already has "Front - Screen Print" gets a "Tag - Heat Press"
+  // added without ever needing to touch the inbox.
+  openMgrForOrder(orderId){
+    // FIXED 2026-07-27: this compared orderId (an Order Id) against o.id
+    // (each card's Production_Method__c Id) -- never a match, so `src` was
+    // always undefined and the form was silently seeded with BLANK specs/
+    // notes. submitMethod() then unconditionally flushes f.specs/f.notes to
+    // the Order before creating the new method (since '' != null), which
+    // erased the real, shared, Order-level Specifications_for_Printing__c/
+    // Special_Notes__c for every sibling card the instant a manager added a
+    // second method/location to an order that already had notes on file --
+    // exactly the "specs/notes not carrying over" symptom. Compare on
+    // o.orderId instead, matching referenceForOrder() (line ~879) and the
+    // mgrOrder lookup (line ~955), which both already do this correctly.
+    const src=(this.state.orders||[]).find(o=>o.orderId===orderId);
+    const form=Object.assign(this.defaultForm(),{ specs:(src&&src.printSpecs)||'', notes:(src&&src.specialNotes)||'' });
+    this.setState({view:'mgr', mgrId:orderId, mgrSource:'order', form, vendorResults:[], planResults:[], mgrErr:'', mgrMsg:'', openId:null});
+  }
+  // FIXED 2026-07-22: these only ever pushed to Salesforce and updated the
+  // isolated manager-form state (this.state.form) -- never
+  // updateOrderFieldLocally, unlike setSpecs/setSpecial above. That's fine
+  // for a brand-new order opened from the inbox (no cards exist yet to sync),
+  // but openMgrForOrder() reuses this same form to add a method to an ORDER
+  // THAT ALREADY HAS SIBLING CARDS on the worker board -- and those sibling
+  // cards never saw the edit until the next 15s poll. Now mirrors
+  // setSpecs/setSpecial: updates every sibling card immediately (a no-op
+  // .map() if mgrId isn't actually an order id with cards yet).
+  setMgrSpecs(v){ const oid=this.state.mgrId; this.setForm({specs:v}); if(!oid) return; this.updateOrderFieldLocally(oid,{printSpecs:v}); clearTimeout(this._mgrSpecsT); this._mgrSpecsT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Specifications_for_Printing__c:v}).catch(()=>{}); },600); }
+  setMgrSpecial(v){ const oid=this.state.mgrId; this.setForm({notes:v}); if(!oid) return; this.updateOrderFieldLocally(oid,{specialNotes:v}); clearTimeout(this._mgrSpecialT); this._mgrSpecialT=setTimeout(()=>{ if(this._api && this.state.connection==='live') this._api.patchOrder(oid,{Special_Notes__c:v}).catch(()=>{}); },600); }
+  backToInbox(){ this.setState({mgrId:null, mgrErr:'', mgrMsg:''}); }
+  // Pre_Production_Item__c records come back per ORDER (one fetch covers
+  // every sibling method's items), cached under ppItemsById[orderId] and
+  // filtered down to just this card's own method at render time.
+  openOrder(cardId){
     this.setState({openId:cardId});
-    const card=(this.state.orders||[]).find(c=>c.id===cardId);
+    const card=(this.state.orders||[]).find(o=>o.id===cardId);
     if(!card || !this._api || this.state.connection!=='live') return;
-    const api=this._api, orderId=card.orderId;
-    Promise.all([api.getPackaging(orderId).catch(()=>null),api.getShipments(orderId).catch(()=>null),api.getPreProductionItems(orderId).catch(()=>null)]).then(([pk,sh,it])=>{
-      this.setState(st=>{
-        const pkg=Object.assign({},st.pkg), ship=Object.assign({},st.ship), pp=Object.assign({},st.ppItemsById);
-        if(pk) pkg[orderId]=pk.map(x=>({type:x.Packaging_Type__c,qty:x.Quantity__c,id:x.Id}));
-        if(sh) ship[orderId]=sh.map(x=>({carrier:x.zkmulti__Carrier__c||'Shipment',tracking:x.zkmulti__Tracking_Number__c||''}));
-        if(it) pp[orderId]=it;
-        return {pkg,ship,ppItemsById:pp};
-      });
-    });
-    // cardId IS this card's Production_Method__c Id (one card == one method) --
-    // same scope key production-runs uses on the pre-production board.
+    const orderId=card.orderId;
+    this._api.getPreProductionItems(orderId).then(items=>{ this.setState(st=>({ppItemsById:Object.assign({},st.ppItemsById,{[orderId]:items})})); }).catch(()=>{});
+    // cardId IS this card's Production_Method__c Id (one card == one method).
     this.loadRunsForCard(cardId);
   }
-  // ── Production Runs section of the card drawer (mirrors pre-production.html) ──
-  buildRunDateTime(dateStr,timeStr){
-    if(!dateStr || !timeStr) return null;
-    const d=new Date(dateStr+'T'+timeStr+':00');
-    return isNaN(d.getTime()) ? null : d.toISOString();
-  }
+  // ── Production Runs section of the card drawer ──────────────────────────
+  // Splits an ISO datetime back into the {date,time} pair <input type=date>/
+  // <input type=time> need -- the inverse of buildRunDateTime(). Local-time
+  // components on both sides of the round trip, so this always matches what
+  // buildRunDateTime() would produce from the same wall-clock values.
   splitDT(iso){
     if(!iso) return {date:'', time:''};
     const d=new Date(iso); if(isNaN(d.getTime())) return {date:'', time:''};
@@ -720,6 +808,9 @@ class Component extends DCLogic {
     if(!end){ fail('Set the scheduled end date & time'); return; }
     const qtyNum=Number(f.qty);
     if(!f.qty || !Number.isFinite(qtyNum) || qtyNum<=0){ fail('Enter the total quantity for this run'); return; }
+    // Actual Start/End are optional -- either can be left fully blank. A
+    // half-filled pair (date with no time, or vice versa) is treated as a
+    // mistake and blocks save rather than silently dropping half the input.
     if((f.actualStartDate||f.actualStartTime) && !(f.actualStartDate&&f.actualStartTime)){ fail('Actual Start needs both a date and a time'); return; }
     if((f.actualEndDate||f.actualEndTime) && !(f.actualEndDate&&f.actualEndTime)){ fail('Actual End needs both a date and a time'); return; }
     const actualStart = (f.actualStartDate && f.actualStartTime) ? this.buildRunDateTime(f.actualStartDate,f.actualStartTime) : '';
@@ -735,197 +826,323 @@ class Component extends DCLogic {
       this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowErr:Object.assign({}, st.runRowErr, {[runId]:'Save failed — check press / schedule and try again'}) }));
     }
   }
-  // ── Production Error / Reprint modal ──
-  // Per-line misprint/damaged quantities create a brand-new child Order
-  // (Original_Production_Order__c links back to this one), containing only
-  // the bad quantities, reset to Status/Order_Substatus__c = 'Pre-Production'
-  // so it re-enters the pipeline from scratch via the existing Management
-  // inbox -- no new board logic needed. See functions/api/orders/[id]/reprint.js.
-  openReprintModal(orderId,num){
-    this.setState({ reprintOpen:true, reprintOrderId:orderId, reprintNum:num||'', reprintRows:null, reprintLoading:true, reprintDetails:this.state.misDetails[orderId]||'', reprintErr:'', reprintMsg:'' });
-    if(!this._api || this.state.connection!=='live'){ this.setState({reprintLoading:false, reprintErr:'Not connected to Salesforce (demo mode) — deploy to file a production error'}); return; }
-    this._api.getOrderSizes(orderId).then(rows=>{
-      const lines=(rows||[]).filter(r=>r.Size__c).map(r=>({
-        id:r.Id, product:this._api.text(r.Product2&&r.Product2.Name)||'—', color:this._api.text(r.Color__c)||'—', size:r.Size__c, qty:Number(r.Quantity)||0,
-        misprintQty:'', damagedQty:'',
-      }));
-      this.setState({reprintRows:lines, reprintLoading:false});
-    }).catch(()=>{ this.setState({reprintLoading:false, reprintErr:'Could not load order lines — try again'}); });
-  }
-  closeReprintModal(){ this.setState({reprintOpen:false}); }
-  setReprintRowField(itemId,field,v){ this.setState(st=>({ reprintRows:(st.reprintRows||[]).map(r=>r.id===itemId?Object.assign({},r,{[field]:v}):r) })); }
-  setReprintDetails(v){ this.setState({reprintDetails:v}); }
-  async submitReprint(){
-    if(this.state.reprintSubmitting) return;
-    const orderId=this.state.reprintOrderId, rows=this.state.reprintRows||[];
-    const items=rows.map(r=>({ orderItemId:r.id, misprintQty:Number(r.misprintQty)||0, damagedQty:Number(r.damagedQty)||0 })).filter(r=>r.misprintQty>0||r.damagedQty>0);
-    if(!items.length){ this.setState({reprintErr:'Enter a misprint or damaged quantity for at least one line', reprintMsg:''}); return; }
-    if(!this._api || this.state.connection!=='live'){ this.setState({reprintErr:'Not connected to Salesforce (demo mode)'}); return; }
-    this.setState({reprintSubmitting:true, reprintErr:'', reprintMsg:''});
-    try{
-      const res=await this._api.createReprintOrder(orderId, items, this.state.reprintDetails||'');
-      if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed');
-      this.setState({reprintSubmitting:false, reprintMsg:'Reprint order created — it will appear in the Pre-Production Management inbox.'});
-      this.load();
-    }catch(e){
-      this.setState({reprintSubmitting:false, reprintErr:'Create failed — check the quantities and try again'});
+  setItemField(orderId,itemId,field,val){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).map(it=>it.Id===itemId?Object.assign({},it,{[field]:val}):it); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live') this._api.patchItem(itemId,{[field]:val}).catch(()=>{}); }
+  removePPItem(orderId,itemId){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).filter(it=>it.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{}); }
+  setForm(patch){ this.setState(st=>({form:Object.assign({}, st.form||this.defaultForm(), patch)})); }
+  vendorSearch(q){ this.setForm({vendorQ:q, vendorId:null, vendorName:''}); if(!this._api) return; clearTimeout(this._vt); this._vt=setTimeout(()=>{ this._api.searchVendors(q).then(r=>this.setState({vendorResults:r})).catch(()=>{}); },250); }
+  pickVendor(id,name){ this.setForm({vendorId:id, vendorName:name, vendorQ:name}); this.setState({vendorResults:[]}); }
+  planSearch(q){ this.setForm({planQ:q, planId:null, planName:''}); if(!this._api) return; clearTimeout(this._pt); this._pt=setTimeout(()=>{ this._api.searchPlans(q).then(r=>this.setState({planResults:r})).catch(()=>{}); },250); }
+  pickPlan(id,name){ this.setForm({planId:id, planName:name, planQ:name}); this.setState({planResults:[]}); }
+  addItem(type){ this.setState(st=>{ const f=Object.assign({},st.form||this.defaultForm()); f.items=(f.items||[]).concat([{type:type}]); return {form:f}; }); }
+  removeItem(i){ this.setState(st=>{ const f=Object.assign({},st.form); f.items=(f.items||[]).filter((_,ix)=>ix!==i); return {form:f}; }); }
+  setItem(i,field,val){ this.setState(st=>{ const f=Object.assign({},st.form); f.items=(f.items||[]).map((it,ix)=>ix===i?Object.assign({},it,{[field]:val}):it); return {form:f}; }); }
+  async submitMethod(){
+    const st=this.state, f=st.form; if(!f) return; const oid=st.mgrId;
+    if(!f.method){ this.setState({mgrErr:'Pick a print method'}); return; }
+    if(!f.placements || !f.placements.length){ this.setState({mgrErr:'Pick at least one placement (where this method prints)'}); return; }
+    if(!f.vendorId){ this.setState({mgrErr:'Pick a vendor'}); return; }
+    if(f.planMode==='existing' && !f.planId){ this.setState({mgrErr:'Pick an existing plan'}); return; }
+    if(!this._api || this.state.connection!=='live'){ this.setState({mgrErr:'Not connected to Salesforce (demo mode) — deploy to create plans'}); return; }
+    this.setState({submitting:true, mgrErr:''});
+    // FIXED 2026-07-22: specs/notes typed into this form only reach Salesforce
+    // via setMgrSpecs/setMgrSpecial's 600ms debounce (see above) -- if a
+    // manager types then clicks "Create Production Plan" fast, that timer
+    // hadn't fired yet and the edit was silently lost even though the method
+    // still got created. Flush both pending writes (if any) and await them
+    // before creating the method, so the Order's specs/notes are guaranteed
+    // saved by the time this returns.
+    clearTimeout(this._mgrSpecsT); clearTimeout(this._mgrSpecialT);
+    if(oid){
+      const flushes=[];
+      if(f.specs!=null) flushes.push(this._api.patchOrder(oid,{Specifications_for_Printing__c:f.specs}).catch(()=>{}));
+      if(f.notes!=null) flushes.push(this._api.patchOrder(oid,{Special_Notes__c:f.notes}).catch(()=>{}));
+      if(flushes.length) await Promise.all(flushes);
     }
+    const body={ orderId:oid, vendorId:f.vendorId, status:f.status, type:f.method, placements:f.placements, items:f.items||[] };
+    if(f.planMode==='existing' && f.planId) body.planId=f.planId;
+    try{ const by=(this._api.workerName&&this._api.workerName())||''; if(by) body.by=by; }catch(_){}
+    try{
+      const res=await this._api.createMethod(body);
+      if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed');
+      // 2026-07-22: instead of bouncing straight back to the inbox/board,
+      // land on a "Production Method Created" panel for THIS method --
+      // garment breakdown + specs/notes for reference, and a button into
+      // the new Create Production Run modal. The manager can still leave
+      // any time via the mgr header's "Back to Board" (closeMgr(), which
+      // now also clears this panel/modal -- see above).
+      const pmId = res && res.productionMethodId;
+      const methodLabel = f.method + ((f.placements && f.placements.length) ? (' – '+f.placements.join(' + ')) : '');
+      // Only the transient identifiers live in state here -- customer/qty/
+      // garment/sizeCells/printSpecs/specialNotes are derived FRESH from
+      // referenceForOrder() every render (see mgrVals()) so this panel never
+      // goes stale if specs/notes get edited afterward. See FIXED 2026-07-27
+      // note in mgrVals().
+      this.setState(s2=>({
+        submitting:false, mgrSource:null,
+        inbox:(s2.inbox||[]).filter(o=>o.Id!==oid),
+        createdPanel:{ pmId, orderId:oid, methodLabel },
+        runModalOpen:false, runForm:this.defaultRunForm(), runPressResults:[], runErr:'', runMsg:'',
+      }));
+      // Best-effort refresh of the underlying board data in the background
+      // (new method now exists; if a run gets sent to the shop floor before
+      // the manager returns here, that should be reflected too).
+      this.load();
+    }catch(e){ this.setState({submitting:false, mgrErr:'Create failed — check vendor / plan and try again'}); }
   }
-  removePkg(orderId,idx){ const cur=(this.state.pkg[orderId]||[])[idx]; this.setState(st=>{ const arr=(st.pkg[orderId]||[]).slice(); arr.splice(idx,1); const p=Object.assign({},st.pkg); p[orderId]=arr; return {pkg:p}; }); if(this._api && this.state.connection==='live' && cur && cur.id) this._api.deletePackaging(cur.id).catch(()=>{}); }
-  removePPItem(orderId,itemId){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).filter(x=>x.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{}); }
-  setDelivery(orderId,v){ this.updateOrderFieldLocally(orderId,{shipDelivery:v}); if(v) this.pushOrder(orderId,{Shipping_Delivery__c:v}); }
-  toggleLabel(orderId){ const cur=(this.state.orders||[]).find(o=>o.orderId===orderId); const nv=!(cur&&cur.labelPrinted); this.updateOrderFieldLocally(orderId,{labelPrinted:nv}); this.pushOrder(orderId,{Shipping_Label_Printed__c:nv}); }
-  setMisDetails(orderId,v){ this.setState(s2=>({misDetails:Object.assign({},s2.misDetails,{[orderId]:v})})); clearTimeout(this._md); this._md=setTimeout(()=>this.pushOrder(orderId,{Misprint_Details__c:v}),600); }
-  setSpecs(orderId,v){ this.updateOrderFieldLocally(orderId,{printSpecs:v}); clearTimeout(this._specsT); this._specsT=setTimeout(()=>this.pushOrder(orderId,{Specifications_for_Printing__c:v}),600); }
-  setSpecial(orderId,v){ this.updateOrderFieldLocally(orderId,{specialNotes:v}); clearTimeout(this._specialT); this._specialT=setTimeout(()=>this.pushOrder(orderId,{Special_Notes__c:v}),600); }
+  // Best-effort reference data (garment breakdown, print specs, special
+  // notes) for the order the manager just created a method for -- read from
+  // whichever source already has it in memory: a board card (already-staffed
+  // orders, via openMgrForOrder) or the raw inbox record (brand-new orders,
+  // via pickInbox). Never re-fetches -- if neither is loaded, returns blanks
+  // rather than blocking the created-panel from showing.
+  referenceForOrder(oid){
+    const api=this._api||window.CAApi;
+    const boardCard=(this.state.orders||[]).find(o=>o.orderId===oid);
+    if(boardCard){
+      const sizeCells=String(boardCard.sizes||'').split('·').map(t=>t.trim()).filter(Boolean).map(tok=>{ const mm=tok.match(/^([A-Za-z0-9]+?)(\d+)$/); return mm?{label:mm[1],qty:mm[2]}:{label:tok,qty:''}; });
+      return { customer:boardCard.customer||'', num:boardCard.num||'', qty:boardCard.qty||'', garment:boardCard.garment||'', sizeCells, printSpecs:boardCard.printSpecs||'', specialNotes:boardCard.specialNotes||'' };
+    }
+    const inboxRec=(this.state.inbox||[]).find(r=>r.Id===oid);
+    if(inboxRec && api && api.pivotItems){
+      const piv=api.pivotItems(inboxRec), t=(v)=>(api.text?api.text(v):(v||''));
+      return { customer:t(inboxRec.Customer_Order_Name__c)||t(inboxRec.Account&&inboxRec.Account.Name)||'—', num:t(inboxRec.GOA_Order_Number__c)||inboxRec.OrderNumber||inboxRec.Id, qty:piv.qty, garment:piv.garment, sizeCells:piv.sizeCells, printSpecs:t(inboxRec.Specifications_for_Printing__c), specialNotes:t(inboxRec.Special_Notes__c) };
+    }
+    return { customer:'', num:'', qty:'', garment:'', sizeCells:[], printSpecs:'', specialNotes:'' };
+  }
 
-  fmtDur(s){ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60; const p=n=>String(n).padStart(2,'0'); return h>0?`${h}:${p(m)}:${p(ss)}`:`${m}:${p(ss)}`; }
-  // Drag-and-drop path: only the dragged card id is known (dataTransfer
-  // doesn't carry the order id), so look the card up to find its orderId.
-  moveCard(cardId,stage){
-    const card=(this.state.orders||[]).find(c=>c.id===cardId);
-    const label=(this._api&&this._api.STAGE_SUBSTATUS&&this._api.STAGE_SUBSTATUS[stage])||{rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[stage];
-    this.setState(st=>({ orders: st.orders.map(o=>o.id===cardId?Object.assign({},o,{stage,status:label}):o), dragId:null, dragOverStage:null }));
-    if(card) this.pushMethod(cardId,label,card.orderId);
+  /* ── Create Production Run modal ── */
+  defaultRunForm(){ return { pressId:null, pressName:'', pressQ:'', startDate:'', startTime:'', endDate:'', endTime:'', qty:'' }; }
+  openRunModal(){ this.setState({ runModalOpen:true, runForm:this.defaultRunForm(), runPressResults:[], runErr:'', runMsg:'' }); }
+  closeRunModal(){ this.setState({ runModalOpen:false }); }
+  setRunField(patch){ this.setState(st=>({ runForm:Object.assign({}, st.runForm||this.defaultRunForm(), patch) })); }
+  runPressSearch(q){ this.setRunField({pressQ:q, pressId:null, pressName:''}); if(!this._api) return; clearTimeout(this._rpt); this._rpt=setTimeout(()=>{ this._api.searchPresses(q).then(r=>this.setState({runPressResults:r})).catch(()=>{}); },250); }
+  pickRunPress(id,name){ this.setRunField({pressId:id, pressName:name, pressQ:name}); this.setState({runPressResults:[]}); }
+  // Combines a <input type=date> + <input type=time> pair (both in the
+  // browser's local time) into the ISO string Salesforce expects for a
+  // Date/Time field. Returns null if either half is missing/unparseable.
+  buildRunDateTime(dateStr,timeStr){
+    if(!dateStr || !timeStr) return null;
+    const d=new Date(dateStr+'T'+timeStr+':00');
+    return isNaN(d.getTime()) ? null : d.toISOString();
   }
-  // Timers are per-CARD (per-method) now -- cardId, not orderId. Writes to
-  // this method's OWN Print_Setup_Timer__c/Production_Timer__c on
-  // Production_Method__c via the same generic PATCH endpoint the checklist
-  // fields use (production-methods/[id].js).
-  toggleTimer(cardId,which){
-    const t=this.state.timers[cardId]||{}; const cur=Object.assign({elapsed:0,running:false,startedAt:0},t[which]||{});
-    let next;
-    if(cur.running){ const el=cur.elapsed+Math.floor((Date.now()-cur.startedAt)/1000); next={elapsed:el,running:false,startedAt:0}; this.pushMethodFields(cardId,{[which==='setup'?'Print_Setup_Timer__c':'Production_Timer__c']:el}); }
-    else { next={elapsed:cur.elapsed,running:true,startedAt:Date.now()}; }
-    this.setState(st=>{ const timers=Object.assign({},st.timers); const g=Object.assign({},timers[cardId]||{}); g[which]=next; timers[cardId]=g; return {timers}; });
+  async submitRun(mode){
+    // mode: 'shopfloor' (create the run + leave Management, back to the
+    // board) or 'new' (create + reset the form for another run under this
+    // same method, without leaving). NEITHER mode touches the Production
+    // Method's Status__c anymore -- 2026-07-22 fix: the method should keep
+    // showing on the Pre-Production board every time, regardless of how
+    // many runs get sent to the shop floor under it. Advancing the method
+    // off Pre-Production is a separate, manager-driven action elsewhere in
+    // the UI (the existing "Send to Production" button), not an automatic
+    // side effect of creating a run.
+    if(this.state.runSubmitting) return;
+    const st=this.state, f=st.runForm, cp=st.createdPanel;
+    if(!f || !cp) return;
+    if(!f.pressId){ this.setState({runErr:'Pick a press', runMsg:''}); return; }
+    const start=this.buildRunDateTime(f.startDate,f.startTime);
+    if(!start){ this.setState({runErr:'Set a scheduled start date & time', runMsg:''}); return; }
+    const end=this.buildRunDateTime(f.endDate,f.endTime);
+    if(!end){ this.setState({runErr:'Set a scheduled end date & time', runMsg:''}); return; }
+    const qtyNum=Number(f.qty);
+    if(!f.qty || !Number.isFinite(qtyNum) || qtyNum<=0){ this.setState({runErr:'Enter how many garments this run will print', runMsg:''}); return; }
+    if(!this._api || this.state.connection!=='live'){ this.setState({runErr:'Not connected to Salesforce (demo mode) — deploy to create runs'}); return; }
+    this.setState({runSubmitting:true, runErr:'', runMsg:''});
+    try{
+      const res=await this._api.createProductionRun({ printMethodId:cp.pmId, pressId:f.pressId, scheduledStart:start, scheduledEnd:end, quantity:qtyNum });
+      if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed');
+      // Refresh this method's own Production Runs list -- covers both entry
+      // points into this modal: the post-creation "Method Created" panel
+      // (where this is a no-op, nothing's rendering that list yet) and the
+      // board drawer's own "Create Production Run" button (openRunModalForCard),
+      // where the drawer's Production Runs section needs the new run to show
+      // up without requiring a close/reopen.
+      this.loadRunsForCard(cp.pmId);
+      if(mode==='shopfloor'){
+        this.closeMgr();
+        this.load();
+      } else {
+        this.setState({runSubmitting:false, runForm:this.defaultRunForm(), runPressResults:[], runErr:'', runMsg:'Run created — add another for this method, or close this window when done.'});
+      }
+    }catch(e){ this.setState({runSubmitting:false, runErr:'Create failed — check press / schedule and try again'}); }
   }
-  setMis(orderId,val){ const v=Math.max(0,val); this.updateOrderFieldLocally(orderId,{mis:v}); this.pushOrder(orderId,{TotalQtyMisprints__c:v, Misprint__c:v>0}); }
-  addPkg(orderId){ const type=this.state.pkgType||'Standard Culture Box'; const qty=Math.max(1,parseInt(this.state.pkgQty,10)||1); const localKey='local-'+Date.now()+'-'+Math.random(); this.setState(st=>{ const p=Object.assign({},st.pkg); p[orderId]=(p[orderId]||[]).concat([{type,qty,_local:localKey}]); return {pkg:p}; }); if(this._api && this.state.connection==='live') this._api.postPackaging(orderId,type,qty).then(res=>{ const newId=res&&res.id; if(!newId) return; this.setState(st=>{ const p=Object.assign({},st.pkg); p[orderId]=(p[orderId]||[]).map(x=>x._local===localKey?Object.assign({},x,{id:newId}):x); return {pkg:p}; }); }).catch(()=>{}); }
-  // Fetches the Zenkraft wizard URL from the server (org-specific pieces are
-  // resolved there, see functions/api/orders/[id]/zk-wizard-url.js) and opens
-  // it in a new tab. Replaces the old client-built, hardcoded-to-dev2 zkUrl().
-  openZk(orderId,num){
-    this.setState(st=>{ const z=Object.assign({},st.zkErr); delete z[orderId]; return {zkErr:z}; });
-    if(!this._api || this.state.connection!=='live'){ this.setState(st=>{ const z=Object.assign({},st.zkErr); z[orderId]='Not connected to Salesforce (demo mode)'; return {zkErr:z}; }); return; }
-    this._api.getZkWizardUrl(orderId,num).then(d=>{
-      if(d && d.url) window.open(d.url,'_blank','noopener');
-      else this.setState(st=>{ const z=Object.assign({},st.zkErr); z[orderId]='Could not open the Zenkraft wizard'; return {zkErr:z}; });
-    }).catch(()=>{ this.setState(st=>{ const z=Object.assign({},st.zkErr); z[orderId]='Could not open the Zenkraft wizard'; return {zkErr:z}; }); });
+  // Entry point for the DRAWER's own "Create Production Run" button (an
+  // already-existing card on the board, opened via openOrder() -- NOT the
+  // post-creation flow, which uses openRunModal() straight off createdPanel).
+  // Reuses the exact same createdPanel + runModalOpen state the post-creation
+  // panel uses, so the modal's reference block (garment breakdown/specs/
+  // notes) and submitRun() both work identically regardless of entry point --
+  // they only ever read pmId/orderId/methodLabel off createdPanel.
+  openRunModalForCard(pmId, orderId, methodLabel){
+    this.setState({
+      createdPanel:{ pmId, orderId, methodLabel },
+      runModalOpen:true, runForm:this.defaultRunForm(), runPressResults:[], runErr:'', runMsg:'',
+    });
   }
-  addShip(orderId){ this.setState(st=>{ const s=Object.assign({},st.ship); s[orderId]=(s[orderId]||[]).concat([{carrier:'FedEx Ground',tracking:'Draft · rate shopping'}]); return {ship:s}; }); if(this._api && this.state.connection==='live') this._api.postShipment(orderId,{carrier:'FedEx Ground',serviceType:'Ground',tracking:'PENDING'}).catch(()=>{}); }
-  assign(cardId,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===cardId?Object.assign({},o,{worker: o.worker===w?null:w}):o) })); }
+  mgrVals(){
+    const st=this.state, api=this._api||window.CAApi;
+    const t=(v)=>(api&&api.text?api.text(v):(v||''));
+    const UC={ over:'#E24A3A', today:'#E24A3A', soon:'#C9923A', ok:'#6C665C' };
+    const inbox=(st.inbox||[]).map(r=>{
+      const piv=api&&api.pivotItems?api.pivotItems(r):{qty:''}; const due=api&&api.dueInfo?api.dueInfo(r.Print_Date__c):{label:'',urg:'ok'}; const id=r.Id;
+      return { id, num:t(r.GOA_Order_Number__c)||r.OrderNumber||id, customer:t(r.Customer_Order_Name__c)||t(r.Account&&r.Account.Name)||'—', account:t(r.Account&&r.Account.Name)||'', qty:piv.qty, dueLabel:due.label, urgColor:UC[due.urg]||UC.ok, onPick:()=>this.pickInbox(id) };
+    });
+    const f=st.form, hasOrder=!!st.mgrId && !!f, mgrView=st.view==='mgr';
+    let mgrOrder={num:'',customer:'',account:'',qty:''}, methodOptions=[], placementOptions=[], statusOptions=[], vendorResults=[], planResults=[], itemsView=[], itemTypeButtons=[];
+    if(hasOrder){
+      // The order might be a brand-new inbox pick, OR an already-staffed
+      // order a manager is adding a second method/placement to (see
+      // openMgrForOrder) -- that second case won't be in `inbox` any more
+      // once it has a method, so fall back to the worker board's own list.
+      const ord=inbox.find(o=>o.id===st.mgrId) || (st.orders||[]).find(o=>o.orderId===st.mgrId);
+      if(ord) mgrOrder={num:ord.num,customer:ord.customer,account:ord.account,qty:ord.qty};
+      methodOptions=['Screen Print','Embroidery','Heat Press','Promotional Items'].map(x=>({ label:x, onPick:()=>this.setForm({method:x}), bg:f.method===x?'#2a1210':'#121215', border:f.method===x?'#C6372B':'#242428', color:f.method===x?'#ECEAE4':'#8a8378' }));
+      placementOptions=(api&&api.PLACEMENTS?api.PLACEMENTS:['Front','Back','Left Sleeve','Right Sleeve','Left Chest','Right Chest','Full Front','Full Back','Tag','Hood','Pocket']).map(x=>{ const on=(f.placements||[]).includes(x); return { label:x, onPick:()=>this.togglePlacement(x), bg:on?'#2a1210':'#121215', border:on?'#C6372B':'#242428', color:on?'#ECEAE4':'#8a8378' }; });
+      statusOptions=['Pre-Production','Ready for Print','In Production','Post-Production','Completed','Cancelled','On Hold'].map(s=>({ value:s, label:s }));
+      vendorResults=(st.vendorResults||[]).map(v=>({ id:v.Id, name:v.Name, onPick:()=>this.pickVendor(v.Id,v.Name) }));
+      planResults=(st.planResults||[]).map(p=>({ id:p.Id, name:p.Name, onPick:()=>this.pickPlan(p.Id,p.Name) }));
+      const MESH=['110','125','156','180','196','230','305'], TT=['Screen Transfer','Digital Transfer','Sublimation','Vinyl'];
+      itemsView=(f.items||[]).map((it,i)=>({
+        type:it.type, isScreen:it.type==='Screen', isInk:it.type==='Ink', isThread:it.type==='Thread', isDigit:it.type==='Digitization', isTransfer:it.type==='Transfer',
+        mesh:it.mesh||'', pantone:it.pantone||'', threadColor:it.threadColor||'', threadNumber:it.threadNumber||'', stitch:it.stitchCount||'', transferType:it.transferType||'',
+        meshOptions:MESH.map(m=>({value:m,label:m+' mesh'})), ttOptions:TT.map(m=>({value:m,label:m})),
+        onMesh:(e)=>this.setItem(i,'mesh',e.target.value), onPantone:(e)=>this.setItem(i,'pantone',e.target.value), onThreadColor:(e)=>this.setItem(i,'threadColor',e.target.value), onThreadNumber:(e)=>this.setItem(i,'threadNumber',e.target.value), onStitch:(e)=>this.setItem(i,'stitchCount',e.target.value), onTransferType:(e)=>this.setItem(i,'transferType',e.target.value), onRemove:()=>this.removeItem(i)
+      }));
+      itemTypeButtons=['Screen','Ink','Thread','Digitization','Transfer'].map(x=>({ label:x, onAdd:()=>this.addItem(x) }));
+    }
+    // Created-panel + Create Production Run modal render values.
+    // FIXED 2026-07-27: this used to freeze customer/qty/garment/sizeCells/
+    // printSpecs/specialNotes into createdPanel ONCE, at the moment the method
+    // was created -- so if a manager (or a teammate on another method's
+    // drawer for the SAME order) edited specs/notes afterward, this panel and
+    // the Create Production Run modal it launches kept showing the stale
+    // snapshot forever. printSpecs/specialNotes are Order-level fields shared
+    // by every sibling Production_Method__c and every run under them, so this
+    // now re-derives the reference block live from referenceForOrder() on
+    // every render -- cpRaw only carries the transient pmId/orderId/
+    // methodLabel, never a copy of the order data itself.
+    const cpRaw = st.createdPanel;
+    const cpRef = cpRaw ? this.referenceForOrder(cpRaw.orderId) : null;
+    const createdPanel = cpRaw ? Object.assign({}, cpRaw, cpRef, {
+      printSpecsDisplay: (cpRef && cpRef.printSpecs) || 'None on file.',
+      specialNotesDisplay: (cpRef && cpRef.specialNotes) || 'None on file.',
+      sizesEmpty: !(cpRef && cpRef.sizeCells && cpRef.sizeCells.length),
+    }) : { customer:'', num:'', qty:'', methodLabel:'', sizeCells:[], sizesEmpty:true, printSpecsDisplay:'', specialNotesDisplay:'' };
+    const rf = st.runForm || this.defaultRunForm();
+    const runPressResultsView = (st.runPressResults||[]).map(p=>({ id:p.Id, name:p.Name, onPick:()=>this.pickRunPress(p.Id,p.Name) }));
+
+    return {
+      mgrView, mgrShowInbox: mgrView && !hasOrder && !cpRaw, mgrShowForm: mgrView && hasOrder && !cpRaw, mgrShowCreated: mgrView && !!cpRaw,
+      inbox, inboxEmpty:(st.inbox||[]).length===0 && st.inboxLoaded,
+      onOpenMgr:()=>this.openMgr(), onCloseMgr:()=>this.closeMgr(), onBackToInbox:()=>this.backToInbox(),
+      mgrOrder, mgrSpecs:f?f.specs:'', onMgrSpecs:(e)=>this.setMgrSpecs(e.target.value), mgrNotes:f?f.notes:'', onMgrSpecial:(e)=>this.setMgrSpecial(e.target.value),
+      formMethodOptions:methodOptions, formPlacementOptions:placementOptions, statusOptions, formStatus:f?f.status:'Pre-Production', onStatus:(e)=>this.setForm({status:e.target.value}),
+      vendorQ:f?f.vendorQ:'', onVendorSearch:(e)=>this.vendorSearch(e.target.value), vendorResults, vendorPicked:!!(f&&f.vendorId), vendorName:f?f.vendorName:'',
+      planIsNew:!f||f.planMode==='new', planIsExisting:!!(f&&f.planMode==='existing'), onPlanNew:()=>this.setForm({planMode:'new'}), onPlanExisting:()=>this.setForm({planMode:'existing'}),
+      planNewBg:(!f||f.planMode==='new')?'#2a1210':'#121215', planNewBorder:(!f||f.planMode==='new')?'#C6372B':'#242428', planNewColor:(!f||f.planMode==='new')?'#ECEAE4':'#8a8378',
+      planExBg:(f&&f.planMode==='existing')?'#2a1210':'#121215', planExBorder:(f&&f.planMode==='existing')?'#C6372B':'#242428', planExColor:(f&&f.planMode==='existing')?'#ECEAE4':'#8a8378',
+      planQ:f?f.planQ:'', onPlanSearch:(e)=>this.planSearch(e.target.value), planResults, planPicked:!!(f&&f.planId), planName:f?f.planName:'',
+      itemsView, itemTypeButtons, itemsEmpty:!f||!(f.items&&f.items.length),
+      onSubmitMethod:()=>this.submitMethod(), submitting:st.submitting, mgrErr:st.mgrErr, mgrMsg:st.mgrMsg, mgrHasMsg:!!st.mgrMsg, mgrHasErr:!!st.mgrErr,
+      // Created panel
+      createdPanel, onOpenRunModal:()=>this.openRunModal(),
+      // Create Production Run modal
+      runModalOpen:st.runModalOpen, onCloseRunModal:()=>this.closeRunModal(),
+      runForm:rf, runPressPicked:!!rf.pressId, runPressResultsView,
+      onRunPressSearch:(e)=>this.runPressSearch(e.target.value),
+      onRunStartDate:(e)=>this.setRunField({startDate:e.target.value}), onRunStartTime:(e)=>this.setRunField({startTime:e.target.value}),
+      onRunEndDate:(e)=>this.setRunField({endDate:e.target.value}), onRunEndTime:(e)=>this.setRunField({endTime:e.target.value}),
+      onRunQty:(e)=>this.setRunField({qty:e.target.value}),
+      onSaveShopFloor:()=>this.submitRun('shopfloor'), onSaveNew:()=>this.submitRun('new'),
+      runSubmitting:st.runSubmitting, runErr:st.runErr, runMsg:st.runMsg, runHasErr:!!st.runErr, runHasMsg:!!st.runMsg,
+    };
+  }
 
   renderVals(){
-    const st = this.state;
-    const accent = this.props.accentColor || '#C6372B';
-    const M = { sp:{label:'Screen Print',short:'Screen',color:'#C6372B'}, em:{label:'Embroidery',short:'Embroid',color:'#5E9B9A'}, hp:{label:'Heat Press',short:'Heat',color:'#C9923A'}, promo:{label:'Promotional Items',short:'Promo',color:'#8E6FB0'} };
-    const W = { MA:{name:'Marcus A.',color:'#C6372B'}, DK:{name:'Dana K.',color:'#5E9B9A'}, PR:{name:'Priya R.',color:'#C9923A'}, JT:{name:'Jules T.',color:'#7FA644'} };
-    const U = { over:'#E24A3A', today:'#E24A3A', soon:'#C9923A', ok:'#6C665C', done:'#7FA644' };
-    // nx.label is a BUTTON CAPTION ("Start Production"), not a Status__c
-    // value -- advanceStatus() needs the real picklist value (e.g. "In
-    // Production"), so nx.status carries that separately. Mixing these up
-    // was the root cause of a real bug: clicking the bottom CTA sent the
-    // literal string "Start Production" as Status__c, which Salesforce
-    // rejects (not a valid picklist value), so the write silently failed
-    // while local state still flipped -- the card would go stage:undefined
-    // and vanish from every column until the next poll corrected it.
-    const NEXT = { rfp:{stage:'ip',status:'In Production',label:'Start Production',icon:'ti-player-play'}, ip:{stage:'pp',status:'Post-Production',label:'Move to Post-Production',icon:'ti-package'}, pp:{stage:'done',status:'Completed',label:'Mark Completed',icon:'ti-circle-check'} };
+    const st=this.state;
+    const api=this._api||window.CAApi;
+    const CF=(api&&api.CHECK_FIELD)||{};
+    const M={ sp:{label:'Screen Print',color:'#C6372B',icon:'ti-stack-2',prereq:['Films printed','Screens completed','Inks mixed']}, em:{label:'Embroidery',color:'#5E9B9A',icon:'ti-needle',prereq:['File digitized','Thread & materials']}, hp:{label:'Heat Press',color:'#C9923A',icon:'ti-flame',prereq:['Transfers received','Transfers ready']}, promo:{label:'Promotional Items',color:'#8E6FB0',icon:'ti-gift',prereq:[]} };
+    const W={ MA:{name:'Marcus A.',color:'#C6372B'}, DK:{name:'Dana K.',color:'#5E9B9A'}, PR:{name:'Priya R.',color:'#C9923A'}, JT:{name:'Jules T.',color:'#7FA644'} };
+    const U={ over:'#E24A3A', today:'#E24A3A', soon:'#C9923A', ok:'#6C665C' };
+    const RECV={ none:{label:'Not Received',icon:'ti-inbox',textColor:'#E8A89F',bg:'#2A100D',border:'#7A241C'}, partial:{label:'Partial',icon:'ti-progress',textColor:'#E0B870',bg:'#241a09',border:'#5E4214'}, countedin:{label:'Counted In',icon:'ti-checks',textColor:'#8FCBE0',bg:'#0D1F2A',border:'#2E6A8B'}, staged:{label:'Staged',icon:'ti-check',textColor:'#BBD382',bg:'#18230D',border:'#3D5418'} };
+    const RECV_STEPS=[['none','Not In','ti-inbox'],['partial','Partial','ti-progress'],['countedin','Counted','ti-checks'],['staged','Staged','ti-checkbox']];
 
-    const q = st.q.trim().toLowerCase();
-    // Each card is one Production_Method__c -- filtering/searching now
-    // happens per-method, so typing a customer name still surfaces every
-    // method-card for that order, and toggling a method chip hides only
-    // that method's cards (an order with Screen Print + Heat Press stays
-    // visible via its Screen Print card even if Heat Press is toggled off).
-    const matches = o => (!q || (o.customer+' '+o.num+' '+o.account).toLowerCase().includes(q)) && st.methods[o.meth];
-    const visible = st.orders.filter(matches);
+    const q=st.q.trim().toLowerCase();
+    const mondayOf=(iso)=>{ if(!iso) return null; const d=new Date(String(iso).slice(0,10)+'T12:00:00'); if(isNaN(d.getTime())) return null; const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); d.setHours(0,0,0,0); return d.getTime(); };
+    const anchorMon=(st.weekMode==='pick' && st.pickDate)?mondayOf(st.pickDate):mondayOf(new Date().toISOString());
+    const inWeek=(iso)=>{ if(st.weekMode==='all') return true; if(!iso||anchorMon==null) return false; const m=mondayOf(iso); return m!=null && m===anchorMon; };
+    const visible=st.orders.filter(o=>!st.sent[o.id] && inWeek(o.printDateISO) && (!q || (o.customer+' '+o.num+' '+o.account).toLowerCase().includes(q)));
 
-    const mk = o => {
-      const m=M[o.meth]||M.sp, w=o.worker?W[o.worker]:null; const wname=o.workerName||(w&&w.name)||null;
-      return Object.assign({}, o, {
-        methLabel:m.label, methShort: (o.placements&&o.placements.length) ? (m.short+' · '+o.placements.join(' + ')) : m.short, methColor:m.color,
-        hasWorker:!!wname, noWorker:!wname, workerName:wname||'Unassigned', workerInit:o.workerInit||o.worker||(wname?wname.trim().slice(0,2).toUpperCase():'—'), workerColor:o.workerColor||(w&&w.color)||'#3a3a40',
-        urgColor:U[o.urg]||U.ok, hasProgress:typeof o.pct==='number', progressWidth:(o.pct||0)+'%', hasMisprints:(o.mis||0)>0,
-        cardOpacity: st.dragId===o.id ? 0.35 : 1,
-        onOpen: ()=>this.openCard(o.id),
-        onDragStart: (e)=>{ if(e&&e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',o.id);}catch(_){}} this.setState({dragId:o.id}); },
-        onDragEnd: ()=>this.setState({dragId:null,dragOverStage:null}),
+    // Reads straight off the card's own Production_Method__c checklist
+    // fields (via CHECK_FIELD's label->field map) instead of a separate
+    // per-order `checks` dict -- each card IS one method now, so there's no
+    // more sharing to worry about.
+    const prereqDone=(o)=>{ const list=(M[o.meth]||M.sp).prereq; return list.filter(l=>o[CF[l]]).length; };
+    const isReady=(o)=>{ const list=(M[o.meth]||M.sp).prereq; return prereqDone(o)===list.length && o.recv==='staged'; };
+
+    const mk=o=>{
+      const m=M[o.meth]||M.sp, w=o.worker?W[o.worker]:null, r=RECV[o.recv]||RECV.none; const wname=o.workerName||(w&&w.name)||null;
+      const done=prereqDone(o), total=m.prereq.length;
+      return Object.assign({},o,{
+        methLabel: (o.placements&&o.placements.length) ? (m.label+' · '+o.placements.join(' + ')) : m.label, color:m.color,
+        hasWorker:!!wname, noWorker:!wname, workerName:wname||'Unassigned', workerInit:o.worker||(wname?wname.trim().slice(0,2).toUpperCase():'—'), workerColor:o.workerColor||(w&&w.color)||'#3a3a40',
+        urgColor:U[o.urg]||U.ok,
+        checkLabel:done+' / '+total, checkWidth: total?(Math.round(done/total*100)+'%'):'100%',
+        recvLabel:r.label, recvIcon:r.icon, recvTextColor:r.textColor, recvBg:r.bg, recvBorder:r.border,
+        ready:isReady(o),
+        onOpen:()=>this.openOrder(o.id),
       });
     };
 
-    const stageMeta = [
-      { key:'rfp', label:'Ready for Print', color:'#C9923A', icon:'ti-clock-check' },
-      { key:'ip', label:'In Production', color:accent, icon:'ti-printer' },
-      { key:'pp', label:'Post-Production', color:'#5E9B9A', icon:'ti-package' },
-      { key:'done', label:'Completed', color:'#7FA644', icon:'ti-circle-check' },
-    ];
-    const columns = stageMeta.map(s=>{
-      const items = visible.filter(o=>o.stage===s.key).map(mk);
-      const units = items.reduce((a,o)=>a+(parseInt(o.qty,10)||0),0);
-      const over = st.dragOverStage===s.key;
-      return Object.assign({}, s, {
-        items, count:items.length, isEmpty:items.length===0, unitsLabel:units.toLocaleString()+' pcs',
-        colBg: over?'rgba(198,55,43,.07)':'transparent',
-        colBorder: over?'#C6372B':'transparent',
-        onDragOver:(e)=>{ e.preventDefault(); if(st.dragOverStage!==s.key) this.setState({dragOverStage:s.key}); },
-        onDragLeave:()=>{ if(st.dragOverStage===s.key) this.setState({dragOverStage:null}); },
-        onDrop:(e)=>{ e.preventDefault(); if(st.dragId) this.moveCard(st.dragId,s.key); },
-      });
+    const methMeta=['sp','em','hp'].map(k=>Object.assign({key:k},M[k]));
+    const columns=methMeta.map(s=>{
+      const items=visible.filter(o=>o.meth===s.key).map(mk).sort((a,b)=>(a.urg==='over'?0:1)-(b.urg==='over'?0:1));
+      const ready=items.filter(o=>o.ready).length;
+      return Object.assign({},s,{ items, count:items.length, isEmpty:items.length===0, readyLabel: ready+' ready to send · '+items.length+' in prep' });
     });
 
-    const now = st.now;
-    const clock = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    const dateStr = now.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});
-    const inProd = st.orders.filter(o=>o.stage==='ip');
-    const inProdUnits = inProd.reduce((a,o)=>a+(parseInt(o.qty,10)||0),0);
-    const rushCount = st.orders.filter(o=>o.urg==='today'||o.urg==='over').length + st.orders.filter(o=>o.urg==='soon').length;
-    const pipeline = st.orders.filter(o=>o.stage!=='done').length;
+    const now=st.now;
+    const clock=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const dateStr=now.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+    const active=visible;
+    const staged=active.filter(o=>o.recv==='staged').length;
+    const ready=active.filter(o=>isReady(o)).length;
+    const overdue=active.filter(o=>o.urg==='over').length;
+    const awaiting=active.filter(o=>!isReady(o)).length;
 
-    const kpis = [
-      { label:'In Pipeline', value:String(pipeline), unit:'orders', sub:'across four stages', accent:'#ECEAE4', hasTrend:false },
-      { label:'Due This Week', value:'5', unit:'orders', sub:'within 48 hours', accent:'#C9923A', hasTrend:true, trendIcon:'ti-alert-triangle', trendColor:'#C9923A', trendVal:'3 rush' },
-      { label:'On Press Now', value:String(inProdUnits), unit:'pcs', sub:inProd.length+' orders in production', accent:accent, hasTrend:false },
-      { label:'On-Time', value:'96', unit:'%', sub:'trailing 30 days', accent:'#7FA644', hasTrend:true, trendIcon:'ti-trending-up', trendColor:'#7FA644', trendVal:'+2 pts' },
-      { label:'Misprint Rate', value:'1.8', unit:'%', sub:'6 of 328 pcs', accent:'#7FA644', hasTrend:true, trendIcon:'ti-trending-down', trendColor:'#7FA644', trendVal:'−0.4' },
-      { label:'Shipped · 7d', value:'14', unit:'orders', sub:'3,120 pcs out', accent:'#ECEAE4', hasTrend:true, trendIcon:'ti-trending-up', trendColor:'#7FA644', trendVal:'+9%' },
+    const kpis=[
+      { label:'In Pre-Production', value:String(active.length), unit:'jobs', sub:'across three methods', accent:'#ECEAE4' },
+      { label:'Garments Staged', value:String(staged), unit:'jobs', sub:'counted in & ready', accent:'#7FA644' },
+      { label:'Awaiting Prep', value:String(awaiting), unit:'jobs', sub:'films · thread · transfers', accent:'#C9923A' },
+      { label:'Ready to Send', value:String(ready), unit:'jobs', sub:'clear for production', accent:'#C6372B' },
+      { label:'Overdue', value:String(overdue), unit:'jobs', sub:'print date passed', accent:'#E24A3A' },
     ];
 
-    const methodFilters = ['sp','em','hp','promo'].map(k=>{ const on=st.methods[k]; return { key:k, label:M[k].label, color:M[k].color, onToggle:()=>this.setState(s2=>({methods:Object.assign({},s2.methods,{[k]:!s2.methods[k]})})), bg:on?'#1a1a1e':'transparent', border:on?'#3a3a40':'#242428', textColor:on?'#ECEAE4':'#6C665C' }; });
+    const shownLabel = active.length + ' jobs';
 
-    const shownLabel = visible.length===st.orders.length ? (st.orders.length+' orders') : (visible.length+' of '+st.orders.length+' orders');
-
-    // Drawer -- src is one CARD (one Production_Method__c). Timers and
-    // worker assignment are genuinely per-card (keyed by src.id, the method
-    // id); everything else on this drawer (packaging, shipments, misprints,
-    // specs/notes, delivery) is still an Order-level field in Salesforce, so
-    // those all key off src.orderId instead -- shared with any sibling card
-    // from the same order.
     let open=null;
-    const src = st.orders.find(o=>o.id===st.openId);
-    if(src){
-      const d=mk(src);
-      const tmr=st.timers[src.id]||{setup:{elapsed:0,running:false,startedAt:0},prod:{elapsed:0,running:false,startedAt:0}};
-      // Combined order total: sum this card's own live elapsed time with
-      // every sibling card sharing the same orderId, so a screen print
-      // method running 20s + a heat press method running 20s reads 40s here
-      // -- ticks live every second (this.state.now) for whichever siblings
-      // currently have their own timer running.
-      const siblings = st.orders.filter(o=>o.orderId===src.orderId);
-      const liveElapsed = (cardId,key) => { const c=(st.timers[cardId]||{})[key]; if(!c) return 0; return c.elapsed+(c.running?Math.floor((Date.now()-c.startedAt)/1000):0); };
-      const timers=[['setup','Setup'],['prod','Production']].map(([key,label])=>{
-        const c=Object.assign({elapsed:0,running:false,startedAt:0},tmr[key]||{});
-        const disp=c.elapsed+(c.running?Math.floor((Date.now()-c.startedAt)/1000):0);
-        const orderTotal=siblings.reduce((a,o)=>a+liveElapsed(o.id,key),0);
-        return { label, display:this.fmtDur(disp), timeColor:c.running?'#7FA644':'#ECEAE4', onToggle:()=>this.toggleTimer(src.id,key), btnLabel:c.running?'Pause':'Start', btnIcon:c.running?'ti-player-pause':'ti-player-play', btnBg:c.running?'#18230D':'#16161a', btnBorder:c.running?'#3D5418':'#2a2a2f', btnText:c.running?'#BBD382':'#9C978C', showOrderTotal:siblings.length>1, orderTotalDisplay:this.fmtDur(orderTotal) };
-      });
+    const src=st.orders.find(o=>o.id===st.openId);
+    if(src && !st.sent[src.id]){
+      const d=mk(src), m=M[src.meth]||M.sp;
+      const checklist=m.prereq.map(label=>{ const done=!!src[CF[label]]; return { label, onToggle:()=>this.toggleCheck(src.id,label), icon:done?'ti-check':'', boxBg:done?m.color:'transparent', boxBorder:done?m.color:'#3a3a40', border:done?'#2f2a24':'#232327', textColor:done?'#ECEAE4':'#9C978C' }; });
+      const recvSteps=RECV_STEPS.map(([key,label,icon])=>{ const on=src.recv===key; const c=RECV[key]; return { key,label,icon, onPick:()=>this.setRecv(src.orderId,key), bg:on?c.bg:'#121215', border:on?c.border:'#232327', textColor:on?c.textColor:'#8a8378' }; });
       const assignees=['MA','DK','PR','JT'].map(k=>{ const on=src.worker===k; return { key:k, init:k, name:W[k].name, color:W[k].color, onPick:()=>this.assign(src.id,k), bg:on?'#1a1a1e':'transparent', border:on?W[k].color:'#242428', textColor:on?'#ECEAE4':'#8a8378' }; });
-      const pkg=st.pkg[src.orderId]||[]; const shp=st.ship[src.orderId]||[]; const nx=NEXT[src.stage];
-      // Production Runs section -- scoped to THIS card's own
-      // Production_Method__c (src.id), same as pre-production.html, so a
-      // sibling method's runs never bleed into this card's list. Visible at
-      // every stage this board covers (Ready for Print/In Production/
-      // Post-Production/Completed) since a card here lives on this board for
-      // all of those statuses.
+      const sizeCells=src.sizes.split('·').map(t=>t.trim()).filter(Boolean).map(tok=>{ const mm=tok.match(/^([A-Za-z0-9]+?)(\d+)$/); return mm?{label:mm[1],qty:mm[2]}:{label:tok,qty:''}; });
+      const ready=isReady(src);
+      const missing=[]; if(prereqDone(src)!==m.prereq.length) missing.push('prep incomplete'); if(src.recv!=='staged') missing.push('garments not staged');
+      // One row per Production_Method__c on this order -- an order with
+      // multiple print locations (front+back screen print, tag heat press)
+      // shows one chip per method/placement here instead of a single vendor
+      // line, and "Add another method / location" (below) opens the same
+      // manager form used for brand-new orders, pre-targeted at this
+      // ORDER (not this card) since it's adding a new method alongside it.
+      const methodsView=(src.methods||[]).map(pm=>({ label:pm.label, color:pm.color, vendor:pm.vendor||'No vendor set' }));
+      // Production Runs section: this card's own Production_Method__c is the
+      // scope key (runsByMethod/runEdits are keyed by that same Id), so a
+      // sibling method's runs never bleed into this card. Falls back to
+      // runEditFieldsFromRecord(r) if a run just arrived from the fetch and
+      // hasn't been seeded into runEdits yet (shouldn't normally happen --
+      // loadRunsForCard() seeds both together -- but keeps render safe).
       const rawRuns = st.runsByMethod[src.id] || [];
       const runsView = rawRuns.map(r=>{
         const f = st.runEdits[r.id] || this.runEditFieldsFromRecord(r);
@@ -950,73 +1167,25 @@ class Component extends DCLogic {
           hasErr:!!(st.runRowErr&&st.runRowErr[r.id]), hasMsg:!!(st.runRowMsg&&st.runRowMsg[r.id]),
         };
       });
-      open=Object.assign({}, d, {
-        runsView, runsEmpty:runsView.length===0, runsLoading: st.runsLoadingFor===src.id,
-        assignees, timers,
-        hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode: d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Production mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, onZk:()=>this.openZk(src.orderId,src.num), zkErrMsg:(st.zkErr&&st.zkErr[src.orderId])||'', hasZkErr:!!(st.zkErr&&st.zkErr[src.orderId]),
-        specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.orderId,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.orderId,e.target.value), orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.orderId),
-        delivery:d.shipDelivery||'', deliveryOptions:[{value:'',label:'— not set —'},{value:'Shipping',label:'Shipping'},{value:'Local Dropoff',label:'Local Dropoff'},{value:'Pickup',label:'Pickup'},{value:'Order Fulfillment',label:'Order Fulfillment'},{value:'Split Ship',label:'Split Ship'},{value:'Delivery',label:'Delivery'}], onDelivery:(e)=>this.setDelivery(src.orderId,e.target.value),
-        labelPrinted:!!d.labelPrinted, onToggleLabel:()=>this.toggleLabel(src.orderId), labelBg:d.labelPrinted?'#18230D':'#16161a', labelBorder:d.labelPrinted?'#3D5418':'#2a2a2f', labelColor:d.labelPrinted?'#BBD382':'#9C978C', labelIcon:d.labelPrinted?'ti-checkbox':'ti-square',
-        // Pre_Production_Item__c records come back per ORDER (an order-wide
-        // fetch), so filter down to just this card's own method here --
-        // otherwise a card would show its sibling method's screens/inks too.
-        ppItemsView:(st.ppItemsById[src.orderId]||[]).filter(function(it){ return it.Production_Method__c===src.id; }).map(function(it){ var ty=it.Type__c||'Item', det=''; if(ty==='Screen') det=(it.Mesh_Count__c?it.Mesh_Count__c+' mesh':''); else if(ty==='Ink') det=it.Pantone_Color__c||''; else if(ty==='Thread') det=[it.Thread_Color__c,it.Thread_Number__c].filter(Boolean).join(' · '); else if(ty==='Digitization') det=(it.Stitch_Count__c?it.Stitch_Count__c+' stitches':''); else if(ty==='Transfer') det=it.Transfer_Type__c||''; return { type:ty, detail:det||'—', status:it.Status__c||'', onRemove:(function(){ this.removePPItem(src.orderId,it.Id); }).bind(this) }; }.bind(this)), ppItemsEmpty:(st.ppItemsById[src.orderId]||[]).filter(function(it){ return it.Production_Method__c===src.id; }).length===0,
-        // Steps read/write THIS card's own Production_Method__c.Status__c
-        // (src.status, set literally -- no Order-field label/value quirk
-        // here), not the order's shared stage.
-        statusSteps:(function(){ var SS=['Pre-Production','Ready for Print','In Production','Post-Production','Completed']; var curLabel=src.status||{rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[src.stage]; var ci=SS.indexOf(curLabel); return SS.map(function(label,i){ var done=i<ci, current=i===ci, isNext=(i===ci+1), clickable=isNext||done, allowed=isNext; return { label, onClick: clickable?(function(){ this.advanceStatus(src.id,label,src.orderId); }).bind(this):null, textColor: current?'#ECEAE4':(done?'#8a8378':(allowed?'#E0B870':'#4d483f')), border: current?'#C6372B':(allowed?'#5E4214':'#242428'), bg: current?'#2a1210':(done?'#18230D':(allowed?'#241a09':'#121215')) }; }.bind(this)); }).call(this),
-        packaging:pkg.map((p,idx)=>Object.assign({},p,{onRemove:()=>this.removePkg(src.orderId,idx)})), pkgEmpty:pkg.length===0, onAddPkg:()=>this.addPkg(src.orderId), pkgType:st.pkgType, pkgQty:st.pkgQty, onPkgType:(e)=>this.setState({pkgType:e.target.value}), onPkgQty:(e)=>this.setState({pkgQty:e.target.value}), pkgTypeOptions:[{value:'Standard Culture Box',label:'Standard Culture Box'},{value:'Culture Hat Box',label:'Culture Hat Box'},{value:'Poly Bag',label:'Poly Bag'},{value:'Standard Brown Box',label:'Standard Brown Box'}],
-        shipments:shp, shipEmpty:shp.length===0, onAddShip:()=>this.addShip(src.orderId),
-        misBorder:(src.mis>0)?'#7A241C':'#232327', misColor:(src.mis>0)?'#E8A89F':'#ECEAE4',
-        onMisPlus:()=>this.setMis(src.orderId,(src.mis||0)+1), onMisMinus:()=>this.setMis(src.orderId,(src.mis||0)-1),
-        misDetails:st.misDetails[src.orderId]||'', onMisDetails:(e)=>this.setMisDetails(src.orderId,e.target.value),
-        onOpenReprint:()=>this.openReprintModal(src.orderId, src.num),
-        canAdvance:!!nx, isDone:src.stage==='done', advanceLabel:nx?nx.label:'', advanceIcon:nx?nx.icon:'', onAdvance:nx?(()=>this.advanceStatus(src.id,nx.status,src.orderId)):null,
-      });
+      open=Object.assign({},d,{ checklist, recvSteps, assignees, sizeCells, methodsView, methodsEmpty:methodsView.length===0, onAddMethod:()=>this.openMgrForOrder(src.orderId), runsView, runsEmpty:runsView.length===0, runsLoading: st.runsLoadingFor===src.id,
+        // "Create Production Run" button in the drawer footer -- reuses
+        // d.methLabel (already computed by mk() above) so this doesn't need
+        // its own copy of the method-type/placement label logic.
+        onCreateRun:()=>this.openRunModalForCard(src.id, src.orderId, d.methLabel),
+        ready, notReady:!ready, notReadyLabel:'Blocked — '+missing.join(' · '), onSend:()=>this.send(src.id), hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode:d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.orderId),
+        specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.orderId,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.orderId,e.target.value),
+        // Items come back per ORDER (all sibling methods' items together);
+        // filter down to just this card's own Production_Method__c.
+        ppItemsView:(st.ppItemsById[src.orderId]||[]).filter(it=>it.Production_Method__c===src.id).map(it=>{ const ty=it.Type__c||'Item'; return { id:it.Id, type:ty, isScreen:ty==='Screen', isInk:ty==='Ink', isThread:ty==='Thread', isDigit:ty==='Digitization', isTransfer:ty==='Transfer', status:it.Status__c||'Not Started', statusOptions:[{value:'Not Started',label:'Not Started'},{value:'In Progress',label:'In Progress'},{value:'Ready',label:'Ready'}], onStatus:(e)=>this.setItemField(src.orderId,it.Id,'Status__c',e.target.value), mesh:it.Mesh_Count__c||'', meshOptions:['110','125','156','180','196','230','305'].map(m=>({value:m,label:m+' mesh'})), onMesh:(e)=>this.setItemField(src.orderId,it.Id,'Mesh_Count__c',e.target.value), pantone:it.Pantone_Color__c||'', onPantone:(e)=>this.setItemField(src.orderId,it.Id,'Pantone_Color__c',e.target.value), threadColor:it.Thread_Color__c||'', onThreadColor:(e)=>this.setItemField(src.orderId,it.Id,'Thread_Color__c',e.target.value), threadNumber:it.Thread_Number__c||'', onThreadNumber:(e)=>this.setItemField(src.orderId,it.Id,'Thread_Number__c',e.target.value), stitch:it.Stitch_Count__c||'', onStitch:(e)=>this.setItemField(src.orderId,it.Id,'Stitch_Count__c',e.target.value), transferType:it.Transfer_Type__c||'', ttOptions:['Screen Transfer','Digital Transfer','Sublimation','Vinyl'].map(m=>({value:m,label:m})), onTransfer:(e)=>this.setItemField(src.orderId,it.Id,'Transfer_Type__c',e.target.value), onRemove:()=>this.removePPItem(src.orderId,it.Id) }; }), ppItemsEmpty:(st.ppItemsById[src.orderId]||[]).filter(it=>it.Production_Method__c===src.id).length===0 });
     }
 
-    let wn='Dana K.'; try{ wn=localStorage.getItem('caShopWorkerName')||wn; }catch(_){}
+    let wn='Priya R.'; try{ wn=localStorage.getItem('caShopWorkerName')||wn; }catch(_){}
     const live=st.connection==='live';
     const connLabel = live?'Live · Salesforce':(st.connection==='loading'?'Connecting…':'Demo data');
     const connColor = live?'#7FA644':(st.connection==='loading'?'#6C665C':'#C9923A');
     const names = VALID_NAMES.map(n=>({ label:n, onPick:()=>this.pickName(n) }));
-    // Salesforce environment switcher -- each row picks e.key as the pending
-    // selection (st.sfEnvSelected), submitted together with the PIN by the
-    // modal's single "Switch Environment" button (see submitSfEnv()).
-    const sfEnvOptions = (st.sfEnvList||[]).map(e=>{
-      const isSelected = st.sfEnvSelected===e.key;
-      const isActive = e.key===st.sfEnvActive;
-      return {
-        key:e.key, label:e.label, isActive,
-        statusLabel: e.configured ? (isActive?'Currently active':'Configured') : 'Not configured yet',
-        dotColor: isActive?'#7FA644':(e.configured?'#6C665C':'#3a3a3f'),
-        bg: isSelected?'#1a1410':'#121215',
-        border: isSelected?'#5E4214':'#232327',
-        textColor: e.configured?'#ECEAE4':'#4d483f',
-        cursor: e.configured?'pointer':'not-allowed',
-        onPick: e.configured?(()=>this.pickSfEnvKey(e.key)):(()=>{}),
-      };
-    });
-    return {
-      columns, kpis, methodFilters, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), rushCount:String(rushCount), shownLabel,
-      connLabel, connColor,
-      sfEnvLabel:st.sfEnvActiveLabel||'Dev2', onOpenSfEnv:()=>this.openSfEnvModal(),
-      sfEnvOpen:st.sfEnvOpen, onCloseSfEnv:()=>this.closeSfEnvModal(), sfEnvOptions,
-      sfEnvPin:st.sfEnvPin, onSfEnvPin:(e)=>this.setSfEnvPin(e.target.value),
-      sfEnvSubmitLabel: st.sfEnvSubmitting?'Switching…':'Switch Environment', onSubmitSfEnv:()=>this.submitSfEnv(),
-      sfEnvErr:st.sfEnvErr, sfEnvMsg:st.sfEnvMsg, sfEnvHasErr:!!st.sfEnvErr, sfEnvHasMsg:!!st.sfEnvMsg,
-      q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(),
-      drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}),
-      nameGateOpen:!st.nameOk, names, onSwitchUser:()=>this.switchUser(),
-      reprintOpen:st.reprintOpen, onCloseReprintModal:()=>this.closeReprintModal(),
-      reprintNum:st.reprintNum, reprintLoading:st.reprintLoading,
-      reprintRowsView:(st.reprintRows||[]).map(r=>({ id:r.id, product:r.product, color:r.color, size:r.size, qty:r.qty, misprintQty:r.misprintQty, damagedQty:r.damagedQty, onMisprintQty:(e)=>this.setReprintRowField(r.id,'misprintQty',e.target.value), onDamagedQty:(e)=>this.setReprintRowField(r.id,'damagedQty',e.target.value) })),
-      reprintRowsEmpty: !st.reprintLoading && (st.reprintRows||[]).length===0,
-      reprintDetails:st.reprintDetails, onReprintDetails:(e)=>this.setReprintDetails(e.target.value),
-      reprintSubmitting:st.reprintSubmitting, reprintErr:st.reprintErr, reprintMsg:st.reprintMsg, reprintHasErr:!!st.reprintErr, reprintHasMsg:!!st.reprintMsg,
-      reprintSubmitLabel: st.reprintSubmitting?'Creating…':'Create Reprint Order',
-      onSubmitReprint:()=>this.submitReprint(),
-    };
+    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, weekBtns:['week','all','pick'].map(k=>({ key:k, label:({week:'This week',all:'All',pick:'Pick week'})[k], onPick:()=>this.setState({weekMode:k}), bg:st.weekMode===k?'#1a1a1e':'transparent', border:st.weekMode===k?'#C6372B':'#242428', color:st.weekMode===k?'#ECEAE4':'#8a8378' })), showPick:st.weekMode==='pick', pickDate:st.pickDate, onPickDate:(e)=>this.setState({pickDate:e.target.value}), connLabel, connColor, q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}), nameGateOpen:!st.nameOk, names, onSwitchUser:()=>this.switchUser() };
+    return Object.assign(base, this.mgrVals());
   }
 }
 </script>
