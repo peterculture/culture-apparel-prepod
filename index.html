@@ -530,9 +530,14 @@ class Component extends DCLogic {
         // into this board (only each Production_Method__c's own Status__c
         // decided a card's column, see stageOfMethod() in ca-api.js), so
         // marking an order Completed in Salesforce never moved its cards
-        // here. Order.Status = 'Completed' now wins outright: every method
+        // here. Order.Status = 'Complete' now wins outright: every method
         // on that order shows as done regardless of its own Status__c.
-        const orderCompleted = r.Status === 'Completed';
+        // NOTE: the real picklist value is "Complete", NOT "Completed" --
+        // confirmed against live data (order 00006228). Production_Method__c
+        // .Status__c uses "Completed" (with the d); Order.Status doesn't.
+        // Mixing these up is exactly why the first pass of this fix never
+        // fired.
+        const orderCompleted = r.Status === 'Complete';
         methods.forEach(pm=>{
           const stage = orderCompleted ? 'done' : api.stageOfMethod(pm.Status__c); if(!stage) return;
           const meta = (api.METHOD_META && api.METHOD_META[pm.Type__c]) || { key:'sp', short:pm.Type__c||'Method', color:'#8a8378' };
