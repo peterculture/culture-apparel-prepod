@@ -15,7 +15,16 @@
  *     "quantity": 48,                                  // positive integer
  *     "actualStart": "2026-07-25T14:05:00.000Z",       // ISO datetime, OR
  *                     "" / null to CLEAR the field
- *     "actualEnd":   "2026-07-25T17:20:00.000Z"        // same clear rule
+ *     "actualEnd":   "2026-07-25T17:20:00.000Z",       // same clear rule
+ *     "ifUnmodifiedSince": "2026-07-25T13:58:02.000Z"  // OPTIONAL -- the
+ *                     Production_Run__c.LastModifiedDate the client had
+ *                     when it opened this row for editing (see the
+ *                     LastModifiedDate now selected in production-runs/
+ *                     index.js's GET). If someone else saved this run more
+ *                     recently, this PATCH is rejected with 409
+ *                     {error:"conflict", currentLastModifiedDate} instead of
+ *                     silently overwriting -- added 2026-07-29, same reason
+ *                     and pattern as production-methods/[id].js.
  *   }
  *
  * scheduledStart/scheduledEnd are sent together by the UI every save (same
@@ -36,7 +45,7 @@
  * a run created by mistake, or one that's no longer needed, straight from
  * the card drawer's Production Runs section.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { sfFetch, apiVersion, jsonError, checkNotModifiedSince } from "../_sf.js";
 
 const PR_OBJECT = "Production_Run__c";
 const PR_PRESS_FIELD = "Press__c";
@@ -129,6 +138,16 @@ export async function onRequestPatch({ params, request, env }) {
     }
 
     if (Object.keys(payload).length === 0) return jsonError("no_valid_fields", 400);
+
+    if (body.ifUnmodifiedSince) {
+      const check = await checkNotModifiedSince(env, PR_OBJECT, id, body.ifUnmodifiedSince);
+      if (check.conflict) {
+        return Response.json(
+          { error: "conflict", detail: "modified_since_load", currentLastModifiedDate: check.currentLastModifiedDate },
+          { status: 409 },
+        );
+      }
+    }
 
     const path = `/services/data/${apiVersion(env)}/sobjects/${PR_OBJECT}/${id}`;
     const resp = await sfFetch(env, path, {
