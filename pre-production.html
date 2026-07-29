@@ -667,7 +667,10 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#C6372B&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;}}">
 // The only names the app accepts for shift attribution -- keep in sync with
 // the copies in login.html and index.html if this list ever changes.
-const VALID_NAMES = ['Anthony','Asher','Alex','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
+// Single source of truth is window.CAApi.VALID_NAMES (ca-api.js) -- this
+// just points at it, with a literal fallback in case ca-api.js ever fails
+// to load, so the name gate doesn't silently show zero names.
+const VALID_NAMES = (window.CAApi && window.CAApi.VALID_NAMES) || ['Anthony','Asher','Alex','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
 
 class Component extends DCLogic {
   constructor(props){
