@@ -135,9 +135,13 @@ export async function onRequestGet({ env, request }) {
     const orderId = (url.searchParams.get("orderId") || "").trim();
     if (!orderId) return jsonError("missing_orderId", 400);
 
+    // LastModifiedDate added 2026-07-29 so the drawer's method-edit form can
+    // capture "what I loaded" and the PATCH endpoint can reject a save if
+    // someone else changed the record more recently (see the
+    // ifUnmodifiedSince param documented in production-methods/[id].js).
     const soql =
       `SELECT Id, Name, ${PM_TYPE_FIELD}, ${PM_STATUS_FIELD}, ${PM_PLACEMENTS_FIELD}, ` +
-      `${PM_VENDOR_FIELD}, Vendor__r.Name ` +
+      `${PM_VENDOR_FIELD}, Vendor__r.Name, LastModifiedDate ` +
       `FROM ${PM_OBJECT} WHERE ${PM_ORDER_FIELD} = '${orderId}' ORDER BY CreatedDate ASC`;
     const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
     const resp = await sfFetch(env, path);
