@@ -415,7 +415,7 @@
           <sc-if value="{{open.hasZkErr}}" hint-placeholder-val="{{ false }}"><div style="font:400 10px/1 'Archivo';color:#C6372B;margin:-5px 0 8px">{{open.zkErrMsg}}</div></sc-if>
           <div style="display:flex;flex-direction:column;gap:6px">
             <sc-for list="{{open.shipments}}" as="s" hint-placeholder-count="1">
-              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><i class="ti ti-truck" style="color:#7FA644;font-size:15px"></i><div style="min-width:0"><div style="font:500 12px/1 'Archivo';color:#ECEAE4">{{s.carrier}}</div><div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:3px">{{s.tracking}}</div></div></div>
+              <div style="display:flex;align-items:center;gap:10px;background:#121215;border:1px solid #232327;border-radius:8px;padding:10px 13px"><i class="ti ti-truck" style="color:#7FA644;font-size:15px"></i><div style="min-width:0"><div style="font:500 12px/1 'Archivo';color:#ECEAE4">{{s.carrier}}</div><div style="font:400 10px/1 'Archivo';color:#6C665C;margin-top:3px">{{s.tracking}}</div></div><button onClick="{{ s.onRemove }}" title="Remove shipment" style="margin-left:auto;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:transparent;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;flex-shrink:0"><i class="ti ti-trash" style="font-size:13px"></i></button></div>
             </sc-for>
             <sc-if value="{{open.shipEmpty}}" hint-placeholder-val="{{ false }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:4px 2px">No shipments created yet.</div></sc-if>
           </div>
@@ -796,7 +796,7 @@ class Component extends DCLogic {
       this.setState(st=>{
         const pkg=Object.assign({},st.pkg), ship=Object.assign({},st.ship), pp=Object.assign({},st.ppItemsById);
         if(pk) pkg[orderId]=pk.map(x=>({type:x.Packaging_Type__c,qty:x.Quantity__c,id:x.Id}));
-        if(sh) ship[orderId]=sh.map(x=>({carrier:x.zkmulti__Carrier__c||'Shipment',tracking:x.zkmulti__Tracking_Number__c||''}));
+        if(sh) ship[orderId]=sh.map(x=>({id:x.Id,carrier:x.zkmulti__Carrier__c||'Shipment',tracking:x.zkmulti__Tracking_Number__c||''}));
         if(it) pp[orderId]=it;
         return {pkg,ship,ppItemsById:pp};
       });
@@ -1167,7 +1167,40 @@ class Component extends DCLogic {
       else this.setState(st=>{ const z=Object.assign({},st.zkErr); z[orderId]='Could not open the Zenkraft wizard'; return {zkErr:z}; });
     }).catch(()=>{ this.setState(st=>{ const z=Object.assign({},st.zkErr); z[orderId]='Could not open the Zenkraft wizard'; return {zkErr:z}; }); });
   }
-  addShip(orderId){ this.setState(st=>{ const s=Object.assign({},st.ship); s[orderId]=(s[orderId]||[]).concat([{carrier:'FedEx Ground',tracking:'Draft · rate shopping'}]); return {ship:s}; }); if(this._api && this.state.connection==='live') this._api.postShipment(orderId,{carrier:'FedEx Ground',serviceType:'Ground',tracking:'PENDING'}).catch(()=>{}); }
+  // Adds the local draft row optimistically (no id yet -- the POST hasn't
+  // round-tripped), then patches the real Salesforce Id back onto that SAME
+  // object reference once the POST resolves, so it becomes deletable
+  // (removeShipment) without waiting for the drawer to be closed/reopened.
+  addShip(orderId){
+    const draft = {carrier:'FedEx Ground',tracking:'Draft · rate shopping'};
+    this.setState(st=>{ const s=Object.assign({},st.ship); s[orderId]=(s[orderId]||[]).concat([draft]); return {ship:s}; });
+    if(this._api && this.state.connection==='live') {
+      this._api.postShipment(orderId,{carrier:'FedEx Ground',serviceType:'Ground',tracking:'PENDING'}).then(res=>{
+        const id = res && res.id;
+        if(!id) return;
+        this.setState(st=>{ const s=Object.assign({},st.ship); s[orderId]=(s[orderId]||[]).map(x=>x===draft?Object.assign({},x,{id}):x); return {ship:s}; });
+      }).catch(()=>{});
+    }
+  }
+  // Removes ONE shipment (zkmulti__MCShipment__c). The backend DELETE
+  // endpoint (functions/api/shipments/[id].js) has existed since shipments
+  // were first wired up -- this was the only missing piece connecting it to
+  // the UI (added 2026-07-29). Not manager-gated, matching removePkg right
+  // above: same "logged item in this drawer section" pattern, just a plain
+  // confirm rather than the heavier method/run/item PIN gate.
+  // Takes the shipment RECORD (not just its id) so removal can match by
+  // reference instead of by id -- a shipment just added via addShip() has no
+  // id yet (its POST hasn't round-tripped back with the real Salesforce Id),
+  // and filtering by `x.id !== shipmentId` would match every id-less draft
+  // at once, wiping out more than the one row that was actually clicked.
+  removeShipment(shipment, orderId){
+    if(!window.confirm('Remove this shipment? This can’t be undone.')) return;
+    const shipmentId = shipment && shipment.id;
+    this.setState(st=>{ const s=Object.assign({},st.ship); s[orderId]=(s[orderId]||[]).filter(x=>x!==shipment); return {ship:s}; });
+    if(this._api && this.state.connection==='live' && shipmentId) {
+      this._api.deleteShipment(shipmentId).catch(()=>{ window.alert('Could not remove this shipment — try again.'); });
+    }
+  }
   assign(cardId,w){ this.setState(st=>({ orders: st.orders.map(o=>o.id===cardId?Object.assign({},o,{worker: o.worker===w?null:w}):o) })); }
 
   renderVals(){
@@ -1345,7 +1378,7 @@ class Component extends DCLogic {
         // here), not the order's shared stage.
         statusSteps:(function(){ var SS=['Pre-Production','Ready for Print','In Production','Post-Production','Completed']; var curLabel=src.status||{rfp:'Ready for Print',ip:'In Production',pp:'Post-Production',done:'Completed'}[src.stage]; var ci=SS.indexOf(curLabel); return SS.map(function(label,i){ var done=i<ci, current=i===ci, isNext=(i===ci+1), clickable=isNext||done, allowed=isNext; return { label, onClick: clickable?(function(){ this.advanceStatus(src.id,label,src.orderId); }).bind(this):null, textColor: current?'#ECEAE4':(done?'#8a8378':(allowed?'#E0B870':'#4d483f')), border: current?'#C6372B':(allowed?'#5E4214':'#242428'), bg: current?'#2a1210':(done?'#18230D':(allowed?'#241a09':'#121215')) }; }.bind(this)); }).call(this),
         packaging:pkg.map((p,idx)=>Object.assign({},p,{onRemove:()=>this.removePkg(src.orderId,idx)})), pkgEmpty:pkg.length===0, onAddPkg:()=>this.addPkg(src.orderId), pkgType:st.pkgType, pkgQty:st.pkgQty, onPkgType:(e)=>this.setState({pkgType:e.target.value}), onPkgQty:(e)=>this.setState({pkgQty:e.target.value}), pkgTypeOptions:[{value:'Standard Culture Box',label:'Standard Culture Box'},{value:'Culture Hat Box',label:'Culture Hat Box'},{value:'Poly Bag',label:'Poly Bag'},{value:'Standard Brown Box',label:'Standard Brown Box'}],
-        shipments:shp, shipEmpty:shp.length===0, onAddShip:()=>this.addShip(src.orderId),
+        shipments:shp.map(s=>Object.assign({},s,{onRemove:()=>this.removeShipment(s, src.orderId)})), shipEmpty:shp.length===0, onAddShip:()=>this.addShip(src.orderId),
         misBorder:(src.mis>0)?'#7A241C':'#232327', misColor:(src.mis>0)?'#E8A89F':'#ECEAE4',
         onMisPlus:()=>this.setMis(src.orderId,(src.mis||0)+1), onMisMinus:()=>this.setMis(src.orderId,(src.mis||0)-1),
         misDetails:st.misDetails[src.orderId]||'', onMisDetails:(e)=>this.setMisDetails(src.orderId,e.target.value),
