@@ -20,6 +20,29 @@
   function setRole(r){ try { localStorage.setItem(ROLE_KEY, r); } catch (_) {} }
   function setWorkerName(n){ try { localStorage.setItem(NAME_KEY, (n || '').slice(0, 80)); } catch (_) {} }
   function logout(){ try { localStorage.removeItem(ROLE_KEY); localStorage.removeItem(NAME_KEY); } catch (_) {} }
+  /* ── manager-only action gate ──
+     role() reflects whichever PIN was entered at login.html and is easy to
+     go stale on a shared tablet: tapping "Switch user" (the repeat icon on
+     index.html/pre-production.html) only changes the attributed NAME, not
+     the stored role -- so if a manager unlocks a tablet once, every worker
+     who "switches user" after them is still, silently, holding manager
+     role. Actions gated behind role therefore re-check the PIN live instead
+     of trusting the stored role, so a stale session can't carry manager
+     privileges to whoever picks up the tablet next.
+     NOT real security (same caveat as the rest of this file's PIN model --
+     it's a plain string compared in the browser). Cloudflare Access is the
+     actual perimeter; this is just making the existing worker/manager
+     distinction mean something in the UI. Keep MANAGER_PIN in sync with the
+     hardcoded check in login.html if it's ever rotated. */
+  var MANAGER_PIN = '6767';
+  function isManager(){ return role() === 'manager'; }
+  function confirmManager(actionLabel){
+    if (isManager()) return true;
+    var entered = window.prompt((actionLabel || 'This action') + ' requires the manager PIN:');
+    if (entered == null) return false;
+    if (entered !== MANAGER_PIN) { window.alert('Incorrect manager PIN.'); return false; }
+    return true;
+  }
 
   /* ── Order_Substatus__c: the "In Production" label is stored as "Production" ── */
   var SUBSTATUS_VALUE = { 'Pre-Production':'Pre-Production', 'Ready for Print':'Ready for Print', 'In Production':'Production', 'Post-Production':'Post-Production', 'Completed':'Completed' };
@@ -300,7 +323,7 @@
   ];
 
   window.CAApi = {
-    ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout,
+    ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout, isManager: isManager, confirmManager: confirmManager,
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf, stageOfMethod: stageOfMethod,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
     PLACEMENTS: PLACEMENTS, methodsList: methodsList, METHOD_META: METHOD_META,
