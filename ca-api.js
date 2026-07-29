@@ -238,6 +238,12 @@
   /* ── shipments (zkmulti__MCShipment__c) ── */
   function getShipments(orderId){ return jget('/api/shipments?orderId=' + encodeURIComponent(orderId)).then(function (d) { return d.records || []; }); }
   function postShipment(orderId, o){ o = o || {}; return jsend('/api/shipments', 'POST', { orderId: orderId, Carrier: o.carrier, ServiceType: o.serviceType, TrackingNumber: o.tracking, Weight: o.weight }); }
+  // Removes ONE zkmulti__MCShipment__c (and its child zkmulti__MCPackage__c
+  // rows first -- see functions/api/shipments/[id].js, onRequestDelete).
+  // The endpoint has existed since this file's shipments were first wired up;
+  // this wrapper was the only piece missing to actually reach it from the UI
+  // (added 2026-07-29, matching deleteMethod/deleteProductionRun above).
+  function deleteShipment(id){ return jdel('/api/shipments/' + encodeURIComponent(id)); }
   // Server resolves the wizard's VF domain + org-specific field id from the
   // live connection (see functions/api/orders/[id]/zk-wizard-url.js) --
   // nothing org-specific is hardcoded on this side.
@@ -375,7 +381,7 @@
     PLACEMENTS: PLACEMENTS, methodsList: methodsList, METHOD_META: METHOD_META,
     getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, createItem: createItem, searchVendors: searchVendors, searchPlans: searchPlans, searchPresses: searchPresses, createMethod: createMethod, createProductionRun: createProductionRun, getProductionRuns: getProductionRuns, patchProductionRun: patchProductionRun, deleteProductionRun: deleteProductionRun, patchMethodStatus: patchMethodStatus, patchMethodChecklist: patchMethodChecklist, getMethodsForOrder: getMethodsForOrder, patchMethodFields: patchMethodFields, deleteMethod: deleteMethod, patchOrder: patchOrder, getOrderSizes: getOrderSizes, createReprintOrder: createReprintOrder,
     getPackaging: getPackaging, postPackaging: postPackaging, deletePackaging: deletePackaging,
-    getShipments: getShipments, postShipment: postShipment, getZkWizardUrl: getZkWizardUrl,
+    getShipments: getShipments, postShipment: postShipment, deleteShipment: deleteShipment, getZkWizardUrl: getZkWizardUrl,
     getSfEnv: getSfEnv, setSfEnv: setSfEnv,
     getStationItems: getStationItems, updateItemStatus: updateItemStatus, updateOrderReceiving: updateOrderReceiving,
     getInventory: getInventory, postInventory: postInventory, stationLogin: stationLogin,
