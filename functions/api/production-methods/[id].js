@@ -2,8 +2,11 @@
  * PATCH /api/production-methods/:id
  *
  * Updates ONE Production_Method__c: its Status__c (the Production floor
- * board, index.html) and/or its own copy of the 7 pre-production checklist
- * booleans (the pre-production worker board, pre-production.html).
+ * board, index.html), its Type__c / Placements__c / Vendor__c (added
+ * 2026-07-29 so a card's drawer can edit a method in place instead of only
+ * being able to create or delete one), and/or its own copy of the 7
+ * pre-production checklist booleans (the pre-production worker board,
+ * pre-production.html).
  *
  * These booleans used to live ONLY on Order -- one shared set for the whole
  * order, no matter how many methods it had. An order with a screen print
@@ -16,6 +19,10 @@
  * Body (send any subset of these):
  *   {
  *     "Status__c": "In Production",       // validated against ALLOWED_STATUSES
+ *     "Type__c": "Screen Print",           // validated against ALLOWED_METHOD_TYPES
+ *     "Placements__c": ["Front","Back"],   // validated against ALLOWED_PLACEMENTS,
+ *                                           //   written as a ";"-joined string
+ *     "Vendor__c": "001...",               // Account Id
  *     "orderId":   "801...",               // NOT written to Salesforce -- only used,
  *                                           //   when Status__c is also present, to roll
  *                                           //   the parent Order's Order_Substatus__c up
@@ -31,6 +38,18 @@
  *     "Print_Setup_Timer__c": 1320,        // elapsed seconds, this method's own
  *     "Production_Timer__c": 2460          // clock -- see ../_ppi-checklist.js note
  *   }                                       // in index.html for the order-total sum
+ *
+ * DELETE /api/production-methods/:id
+ *
+ * Removes ONE Production_Method__c (added 2026-07-29 so a card's drawer can
+ * remove a method/location it created by mistake, or one that's no longer
+ * needed). This does NOT cascade-delete that method's Pre_Production_Item__c
+ * or Production_Run__c children -- Salesforce itself decides whether the
+ * delete is allowed depending on how those lookups are configured in Setup.
+ * If Salesforce rejects it (e.g. because child records still reference it),
+ * that error is passed straight back rather than silently removing children
+ * the user didn't ask to touch. Remove the method's runs/items first if that
+ * happens.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 import { rollupOrderSubstatus, rollupChecklistToOrder } from "../_pm-rollup.js";
@@ -43,6 +62,15 @@ const PM_OBJECT = "Production_Method__c";
 const ALLOWED_STATUSES = new Set([
   "Pre-Production", "Ready for Print", "In Production",
   "Post-Production", "Completed", "Cancelled", "On Hold",
+]);
+
+// Keep these two in sync with the same-named consts in
+// production-methods/index.js -- see that file for provenance notes.
+const ALLOWED_METHOD_TYPES = new Set(["Screen Print", "Embroidery", "Heat Press", "Promotional Items"]);
+const ALLOWED_PLACEMENTS = new Set([
+  "Front", "Back", "Left Sleeve", "Right Sleeve",
+  "Left Chest", "Right Chest", "Full Front", "Full Back",
+  "Tag", "Hood", "Pocket",
 ]);
 
 // Per-method pre-production checklist booleans (mirrors the Order-level
@@ -96,6 +124,33 @@ export async function onRequestPatch({ params, request, env }) {
         return jsonError("bad_status", 400);
       }
       payload.Status__c = status;
+    }
+
+    if ("Type__c" in body) {
+      const type = body.Type__c;
+      if (!type || typeof type !== "string" || !ALLOWED_METHOD_TYPES.has(type)) {
+        return jsonError("bad_method_type", 400);
+      }
+      payload.Type__c = type;
+    }
+
+    if ("Placements__c" in body) {
+      const placements = body.Placements__c;
+      if (!Array.isArray(placements) || placements.length === 0) {
+        return jsonError("missing_placements", 400);
+      }
+      for (const p of placements) {
+        if (typeof p !== "string" || !ALLOWED_PLACEMENTS.has(p)) {
+          return Response.json({ error: "bad_placement", detail: p }, { status: 400 });
+        }
+      }
+      payload.Placements__c = Array.from(new Set(placements)).join(";");
+    }
+
+    if ("Vendor__c" in body) {
+      const vendorId = body.Vendor__c;
+      if (!vendorId || !SF_ID.test(vendorId)) return jsonError("bad_vendorId", 400);
+      payload.Vendor__c = vendorId;
     }
 
     for (const field of CHECKLIST_FIELDS) {
@@ -162,6 +217,30 @@ export async function onRequestPatch({ params, request, env }) {
       { ok: true, id, updated: Object.keys(payload), rolledUpSubstatus },
       { headers: { "Cache-Control": "no-store" } }
     );
+  } catch (err) {
+    console.error(err);
+    return jsonError("internal_error", 500);
+  }
+}
+
+export async function onRequestDelete({ params, env }) {
+  try {
+    const id = params && params.id;
+    if (!SF_ID.test(id)) return jsonError("invalid_id", 400);
+
+    const path = `/services/data/${apiVersion(env)}/sobjects/${PM_OBJECT}/${id}`;
+    const resp = await sfFetch(env, path, { method: "DELETE" });
+
+    if (resp.status !== 204) {
+      // Most likely cause: Salesforce refused because a Pre_Production_Item__c
+      // or Production_Run__c still looks up to this method (see this file's
+      // header comment) -- forward SF's own message so the caller knows why.
+      const detail = await resp.text().catch(() => "");
+      console.error("Production method delete failed", resp.status, detail);
+      return jsonError("delete_failed", resp.status);
+    }
+
+    return Response.json({ ok: true, id }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error(err);
     return jsonError("internal_error", 500);
