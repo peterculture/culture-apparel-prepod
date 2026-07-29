@@ -27,23 +27,33 @@ const ITEM_FIELDS = [
   "Thread_Number__c",
   "Stitch_Count__c",
   "Transfer_Type__c",
-  "Notes__c",
   "Production_Method__c",
   "Production_Method__r.Name",
   "Production_Method__r.Type__c",
 ];
-// FIXED 2026-07-29: this used to also select Production_Method__r.Placement__c
+// FIXED 2026-07-29 (round 1): removed Production_Method__r.Placement__c
 // (the deprecated single-select field, superseded by Placements__c -- see
-// production-methods/index.js). Nothing in pre-production.html ever read it
-// off these item records (only _station.js's station-board queries actually
-// use Placement__c, and those are untouched), so it was dead weight here --
-// but it's exactly the kind of field that gets missed when granting FLS to
-// the Client Credentials integration user, and that's what was happening:
-// this endpoint's query was failing outright (INSUFFICIENT_ACCESS on that
-// field for the API user), so /api/pre-production-items returned zero
-// records for every order, and the app showed "no items" no matter what was
-// actually created. Dropping the unused field here removes the failure
-// without touching FLS at all.
+// production-methods/index.js). That field was never actually the problem,
+// though -- pre-production-items still returned zero records for every
+// order afterward.
+//
+// FIXED 2026-07-29 (round 2, actual root cause): the real blocker is
+// Notes__c. Confirmed directly via an admin SOQL query in Setup (Developer
+// Console) -- the exact query this endpoint builds fails to even PARSE
+// ("ERROR at Row:1:Column:207", landing right on Notes__c) whenever
+// Notes__c is in the SELECT list, and succeeds immediately once it's
+// dropped. Root cause IS Field-Level Security: "View Field Accessibility"
+// on Pre_Production_Item__c.Notes__c showed it Hidden for every single
+// profile in the org, including System Administrator -- a query-time SOQL
+// parse error is just how Salesforce surfaces a completely-hidden field,
+// not a distinct restriction on Long Text Area fields in general (Notes__c
+// on Production_Method__c queries fine). This FLS gap has since been
+// closed (Notes__c is now Editable for all profiles, matching
+// Mesh_Count__c), but Notes__c is dropped here anyway since nothing in
+// pre-production.html ever reads or writes
+// Pre_Production_Item__c.Notes__c (grepped the whole file -- only
+// Order.Special_Notes__c is used, a different field entirely) -- no reason
+// to re-add a field this endpoint doesn't need.
 
 // Loose SF Id sanity check (15 or 18 char alphanumeric).
 function isSfId(s) {
