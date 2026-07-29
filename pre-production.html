@@ -937,6 +937,8 @@ class Component extends DCLogic {
     }).catch(()=>{ this.setState({methodsLoadingFor:null}); });
   }
   openMethodEdit(r){
+    const api=this._api||window.CAApi;
+    if(api && !api.confirmManager('Editing a production method')) return;
     const vendorName=(r.Vendor__r && r.Vendor__r.Name) || '';
     this.setState({
       methodEditId: r.Id,
@@ -971,6 +973,8 @@ class Component extends DCLogic {
     }
   }
   removeMethod(r, orderId){
+    const api=this._api||window.CAApi;
+    if(api && !api.confirmManager('Removing a production method')) return;
     if(!window.confirm('Remove this production method? This can’t be undone.')) return;
     if(!this._api) return;
     this._api.deleteMethod(r.Id).then(()=>{
@@ -1094,6 +1098,8 @@ class Component extends DCLogic {
     }
   }
   removeRun(runId, methodId){
+    const api=this._api||window.CAApi;
+    if(api && !api.confirmManager('Removing a production run')) return;
     if(!window.confirm('Remove this production run? This can’t be undone.')) return;
     if(!this._api) return;
     this._api.deleteProductionRun(runId).then(()=>{
@@ -1101,7 +1107,12 @@ class Component extends DCLogic {
     }).catch(()=>{ window.alert('Could not remove this run — try again.'); });
   }
   setItemField(orderId,itemId,field,val){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).map(it=>it.Id===itemId?Object.assign({},it,{[field]:val}):it); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live') this._api.patchItem(itemId,{[field]:val}).catch(()=>{}); }
-  removePPItem(orderId,itemId){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).filter(it=>it.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{}); }
+  removePPItem(orderId,itemId){
+    const api=this._api||window.CAApi;
+    if(api && !api.confirmManager('Removing a production item')) return;
+    if(!window.confirm('Remove this production item? This can’t be undone.')) return;
+    this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).filter(it=>it.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{});
+  }
   // ── Add Item quick-create (Production Items section) -- for a method that
   // already exists but Management forgot to add an item under, straight from
   // the card drawer instead of only at method-creation time. ──
