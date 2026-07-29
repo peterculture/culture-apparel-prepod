@@ -83,9 +83,13 @@ export async function onRequestGet({ env, request }) {
     const methodId = (url.searchParams.get("methodId") || "").trim();
     if (!SF_ID.test(methodId)) return jsonError("missing_methodId", 400);
 
+    // LastModifiedDate added 2026-07-29 so a run's drawer row can capture
+    // "what I loaded" and the PATCH endpoint can reject a save if someone
+    // else changed the run more recently (see ifUnmodifiedSince in
+    // production-runs/[id].js).
     const soql =
       `SELECT Id, Name, ${PR_PRESS_FIELD}, Press__r.Name, ${PR_SCHED_START_FIELD}, ${PR_SCHED_END_FIELD}, ` +
-      `Actual_Start__c, Actual_End__c, ${PR_QTY_FIELD} ` +
+      `Actual_Start__c, Actual_End__c, ${PR_QTY_FIELD}, LastModifiedDate ` +
       `FROM ${PR_OBJECT} WHERE ${PR_PRINTMETHOD_FIELD} = '${methodId}' ` +
       `ORDER BY ${PR_SCHED_START_FIELD} ASC NULLS LAST`;
     const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
