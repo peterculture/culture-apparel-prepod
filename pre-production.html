@@ -45,6 +45,7 @@
     <div style="margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end">
       <div style="font:600 13px/1 'Oswald';letter-spacing:.1em;color:#9C978C;white-space:nowrap">{{clock}} <span style="color:#4d483f">·</span> {{dateStr}}</div>
       <div style="display:flex;align-items:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#9C978C;white-space:nowrap"><span style="width:8px;height:8px;border-radius:50%;background:{{connColor}};box-shadow:0 0 7px {{connColor}}"></span>{{connLabel}}</div>
+      <button onClick="{{ onOpenSfEnv }}" title="Salesforce environment -- click to switch" style="display:flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:8px;padding:8px 11px;cursor:pointer;white-space:nowrap" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-cloud" style="font-size:12px"></i>{{sfEnvLabel}}</button>
       <div style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#C9923A;color:#08080A;font:700 10px/28px 'Oswald';text-align:center">{{workerInit}}</span><span style="font:400 12px/1 'Archivo';color:#9C978C;white-space:nowrap">{{worker}}</span><button onClick="{{ onSwitchUser }}" title="Switch user" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:transparent;border:1px solid #2a2a2f;color:#6C665C;cursor:pointer;flex-shrink:0" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-repeat" style="font-size:12px"></i></button></div>
     </div>
   </header>
@@ -186,7 +187,29 @@
         </div>
 
         <div>
-          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Items</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Production Items</span><button onClick="{{ open.onNewItem }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#5E9B9A;background:transparent;border:1px solid #3D5418;border-radius:7px;padding:6px 9px;cursor:pointer" style-hover="background:#18230D"><i class="ti ti-plus"></i>Add Item</button></div>
+          <sc-if value="{{open.itemCreateOpen}}" hint-placeholder-val="{{ false }}">
+            <div style="background:#121215;border:1px solid #3D5418;border-radius:10px;padding:13px 14px;display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
+              <div>
+                <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Item Type</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{open.itemCreate.typeOptions}}" as="t" hint-placeholder-count="5">
+                    <button onClick="{{ t.onPick }}" style="font:600 10px/1 'Oswald';letter-spacing:.04em;color:{{t.color}};background:{{t.bg}};border:1px solid {{t.border}};border-radius:7px;padding:8px 10px;cursor:pointer">{{t.label}}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <sc-if value="{{open.itemCreate.isScreen}}" hint-placeholder-val="{{ false }}"><select value="{{open.itemCreate.mesh}}" onChange="{{ open.itemCreate.onMesh }}" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Mesh count…</option><sc-for list="{{open.itemCreate.meshOptions}}" as="m" hint-placeholder-count="7"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+              <sc-if value="{{open.itemCreate.isInk}}" hint-placeholder-val="{{ false }}"><input value="{{open.itemCreate.pantone}}" onInput="{{ open.itemCreate.onPantone }}" placeholder="Pantone / color" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+              <sc-if value="{{open.itemCreate.isThread}}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:7px"><input value="{{open.itemCreate.threadColor}}" onInput="{{ open.itemCreate.onThreadColor }}" placeholder="Thread color" style="flex:1;min-width:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><input value="{{open.itemCreate.threadNumber}}" onInput="{{ open.itemCreate.onThreadNumber }}" placeholder="Thread #" style="width:96px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></div></sc-if>
+              <sc-if value="{{open.itemCreate.isDigit}}" hint-placeholder-val="{{ false }}"><input value="{{open.itemCreate.stitch}}" onInput="{{ open.itemCreate.onStitch }}" type="number" placeholder="Stitch count" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"></sc-if>
+              <sc-if value="{{open.itemCreate.isTransfer}}" hint-placeholder-val="{{ false }}"><select value="{{open.itemCreate.transferType}}" onChange="{{ open.itemCreate.onTransfer }}" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Transfer type…</option><sc-for list="{{open.itemCreate.ttOptions}}" as="m" hint-placeholder-count="4"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
+              <sc-if value="{{open.itemCreate.hasErr}}" hint-placeholder-val="{{ false }}"><div style="font:600 10px/1.3 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:#E8A89F">{{open.itemCreate.err}}</div></sc-if>
+              <div style="display:flex;gap:8px">
+                <button onClick="{{ open.itemCreate.onCancel }}" style="flex:1;font:700 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#8a8378;background:transparent;border:1px solid #2a2a2f;border-radius:8px;padding:11px;cursor:pointer">Cancel</button>
+                <button onClick="{{ open.itemCreate.onSubmit }}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:700 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#08080A;background:#5E9B9A;border:none;border-radius:8px;padding:11px;cursor:pointer">{{open.itemCreate.submitLabel}}</button>
+              </div>
+            </div>
+          </sc-if>
           <div style="display:flex;flex-direction:column;gap:8px">
             <sc-for list="{{open.ppItemsView}}" as="it" hint-placeholder-count="1">
               <div style="background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;display:flex;flex-direction:column;gap:9px">
@@ -198,7 +221,7 @@
                 <sc-if value="{{it.isTransfer}}" hint-placeholder-val="{{ false }}"><select value="{{it.transferType}}" onChange="{{ it.onTransfer }}" style="background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:13px;color:#ECEAE4;outline:none"><option value="">Transfer type…</option><sc-for list="{{it.ttOptions}}" as="m" hint-placeholder-count="4"><option value="{{m.value}}">{{m.label}}</option></sc-for></select></sc-if>
               </div>
             </sc-for>
-            <sc-if value="{{open.ppItemsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:2px">No production items on this order yet — create them in Management.</div></sc-if>
+            <sc-if value="{{open.ppItemsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1 'Archivo';color:#4d483f;padding:2px">No production items on this order yet — add one above.</div></sc-if>
           </div>
         </div>
 
@@ -362,6 +385,44 @@
   </div>
 </sc-if>
 
+<sc-if value="{{sfEnvOpen}}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:96;background:rgba(6,6,7,.82);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:100%;max-width:440px;background:#0D0D0F;border:1px solid #1f1f23;border-radius:18px;box-shadow:0 40px 90px -30px rgba(0,0,0,.8);position:relative">
+      <div style="display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #1f1f23">
+        <div>
+          <div style="font:600 17px/1.1 'Oswald';color:#ECEAE4">Salesforce Environment</div>
+          <div style="font:400 11px/1.4 'Archivo';color:#6C665C;margin-top:4px">Switches which org every tablet talks to — applies to everyone immediately.</div>
+        </div>
+        <button onClick="{{ onCloseSfEnv }}" style="margin-left:auto;flex-shrink:0;width:32px;height:32px;border-radius:9px;background:#16161a;border:1px solid #2a2a2f;color:#9C978C;cursor:pointer;font-size:15px" style-hover="color:#ECEAE4;border-color:#3a3a40"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{sfEnvOptions}}" as="e" hint-placeholder-count="3">
+            <button onClick="{{ e.onPick }}" style="display:flex;align-items:center;gap:10px;text-align:left;background:{{e.bg}};border:1px solid {{e.border}};border-radius:10px;padding:12px 14px;cursor:{{e.cursor}}">
+              <span style="width:9px;height:9px;border-radius:50%;background:{{e.dotColor}};flex-shrink:0"></span>
+              <div style="flex:1;min-width:0">
+                <div style="font:600 13px/1.1 'Oswald';color:{{e.textColor}}">{{e.label}}</div>
+                <div style="font:400 10px/1.3 'Archivo';color:#6C665C;margin-top:3px">{{e.statusLabel}}</div>
+              </div>
+              <sc-if value="{{e.isActive}}" hint-placeholder-val="{{ false }}"><span style="font:600 8px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#7FA644;background:#18230D;border:1px solid #3D5418;border-radius:6px;padding:4px 7px;flex-shrink:0">Active</span></sc-if>
+            </button>
+          </sc-for>
+        </div>
+
+        <div>
+          <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Switch PIN</div>
+          <input type="password" value="{{sfEnvPin}}" onInput="{{ onSfEnvPin }}" placeholder="Enter PIN to confirm switch" style="width:100%;background:#121215;border:1px solid #232327;border-radius:9px;padding:11px 13px;font-size:13px;color:#ECEAE4;outline:none">
+        </div>
+
+        <sc-if value="{{sfEnvHasMsg}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.05em;text-transform:uppercase;color:#BBD382;background:#18230D;border:1px solid #3D5418;border-radius:9px;padding:10px 13px"><i class="ti ti-check"></i>{{sfEnvMsg}}</div></sc-if>
+        <sc-if value="{{sfEnvHasErr}}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;font:600 11px/1.3 'Oswald';letter-spacing:.03em;text-transform:uppercase;color:#E8A89F;background:#2A100D;border:1px solid #7A241C;border-radius:9px;padding:12px 14px"><i class="ti ti-alert-triangle"></i>{{sfEnvErr}}</div></sc-if>
+
+        <button onClick="{{ onSubmitSfEnv }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:700 12px/1 'Oswald';letter-spacing:.09em;text-transform:uppercase;color:#fff;background:#C6372B;border:none;border-radius:11px;padding:16px;cursor:pointer" style-hover="filter:brightness(1.1)"><i class="ti ti-repeat"></i>{{sfEnvSubmitLabel}}</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
 <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C6372B"/><text x="50" y="60" font-family="Oswald,Arial" font-size="30" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="2">CA</text><text x="50" y="78" font-family="Arial" font-size="7" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="1">PRE-PROD</text></svg></template>
 <sc-if value="{{mgrView}}" hint-placeholder-val="{{ false }}">
   <div style="position:fixed;inset:0;z-index:55;background:radial-gradient(circle at 30% -10%,#101013,#08080A 55%);overflow-y:auto">
@@ -369,7 +430,8 @@
       <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true" style="flex-shrink:0"><g fill="#C6372B"><rect x="12" y="9" width="24" height="3.1" rx="1.5"/><rect x="8" y="14" width="32" height="3.1" rx="1.5"/><rect x="5" y="19" width="38" height="3.1" rx="1.5"/><rect x="5" y="24" width="38" height="3.1" rx="1.5"/><rect x="6" y="29" width="36" height="3.1" rx="1.5"/><rect x="9" y="34" width="30" height="3.1" rx="1.5"/><rect x="13" y="39" width="22" height="3.1" rx="1.5"/></g></svg>
       <div style="font:700 15px/1 'Oswald';letter-spacing:.1em;color:#ECEAE4">PRE-PRODUCTION MANAGEMENT</div>
       <span style="font:700 9px/1 'Oswald';letter-spacing:.1em;color:#08080A;background:#C6372B;border-radius:5px;padding:4px 7px">MGR</span>
-      <button onClick="{{ onCloseMgr }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#ECEAE4;background:#141417;border:1px solid #2a2a2f;border-radius:9px;padding:10px 14px;cursor:pointer"><i class="ti ti-arrow-left"></i>Back to Board</button>
+      <button onClick="{{ onOpenSfEnv }}" title="Salesforce environment -- click to switch" style="margin-left:auto;display:flex;align-items:center;gap:6px;font:600 10px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#9C978C;background:transparent;border:1px solid #2a2a2f;border-radius:8px;padding:8px 11px;cursor:pointer;white-space:nowrap" style-hover="border-color:#C6372B;color:#C6372B"><i class="ti ti-cloud" style="font-size:12px"></i>{{sfEnvLabel}}</button>
+      <button onClick="{{ onCloseMgr }}" style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#ECEAE4;background:#141417;border:1px solid #2a2a2f;border-radius:9px;padding:10px 14px;cursor:pointer"><i class="ti ti-arrow-left"></i>Back to Board</button>
     </header>
 
     <div style="max-width:920px;margin:0 auto;padding:24px 26px 70px">
@@ -652,6 +714,18 @@ class Component extends DCLogic {
       // loadMethodsForOrder()/openMethodEdit()/saveMethodEdit()/removeMethod().
       methodsByOrder:{}, methodsLoadingFor:null,
       methodEditId:null, methodEditForm:null, methodEditVendorResults:[], methodSaving:false, methodErr:'',
+      // Inline "Add Item" quick-create in the Production Items section --
+      // for the case Management forgot to add one when the method was first
+      // created. Scoped to whichever card's drawer is open (only one can be
+      // open at a time), so a plain boolean is enough -- no need to key it
+      // by method id the way runCreateMethodId does on index.html.
+      itemCreateOpen:false, itemCreateForm:null, itemCreateSubmitting:false, itemCreateErr:'',
+      // Multi-org Salesforce switcher -- global toggle (every board/tablet,
+      // not just this one), PIN-gated. Mirrors index.html's copy of the same
+      // feature -- see loadSfEnv()/openSfEnvModal()/submitSfEnv() and
+      // functions/api/admin/sf-env.js. Reachable from both the board header
+      // and the Management view's header (see renderVals()'s `base`).
+      sfEnvOpen:false, sfEnvList:[], sfEnvActive:'dev2', sfEnvActiveLabel:'Dev2', sfEnvSelected:'dev2', sfEnvPin:'', sfEnvSubmitting:false, sfEnvErr:'', sfEnvMsg:'',
     };
   }
   componentDidMount(){
@@ -664,6 +738,7 @@ class Component extends DCLogic {
     let addMethodForOrder = null;
     try { addMethodForOrder = new URLSearchParams(window.location.search).get('addMethodForOrder'); } catch (_) {}
     this.load().then(()=>{ if (addMethodForOrder) this.openMgrForOrder(addMethodForOrder); });
+    this.loadSfEnv();
     this._ar=setInterval(()=>{ if(this.state.connection==='live' && !this.state.openId && this.state.view!=='mgr') this.load(); },15000);
   }
   componentWillUnmount(){ clearInterval(this._t); clearInterval(this._ar); }
@@ -727,6 +802,48 @@ class Component extends DCLogic {
   }
   pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
   switchUser(){ try{localStorage.removeItem('caShopWorkerName');}catch(_){} this.setState({nameOk:false}); }
+  // ── Salesforce environment switcher (global -- affects every board/tablet) ──
+  loadSfEnv(){
+    if(!this._api) return;
+    this._api.getSfEnv().then(d=>{
+      if(!d) return;
+      const environments=d.environments||[];
+      const activeObj=environments.find(e=>e.key===d.active);
+      this.setState({ sfEnvList:environments, sfEnvActive:d.active, sfEnvActiveLabel:(activeObj&&activeObj.label)||d.active, sfEnvSelected:d.active });
+    }).catch(()=>{});
+  }
+  openSfEnvModal(){ this.setState({ sfEnvOpen:true, sfEnvPin:'', sfEnvErr:'', sfEnvMsg:'' }); this.loadSfEnv(); }
+  closeSfEnvModal(){ this.setState({sfEnvOpen:false}); }
+  pickSfEnvKey(key){ this.setState({sfEnvSelected:key, sfEnvErr:'', sfEnvMsg:''}); }
+  setSfEnvPin(v){ this.setState({sfEnvPin:v}); }
+  async submitSfEnv(){
+    if(this.state.sfEnvSubmitting || !this._api) return;
+    const key=this.state.sfEnvSelected;
+    if(!key) return;
+    if(key===this.state.sfEnvActive){ this.setState({sfEnvMsg:'Already active', sfEnvErr:''}); return; }
+    if(!this.state.sfEnvPin){ this.setState({sfEnvErr:'Enter the switch PIN', sfEnvMsg:''}); return; }
+    this.setState({sfEnvSubmitting:true, sfEnvErr:'', sfEnvMsg:''});
+    try{
+      const res = await this._api.setSfEnv(key, this.state.sfEnvPin);
+      const active = (res && res.active) || key;
+      const opt = (this.state.sfEnvList||[]).find(e=>e.key===active);
+      const label = (opt&&opt.label)||active;
+      this.setState(st=>({
+        sfEnvSubmitting:false, sfEnvActive:active, sfEnvActiveLabel:label, sfEnvPin:'',
+        sfEnvMsg:'Switched — every tablet now talks to '+label,
+        sfEnvList:(st.sfEnvList||[]).map(e=>Object.assign({}, e, {active:e.key===active})),
+      }));
+    }catch(e){
+      const m=/-> (\d+)/.exec((e&&e.message)||'');
+      const code=m?Number(m[1]):0;
+      const msg = code===401?'Wrong PIN'
+        : code===409?'That environment is not configured yet'
+        : code===500?'Switch PIN is not configured on the server'
+        : code===400?'Unknown environment'
+        : 'Could not switch — try again';
+      this.setState({sfEnvSubmitting:false, sfEnvErr:msg, sfEnvMsg:''});
+    }
+  }
   // Garment receiving, specs, and special notes are still Order-level fields
   // -- shared across every card from the same order, so these apply the
   // change to ALL sibling cards, not just the one whose drawer is open.
@@ -985,6 +1102,51 @@ class Component extends DCLogic {
   }
   setItemField(orderId,itemId,field,val){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).map(it=>it.Id===itemId?Object.assign({},it,{[field]:val}):it); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live') this._api.patchItem(itemId,{[field]:val}).catch(()=>{}); }
   removePPItem(orderId,itemId){ this.setState(st=>{ const pp=Object.assign({},st.ppItemsById); pp[orderId]=(pp[orderId]||[]).filter(it=>it.Id!==itemId); return {ppItemsById:pp}; }); if(this._api && this.state.connection==='live' && itemId) this._api.deleteItem(itemId).catch(()=>{}); }
+  // ── Add Item quick-create (Production Items section) -- for a method that
+  // already exists but Management forgot to add an item under, straight from
+  // the card drawer instead of only at method-creation time. ──
+  openItemCreate(){ this.setState({ itemCreateOpen:true, itemCreateForm:{ type:'Screen', mesh:'', pantone:'', threadColor:'', threadNumber:'', stitch:'', transferType:'' }, itemCreateErr:'' }); }
+  closeItemCreate(){ this.setState({itemCreateOpen:false, itemCreateForm:null, itemCreateErr:''}); }
+  setItemCreateField(patch){ this.setState(st=>({itemCreateForm:Object.assign({}, st.itemCreateForm, patch)})); }
+  async submitItemCreate(orderId, methodId){
+    const f=this.state.itemCreateForm;
+    if(!f || !this._api || this.state.itemCreateSubmitting) return;
+    this.setState({itemCreateSubmitting:true, itemCreateErr:''});
+    const item={ type:f.type };
+    if(f.type==='Screen') item.mesh=f.mesh;
+    else if(f.type==='Ink') item.pantone=f.pantone;
+    else if(f.type==='Thread'){ item.threadColor=f.threadColor; item.threadNumber=f.threadNumber; }
+    else if(f.type==='Digitization') item.stitchCount=f.stitch;
+    else if(f.type==='Transfer') item.transferType=f.transferType;
+    try{
+      const res=await this._api.createItem(methodId, item);
+      if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed');
+      this.setState({itemCreateSubmitting:false, itemCreateOpen:false, itemCreateForm:null});
+      this._api.getPreProductionItems(orderId).then(items=>{ this.setState(st=>({ppItemsById:Object.assign({},st.ppItemsById,{[orderId]:items})})); }).catch(()=>{});
+    }catch(_){
+      this.setState({itemCreateSubmitting:false, itemCreateErr:'Could not create item — try again'});
+    }
+  }
+  // Builds the Add Item form's view object -- only rendered while
+  // open.itemCreateOpen is true (see renderVals()).
+  itemCreateView(orderId, methodId){
+    if(!this.state.itemCreateOpen) return null;
+    const f=this.state.itemCreateForm||{};
+    const typeOptions=['Screen','Ink','Thread','Digitization','Transfer'].map(x=>{ const on=f.type===x; return { label:x, onPick:()=>this.setItemCreateField({type:x}), bg:on?'#18230D':'#121215', border:on?'#3D5418':'#242428', color:on?'#BBD382':'#8a8378' }; });
+    return {
+      typeOptions,
+      isScreen:f.type==='Screen', isInk:f.type==='Ink', isThread:f.type==='Thread', isDigit:f.type==='Digitization', isTransfer:f.type==='Transfer',
+      mesh:f.mesh||'', meshOptions:['110','125','156','180','196','230','305'].map(m=>({value:m,label:m+' mesh'})), onMesh:(e)=>this.setItemCreateField({mesh:e.target.value}),
+      pantone:f.pantone||'', onPantone:(e)=>this.setItemCreateField({pantone:e.target.value}),
+      threadColor:f.threadColor||'', onThreadColor:(e)=>this.setItemCreateField({threadColor:e.target.value}),
+      threadNumber:f.threadNumber||'', onThreadNumber:(e)=>this.setItemCreateField({threadNumber:e.target.value}),
+      stitch:f.stitch||'', onStitch:(e)=>this.setItemCreateField({stitch:e.target.value}),
+      transferType:f.transferType||'', ttOptions:['Screen Transfer','Digital Transfer','Sublimation','Vinyl'].map(m=>({value:m,label:m})), onTransfer:(e)=>this.setItemCreateField({transferType:e.target.value}),
+      hasErr:!!this.state.itemCreateErr, err:this.state.itemCreateErr||'',
+      onCancel:()=>this.closeItemCreate(), onSubmit:()=>this.submitItemCreate(orderId, methodId),
+      submitLabel: this.state.itemCreateSubmitting?'Adding…':'Add Item',
+    };
+  }
   setForm(patch){ this.setState(st=>({form:Object.assign({}, st.form||this.defaultForm(), patch)})); }
   vendorSearch(q){ this.setForm({vendorQ:q, vendorId:null, vendorName:''}); if(!this._api) return; clearTimeout(this._vt); this._vt=setTimeout(()=>{ this._api.searchVendors(q).then(r=>this.setState({vendorResults:r})).catch(()=>{}); },250); }
   pickVendor(id,name){ this.setForm({vendorId:id, vendorName:name, vendorQ:name}); this.setState({vendorResults:[]}); }
@@ -1347,7 +1509,9 @@ class Component extends DCLogic {
         specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.orderId,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.orderId,e.target.value),
         // Items come back per ORDER (all sibling methods' items together);
         // filter down to just this card's own Production_Method__c.
-        ppItemsView:(st.ppItemsById[src.orderId]||[]).filter(it=>it.Production_Method__c===src.id).map(it=>{ const ty=it.Type__c||'Item'; return { id:it.Id, type:ty, isScreen:ty==='Screen', isInk:ty==='Ink', isThread:ty==='Thread', isDigit:ty==='Digitization', isTransfer:ty==='Transfer', status:it.Status__c||'Not Started', statusOptions:[{value:'Not Started',label:'Not Started'},{value:'In Progress',label:'In Progress'},{value:'Ready',label:'Ready'}], onStatus:(e)=>this.setItemField(src.orderId,it.Id,'Status__c',e.target.value), mesh:it.Mesh_Count__c||'', meshOptions:['110','125','156','180','196','230','305'].map(m=>({value:m,label:m+' mesh'})), onMesh:(e)=>this.setItemField(src.orderId,it.Id,'Mesh_Count__c',e.target.value), pantone:it.Pantone_Color__c||'', onPantone:(e)=>this.setItemField(src.orderId,it.Id,'Pantone_Color__c',e.target.value), threadColor:it.Thread_Color__c||'', onThreadColor:(e)=>this.setItemField(src.orderId,it.Id,'Thread_Color__c',e.target.value), threadNumber:it.Thread_Number__c||'', onThreadNumber:(e)=>this.setItemField(src.orderId,it.Id,'Thread_Number__c',e.target.value), stitch:it.Stitch_Count__c||'', onStitch:(e)=>this.setItemField(src.orderId,it.Id,'Stitch_Count__c',e.target.value), transferType:it.Transfer_Type__c||'', ttOptions:['Screen Transfer','Digital Transfer','Sublimation','Vinyl'].map(m=>({value:m,label:m})), onTransfer:(e)=>this.setItemField(src.orderId,it.Id,'Transfer_Type__c',e.target.value), onRemove:()=>this.removePPItem(src.orderId,it.Id) }; }), ppItemsEmpty:(st.ppItemsById[src.orderId]||[]).filter(it=>it.Production_Method__c===src.id).length===0 });
+        ppItemsView:(st.ppItemsById[src.orderId]||[]).filter(it=>it.Production_Method__c===src.id).map(it=>{ const ty=it.Type__c||'Item'; return { id:it.Id, type:ty, isScreen:ty==='Screen', isInk:ty==='Ink', isThread:ty==='Thread', isDigit:ty==='Digitization', isTransfer:ty==='Transfer', status:it.Status__c||'Not Started', statusOptions:[{value:'Not Started',label:'Not Started'},{value:'In Progress',label:'In Progress'},{value:'Ready',label:'Ready'}], onStatus:(e)=>this.setItemField(src.orderId,it.Id,'Status__c',e.target.value), mesh:it.Mesh_Count__c||'', meshOptions:['110','125','156','180','196','230','305'].map(m=>({value:m,label:m+' mesh'})), onMesh:(e)=>this.setItemField(src.orderId,it.Id,'Mesh_Count__c',e.target.value), pantone:it.Pantone_Color__c||'', onPantone:(e)=>this.setItemField(src.orderId,it.Id,'Pantone_Color__c',e.target.value), threadColor:it.Thread_Color__c||'', onThreadColor:(e)=>this.setItemField(src.orderId,it.Id,'Thread_Color__c',e.target.value), threadNumber:it.Thread_Number__c||'', onThreadNumber:(e)=>this.setItemField(src.orderId,it.Id,'Thread_Number__c',e.target.value), stitch:it.Stitch_Count__c||'', onStitch:(e)=>this.setItemField(src.orderId,it.Id,'Stitch_Count__c',e.target.value), transferType:it.Transfer_Type__c||'', ttOptions:['Screen Transfer','Digital Transfer','Sublimation','Vinyl'].map(m=>({value:m,label:m})), onTransfer:(e)=>this.setItemField(src.orderId,it.Id,'Transfer_Type__c',e.target.value), onRemove:()=>this.removePPItem(src.orderId,it.Id) }; }), ppItemsEmpty:(st.ppItemsById[src.orderId]||[]).filter(it=>it.Production_Method__c===src.id).length===0,
+        itemCreateOpen:!!st.itemCreateOpen, onNewItem:()=> st.itemCreateOpen ? this.closeItemCreate() : this.openItemCreate(),
+        itemCreate: this.itemCreateView(src.orderId, src.id) });
     }
 
     let wn='Priya R.'; try{ wn=localStorage.getItem('caShopWorkerName')||wn; }catch(_){}
@@ -1355,7 +1519,31 @@ class Component extends DCLogic {
     const connLabel = live?'Live · Salesforce':(st.connection==='loading'?'Connecting…':'Demo data');
     const connColor = live?'#7FA644':(st.connection==='loading'?'#6C665C':'#C9923A');
     const names = VALID_NAMES.map(n=>({ label:n, onPick:()=>this.pickName(n) }));
-    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, weekBtns:['week','all','pick'].map(k=>({ key:k, label:({week:'This week',all:'All',pick:'Pick week'})[k], onPick:()=>this.setState({weekMode:k}), bg:st.weekMode===k?'#1a1a1e':'transparent', border:st.weekMode===k?'#C6372B':'#242428', color:st.weekMode===k?'#ECEAE4':'#8a8378' })), showPick:st.weekMode==='pick', pickDate:st.pickDate, onPickDate:(e)=>this.setState({pickDate:e.target.value}), connLabel, connColor, q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}), nameGateOpen:!st.nameOk, names, onSwitchUser:()=>this.switchUser() };
+    // Salesforce environment switcher -- mirrors index.html's copy of the
+    // same feature. Lives in `base` (shared by both the board header and the
+    // Management view's header) since it's global regardless of which view
+    // is showing -- see loadSfEnv()/submitSfEnv() above.
+    const sfEnvOptions = (st.sfEnvList||[]).map(e=>{
+      const isSelected = st.sfEnvSelected===e.key;
+      const isActive = e.key===st.sfEnvActive;
+      return {
+        key:e.key, label:e.label, isActive,
+        statusLabel: e.configured ? (isActive?'Currently active':'Configured') : 'Not configured yet',
+        dotColor: isActive?'#7FA644':(e.configured?'#6C665C':'#3a3a3f'),
+        bg: isSelected?'#1a1410':'#121215',
+        border: isSelected?'#5E4214':'#232327',
+        textColor: e.configured?'#ECEAE4':'#4d483f',
+        cursor: e.configured?'pointer':'not-allowed',
+        onPick: e.configured?(()=>this.pickSfEnvKey(e.key)):(()=>{}),
+      };
+    });
+    const base = { columns, kpis, clock, dateStr, worker:wn, workerInit:(window.CAApi&&window.CAApi.initials?window.CAApi.initials(wn):wn.slice(0,2).toUpperCase()), shownLabel, weekBtns:['week','all','pick'].map(k=>({ key:k, label:({week:'This week',all:'All',pick:'Pick week'})[k], onPick:()=>this.setState({weekMode:k}), bg:st.weekMode===k?'#1a1a1e':'transparent', border:st.weekMode===k?'#C6372B':'#242428', color:st.weekMode===k?'#ECEAE4':'#8a8378' })), showPick:st.weekMode==='pick', pickDate:st.pickDate, onPickDate:(e)=>this.setState({pickDate:e.target.value}), connLabel, connColor, q:st.q, onSearch:(e)=>this.setState({q:e.target.value}), onRefresh:()=>this.load(), drawerOpen:!!open, open, onClose:()=>this.setState({openId:null}), nameGateOpen:!st.nameOk, names, onSwitchUser:()=>this.switchUser(),
+      sfEnvLabel:st.sfEnvActiveLabel||'Dev2', onOpenSfEnv:()=>this.openSfEnvModal(),
+      sfEnvOpen:st.sfEnvOpen, onCloseSfEnv:()=>this.closeSfEnvModal(), sfEnvOptions,
+      sfEnvPin:st.sfEnvPin, onSfEnvPin:(e)=>this.setSfEnvPin(e.target.value),
+      sfEnvSubmitLabel: st.sfEnvSubmitting?'Switching…':'Switch Environment', onSubmitSfEnv:()=>this.submitSfEnv(),
+      sfEnvErr:st.sfEnvErr, sfEnvMsg:st.sfEnvMsg, sfEnvHasErr:!!st.sfEnvErr, sfEnvHasMsg:!!st.sfEnvMsg,
+    };
     return Object.assign(base, this.mgrVals());
   }
 }
