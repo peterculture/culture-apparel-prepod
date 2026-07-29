@@ -36,9 +36,31 @@
  *     "Transfers_Received__c": false,
  *     "Transfers_Ready__c": false,
  *     "Print_Setup_Timer__c": 1320,        // elapsed seconds, this method's own
- *     "Production_Timer__c": 2460          // clock -- see ../_ppi-checklist.js note
- *   }                                       // in index.html for the order-total sum
+ *     "Production_Timer__c": 2460,         // clock -- see ../_ppi-checklist.js note
+ *                                           // in index.html for the order-total sum
+ *     "ifUnmodifiedSince": "2026-07-29T18:04:11.000Z"  // OPTIONAL -- the
+ *                                           // Production_Method__c.LastModifiedDate
+ *                                           // the client had when it opened this
+ *                                           // record's edit form (see the drawer's
+ *                                           // "Production Methods" GET in
+ *                                           // production-methods/index.js, which now
+ *                                           // selects LastModifiedDate for exactly
+ *                                           // this reason). If someone else saved a
+ *                                           // change to this method more recently
+ *                                           // than that, this PATCH is rejected with
+ *                                           // 409 {error:"conflict",
+ *                                           // currentLastModifiedDate} instead of
+ *                                           // silently overwriting their edit --
+ *                                           // added 2026-07-29 so two people editing
+ *                                           // the same method from different
+ *                                           // tablets/browsers don't clobber each
+ *                                           // other. Not sent -> no check (existing
+ *                                           // one-off status/checklist toggles keep
+ *                                           // their old unguarded fire-and-forget
+ *                                           // behavior).
+ *   }
  *
+
  * DELETE /api/production-methods/:id
  *
  * Removes ONE Production_Method__c (added 2026-07-29 so a card's drawer can
@@ -51,7 +73,7 @@
  * the user didn't ask to touch. Remove the method's runs/items first if that
  * happens.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { sfFetch, apiVersion, jsonError, checkNotModifiedSince } from "../_sf.js";
 import { rollupOrderSubstatus, rollupChecklistToOrder } from "../_pm-rollup.js";
 import { cascadeChecklistToItems } from "../_ppi-checklist.js";
 
@@ -166,6 +188,16 @@ export async function onRequestPatch({ params, request, env }) {
     }
 
     if (Object.keys(payload).length === 0) return jsonError("no_valid_fields", 400);
+
+    if (body.ifUnmodifiedSince) {
+      const check = await checkNotModifiedSince(env, PM_OBJECT, id, body.ifUnmodifiedSince);
+      if (check.conflict) {
+        return Response.json(
+          { error: "conflict", detail: "modified_since_load", currentLastModifiedDate: check.currentLastModifiedDate },
+          { status: 409 },
+        );
+      }
+    }
 
     const path = `/services/data/${apiVersion(env)}/sobjects/${PM_OBJECT}/${id}`;
     const resp = await sfFetch(env, path, {
