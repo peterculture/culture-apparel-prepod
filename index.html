@@ -199,7 +199,106 @@
         </div>
 
         <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Production Runs</span><sc-if value="{{open.runsLoading}}" hint-placeholder-val="{{ false }}"><span style="font:400 10px/1 'Archivo';color:#4d483f">Loading…</span></sc-if></div>
+          <div style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378;margin-bottom:11px">Production Methods</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{open.methodsView}}" as="pm" hint-placeholder-count="1">
+              <div style="display:flex;flex-direction:column;background:#121215;border:1px solid #232327;border-radius:8px;overflow:hidden">
+                <div style="display:flex;align-items:center;gap:10px;padding:11px 13px">
+                  <span style="width:8px;height:8px;border-radius:50%;background:{{pm.color}};flex-shrink:0"></span>
+                  <span style="font:500 12px/1 'Archivo';color:#ECEAE4">{{pm.label}}</span>
+                  <span style="font:600 8px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#9C978C;background:#1a1a1e;border-radius:6px;padding:4px 7px">{{pm.status}}</span>
+                  <span style="margin-left:auto;font:400 11px/1 'Archivo';color:#6C665C;white-space:nowrap">{{pm.vendor}}</span>
+                  <button onClick="{{ pm.onEdit }}" title="Edit method" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:transparent;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;flex-shrink:0"><i class="ti ti-pencil" style="font-size:12px"></i></button>
+                  <button onClick="{{ pm.onRemove }}" title="Remove method" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:transparent;border:1px solid #2a2a2f;color:#8a8378;cursor:pointer;flex-shrink:0"><i class="ti ti-trash" style="font-size:12px"></i></button>
+                </div>
+                <sc-if value="{{pm.editing}}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:11px 13px 13px;display:flex;flex-direction:column;gap:10px;border-top:1px dashed #232327">
+                    <div>
+                      <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Method</div>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <sc-for list="{{pm.mf.methodOptions}}" as="m" hint-placeholder-count="4">
+                          <button onClick="{{ m.onPick }}" style="font:600 10px/1 'Oswald';letter-spacing:.04em;color:{{m.color}};background:{{m.bg}};border:1px solid {{m.border}};border-radius:7px;padding:8px 10px;cursor:pointer">{{m.label}}</button>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Placements</div>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <sc-for list="{{pm.mf.placementOptions}}" as="p" hint-placeholder-count="4">
+                          <button onClick="{{ p.onPick }}" style="font:600 10px/1 'Oswald';letter-spacing:.03em;color:{{p.color}};background:{{p.bg}};border:1px solid {{p.border}};border-radius:7px;padding:7px 9px;cursor:pointer">{{p.label}}</button>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Vendor</div>
+                      <input value="{{pm.mf.vendorQ}}" onInput="{{ pm.mf.onVendorSearch }}" placeholder="Search vendors…" style="width:100%;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:12px;color:#ECEAE4;outline:none">
+                      <sc-if value="{{pm.mf.vendorPicked}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:5px;font:600 10px/1 'Oswald';letter-spacing:.03em;color:#BBD382;margin-top:6px"><i class="ti ti-check"></i>{{pm.mf.vendorName}}</div></sc-if>
+                      <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+                        <sc-for list="{{pm.mf.vendorResultsView}}" as="v" hint-placeholder-count="0">
+                          <button onClick="{{ v.onPick }}" style="text-align:left;font:500 11px/1.2 'Archivo';color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:8px 10px;cursor:pointer" style-hover="border-color:#C6372B">{{v.name}}</button>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Status</div>
+                      <select value="{{pm.mf.status}}" onChange="{{ pm.mf.onStatus }}" style="width:100%;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:12px;color:#ECEAE4;outline:none"><sc-for list="{{pm.mf.statusOptions}}" as="s" hint-placeholder-count="7"><option value="{{s}}">{{s}}</option></sc-for></select>
+                    </div>
+                    <sc-if value="{{pm.mf.hasErr}}" hint-placeholder-val="{{ false }}"><div style="font:600 10px/1.3 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:#E8A89F">{{pm.mf.err}}</div></sc-if>
+                    <div style="display:flex;gap:8px">
+                      <button onClick="{{ pm.mf.onCancel }}" style="flex:1;font:700 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#8a8378;background:transparent;border:1px solid #2a2a2f;border-radius:8px;padding:11px;cursor:pointer">Cancel</button>
+                      <button onClick="{{ pm.mf.onSave }}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:700 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:8px;padding:11px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-device-floppy"></i>{{pm.mf.saveLabel}}</button>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <sc-if value="{{open.methodsEmpty}}" hint-placeholder-val="{{ false }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f;padding:2px">No production method set up yet.</div></sc-if>
+            <a href="{{open.addMethodUrl}}" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;font:600 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#5E9B9A;background:transparent;border:1px dashed #3D5418;border-radius:8px;padding:11px;cursor:pointer;margin-top:2px;text-decoration:none" style-hover="background:#18230D" title="Opens the Pre-Production Management form for this order"><i class="ti ti-plus"></i>Add another method / location</a>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="font:600 11px/1 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:#8a8378">Production Runs</span><sc-if value="{{open.runsLoading}}" hint-placeholder-val="{{ false }}"><span style="font:400 10px/1 'Archivo';color:#4d483f">Loading…</span></sc-if><button onClick="{{ open.onNewRun }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:600 9px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#5E9B9A;background:transparent;border:1px solid #3D5418;border-radius:7px;padding:6px 9px;cursor:pointer" style-hover="background:#18230D"><i class="ti {{open.newRunIcon}}"></i>{{open.newRunLabel}}</button></div>
+          <sc-if value="{{open.runCreateOpen}}" hint-placeholder-val="{{ false }}">
+            <div style="background:#121215;border:1px solid #3D5418;border-radius:10px;padding:13px 14px;display:flex;flex-direction:column;gap:11px;margin-bottom:14px">
+              <div style="font:600 11px/1 'Oswald';letter-spacing:.06em;color:#5E9B9A">New Production Run</div>
+              <div>
+                <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Press</div>
+                <input value="{{open.runCreate.pressQ}}" onInput="{{ open.runCreate.onPressSearch }}" placeholder="Search presses/machines…" style="width:100%;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:12px;color:#ECEAE4;outline:none">
+                <sc-if value="{{open.runCreate.pressPicked}}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:5px;font:600 10px/1 'Oswald';letter-spacing:.03em;color:#BBD382;margin-top:7px"><i class="ti ti-check"></i>{{open.runCreate.pressName}}</div></sc-if>
+                <div style="display:flex;flex-direction:column;gap:4px;margin-top:7px">
+                  <sc-for list="{{open.runCreate.pressResultsView}}" as="p" hint-placeholder-count="0">
+                    <button onClick="{{ p.onPick }}" style="text-align:left;font:500 11px/1.2 'Archivo';color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:8px 10px;cursor:pointer" style-hover="border-color:#C6372B">{{p.name}}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;min-width:0">
+                  <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Scheduled Start</div>
+                  <div style="display:flex;gap:6px">
+                    <input type="date" value="{{open.runCreate.startDate}}" onInput="{{ open.runCreate.onStartDate }}" style="flex:1;min-width:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                    <input type="time" value="{{open.runCreate.startTime}}" onInput="{{ open.runCreate.onStartTime }}" style="width:92px;flex-shrink:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                  </div>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Scheduled End</div>
+                  <div style="display:flex;gap:6px">
+                    <input type="date" value="{{open.runCreate.endDate}}" onInput="{{ open.runCreate.onEndDate }}" style="flex:1;min-width:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                    <input type="time" value="{{open.runCreate.endTime}}" onInput="{{ open.runCreate.onEndTime }}" style="width:92px;flex-shrink:0;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 8px;font-size:12px;color:#ECEAE4;outline:none">
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div style="font:600 9px/1 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#8a8378;margin-bottom:6px">Total Garments</div>
+                <input type="number" min="1" value="{{open.runCreate.qty}}" onInput="{{ open.runCreate.onQty }}" style="width:100%;max-width:140px;background:#16161a;border:1px solid #2a2a2f;border-radius:7px;padding:9px 11px;font-size:12px;color:#ECEAE4;outline:none">
+              </div>
+              <sc-if value="{{open.runCreate.hasErr}}" hint-placeholder-val="{{ false }}"><div style="font:600 10px/1.3 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:#E8A89F">{{open.runCreate.err}}</div></sc-if>
+              <div style="display:flex;gap:8px">
+                <button onClick="{{ open.runCreate.onCancel }}" style="flex:1;font:700 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#8a8378;background:transparent;border:1px solid #2a2a2f;border-radius:8px;padding:11px;cursor:pointer">Cancel</button>
+                <button onClick="{{ open.runCreate.onSubmit }}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:700 10px/1 'Oswald';letter-spacing:.06em;text-transform:uppercase;color:#08080A;background:#5E9B9A;border:none;border-radius:8px;padding:11px;cursor:pointer">{{open.runCreate.submitLabel}}</button>
+              </div>
+            </div>
+          </sc-if>
           <div style="display:flex;flex-direction:column;gap:14px">
             <sc-for list="{{open.runsView}}" as="run" hint-placeholder-count="0">
               <div style="background:#121215;border:1px solid #232327;border-radius:10px;padding:13px 14px;display:flex;flex-direction:column;gap:11px">
@@ -258,7 +357,10 @@
                 <sc-if value="{{run.hasMsg}}" hint-placeholder-val="{{ false }}"><div style="font:600 10px/1 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:#BBD382">{{run.msg}}</div></sc-if>
                 <sc-if value="{{run.hasErr}}" hint-placeholder-val="{{ false }}"><div style="font:600 10px/1.3 'Oswald';letter-spacing:.04em;text-transform:uppercase;color:#E8A89F">{{run.err}}</div></sc-if>
 
-                <button onClick="{{ run.onSave }}" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:8px;padding:11px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-device-floppy"></i>{{run.saveLabel}}</button>
+                <div style="display:flex;gap:8px">
+                  <button onClick="{{ run.onSave }}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 10px/1 'Oswald';letter-spacing:.07em;text-transform:uppercase;color:#ECEAE4;background:#16161a;border:1px solid #2a2a2f;border-radius:8px;padding:11px;cursor:pointer" style-hover="border-color:#5E9B9A;color:#5E9B9A"><i class="ti ti-device-floppy"></i>{{run.saveLabel}}</button>
+                  <button onClick="{{ run.onRemove }}" title="Remove run" style="display:flex;align-items:center;justify-content:center;width:42px;flex-shrink:0;background:transparent;border:1px solid #7A241C;color:#E8A89F;border-radius:8px;cursor:pointer" style-hover="background:#2A100D"><i class="ti ti-trash" style="font-size:14px"></i></button>
+                </div>
               </div>
             </sc-for>
             <sc-if value="{{open.runsEmpty}}" hint-placeholder-val="{{ true }}"><div style="font:400 11px/1.4 'Archivo';color:#4d483f;padding:2px">No production runs created for this method yet.</div></sc-if>
@@ -428,7 +530,7 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#C6372B&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;}}">
 // The only names the app accepts for shift attribution -- keep in sync with
 // the copies in login.html and pre-production.html if this list ever changes.
-const VALID_NAMES = ['Anthony','Asher','Beau','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
+const VALID_NAMES = ['Anthony','Asher','Alex','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
 
 class Component extends DCLogic {
   constructor(props){
@@ -470,6 +572,21 @@ class Component extends DCLogic {
       // Production_Method__c record once it's advanced past Pre-Production.
       // See openCard()/loadRunsForCard()/saveRunRow().
       runsByMethod:{}, runsLoadingFor:null, runEdits:{}, runRowPressResults:{}, runRowSaving:{}, runRowErr:{}, runRowMsg:{},
+      // "Production Methods" section of the card drawer -- fresh per-order
+      // fetch (methodsByOrder, keyed by orderId) so a manager can see, edit,
+      // and remove every sibling method on the order the open card belongs
+      // to (not just the one method that card itself represents), and jump
+      // to pre-production.html's Management form to add another. See
+      // loadMethodsForOrder()/openMethodEdit()/saveMethodEdit()/removeMethod().
+      methodsByOrder:{}, methodsLoadingFor:null,
+      methodEditId:null, methodEditForm:null, methodEditVendorResults:[], methodSaving:false, methodErr:'',
+      // Inline "New Run" quick-create form in the Production Runs section --
+      // this board never had a Create Production Run flow before (unlike
+      // pre-production.html's post-creation modal), so add is done in place
+      // instead of duplicating a whole modal for it. Scoped to one open
+      // method at a time via runCreateMethodId (same drawer-only assumption
+      // as methodEditId above).
+      runCreateMethodId:null, runCreateForm:null, runCreatePressResults:[], runCreateSubmitting:false, runCreateErr:'',
       // "Production Error" modal -- ports Salesforce's Order -> Flow quick
       // action of the same name. See openReprintModal()/submitReprint() and
       // PRODUCTION-ERROR-REPRINT-ANALYSIS.md.
@@ -654,6 +771,94 @@ class Component extends DCLogic {
     // cardId IS this card's Production_Method__c Id (one card == one method) --
     // same scope key production-runs uses on the pre-production board.
     this.loadRunsForCard(cardId);
+    this.loadMethodsForOrder(orderId);
+  }
+  // ── Production Methods section of the card drawer -- edit-in-place + remove ──
+  loadMethodsForOrder(orderId){
+    if(!orderId || !this._api || this.state.connection!=='live') return;
+    this.setState({methodsLoadingFor:orderId});
+    this._api.getMethodsForOrder(orderId).then(recs=>{
+      this.setState(st=>({ methodsByOrder:Object.assign({}, st.methodsByOrder, {[orderId]:recs||[]}), methodsLoadingFor:null }));
+    }).catch(()=>{ this.setState({methodsLoadingFor:null}); });
+  }
+  openMethodEdit(r){
+    const vendorName=(r.Vendor__r && r.Vendor__r.Name) || '';
+    this.setState({
+      methodEditId: r.Id,
+      methodEditForm: {
+        type: r.Type__c,
+        placements: (r.Placements__c||'').split(';').map(s=>s.trim()).filter(Boolean),
+        vendorId: r.Vendor__c||null, vendorName, vendorQ: vendorName,
+        status: r.Status__c||'Pre-Production',
+      },
+      methodEditVendorResults:[], methodErr:'',
+    });
+  }
+  closeMethodEdit(){ this.setState({methodEditId:null, methodEditForm:null, methodEditVendorResults:[], methodErr:''}); }
+  setMethodEditField(patch){ this.setState(st=>({methodEditForm:Object.assign({}, st.methodEditForm, patch)})); }
+  toggleMethodEditPlacement(x){ this.setState(st=>{ const f=Object.assign({},st.methodEditForm); const cur=f.placements||[]; f.placements = cur.includes(x) ? cur.filter(v=>v!==x) : cur.concat([x]); return {methodEditForm:f}; }); }
+  methodEditVendorSearch(q){ this.setMethodEditField({vendorQ:q, vendorId:null, vendorName:''}); if(!this._api) return; clearTimeout(this._mevt); this._mevt=setTimeout(()=>{ this._api.searchVendors(q).then(r=>this.setState({methodEditVendorResults:r})).catch(()=>{}); },250); }
+  pickMethodEditVendor(id,name){ this.setMethodEditField({vendorId:id, vendorName:name, vendorQ:name}); this.setState({methodEditVendorResults:[]}); }
+  async saveMethodEdit(orderId){
+    const id=this.state.methodEditId, f=this.state.methodEditForm;
+    if(!id || !f || !this._api) return;
+    if(!f.placements || !f.placements.length){ this.setState({methodErr:'Pick at least one placement'}); return; }
+    this.setState({methodSaving:true, methodErr:''});
+    const fields={ Type__c:f.type, Placements__c:f.placements, Status__c:f.status };
+    if(f.vendorId) fields.Vendor__c=f.vendorId;
+    try {
+      await this._api.patchMethodFields(id, fields);
+      this.setState({methodSaving:false, methodEditId:null, methodEditForm:null});
+      this.loadMethodsForOrder(orderId);
+      this.load();
+    } catch(_) {
+      this.setState({methodSaving:false, methodErr:'Could not save — try again'});
+    }
+  }
+  removeMethod(r, orderId){
+    if(!window.confirm('Remove this production method? This can’t be undone.')) return;
+    if(!this._api) return;
+    this._api.deleteMethod(r.Id).then(()=>{
+      this.loadMethodsForOrder(orderId);
+      this.load();
+      // If the card whose drawer is open WAS this method, it just vanished
+      // from the board -- close the drawer instead of leaving it pointed at
+      // a stage the reload can no longer find.
+      if(this.state.openId===r.Id) this.setState({openId:null});
+    }).catch(()=>{ window.alert('Could not remove — it may still have production items or runs attached to it. Remove those first.'); });
+  }
+  // Builds one Production Methods row for the drawer, including its inline
+  // edit form (pm.mf) when that row is the one currently being edited.
+  methodRowView(r, orderId){
+    const api=this._api||window.CAApi;
+    const meta=(api && api.METHOD_META && api.METHOD_META[r.Type__c]) || { color:'#8a8378' };
+    const placements=(r.Placements__c||'').split(';').map(s=>s.trim()).filter(Boolean);
+    const vendorName=(r.Vendor__r && r.Vendor__r.Name) || '';
+    const editing = this.state.methodEditId===r.Id;
+    const view = {
+      id:r.Id, type:r.Type__c, placements, status:r.Status__c,
+      label: r.Type__c + (placements.length ? (' – '+placements.join(' + ')) : ''),
+      color: meta.color, vendor: vendorName || 'No vendor set',
+      editing, onEdit:()=> editing ? this.closeMethodEdit() : this.openMethodEdit(r),
+      onRemove:()=> this.removeMethod(r, orderId),
+    };
+    if(editing){
+      const f=this.state.methodEditForm||{};
+      const methodOptions=['Screen Print','Embroidery','Heat Press','Promotional Items'].map(x=>({ label:x, onPick:()=>this.setMethodEditField({type:x}), bg:f.type===x?'#2a1210':'#121215', border:f.type===x?'#C6372B':'#242428', color:f.type===x?'#ECEAE4':'#8a8378' }));
+      const placementOptions=((api&&api.PLACEMENTS)||[]).map(x=>{ const on=(f.placements||[]).includes(x); return { label:x, onPick:()=>this.toggleMethodEditPlacement(x), bg:on?'#18230D':'#121215', border:on?'#3D5418':'#242428', color:on?'#BBD382':'#8a8378' }; });
+      view.mf = {
+        methodOptions, placementOptions,
+        statusOptions:['Pre-Production','Ready for Print','In Production','Post-Production','Completed','Cancelled','On Hold'],
+        status:f.status, onStatus:(e)=>this.setMethodEditField({status:e.target.value}),
+        vendorQ:f.vendorQ||'', onVendorSearch:(e)=>this.methodEditVendorSearch(e.target.value),
+        vendorPicked:!!f.vendorId, vendorName:f.vendorName||'',
+        vendorResultsView:(this.state.methodEditVendorResults||[]).map(v=>({ id:v.Id, name:v.Name, onPick:()=>this.pickMethodEditVendor(v.Id,v.Name) })),
+        hasErr:!!this.state.methodErr, err:this.state.methodErr||'',
+        onCancel:()=>this.closeMethodEdit(), onSave:()=>this.saveMethodEdit(orderId),
+        saveLabel: this.state.methodSaving?'Saving…':'Save Changes',
+      };
+    }
+    return view;
   }
   // ── Production Runs section of the card drawer (mirrors pre-production.html) ──
   buildRunDateTime(dateStr,timeStr){
@@ -733,6 +938,41 @@ class Component extends DCLogic {
       this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowMsg:Object.assign({}, st.runRowMsg, {[runId]:'Saved'}) }));
     }catch(e){
       this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowErr:Object.assign({}, st.runRowErr, {[runId]:'Save failed — check press / schedule and try again'}) }));
+    }
+  }
+  removeRun(runId, methodId){
+    if(!window.confirm('Remove this production run? This can’t be undone.')) return;
+    if(!this._api) return;
+    this._api.deleteProductionRun(runId).then(()=>{
+      this.setState(st=>({ runsByMethod:Object.assign({}, st.runsByMethod, {[methodId]:(st.runsByMethod[methodId]||[]).filter(r=>r.id!==runId)}) }));
+    }).catch(()=>{ window.alert('Could not remove this run — try again.'); });
+  }
+  // ── Inline "New Run" quick-create (this board has no separate Create
+  // Production Run modal like pre-production.html does) ──
+  openRunCreate(methodId){ this.setState({ runCreateMethodId:methodId, runCreateForm:{ pressId:null, pressName:'', pressQ:'', startDate:'', startTime:'', endDate:'', endTime:'', qty:'' }, runCreatePressResults:[], runCreateErr:'' }); }
+  closeRunCreate(){ this.setState({runCreateMethodId:null, runCreateForm:null, runCreatePressResults:[], runCreateErr:''}); }
+  setRunCreateField(patch){ this.setState(st=>({runCreateForm:Object.assign({}, st.runCreateForm, patch)})); }
+  runCreatePressSearch(q){ this.setRunCreateField({pressQ:q, pressId:null, pressName:''}); if(!this._api) return; clearTimeout(this._rcpt); this._rcpt=setTimeout(()=>{ this._api.searchPresses(q).then(r=>this.setState({runCreatePressResults:r})).catch(()=>{}); },250); }
+  pickRunCreatePress(id,name){ this.setRunCreateField({pressId:id, pressName:name, pressQ:name}); this.setState({runCreatePressResults:[]}); }
+  async submitRunCreate(){
+    const methodId=this.state.runCreateMethodId, f=this.state.runCreateForm;
+    if(!methodId || !f || !this._api || this.state.runCreateSubmitting) return;
+    const fail=(msg)=>this.setState({runCreateErr:msg});
+    if(!f.pressId){ fail('Pick a press'); return; }
+    const start=this.buildRunDateTime(f.startDate,f.startTime);
+    if(!start){ fail('Set the scheduled start date & time'); return; }
+    const end=this.buildRunDateTime(f.endDate,f.endTime);
+    if(!end){ fail('Set the scheduled end date & time'); return; }
+    const qtyNum=Number(f.qty);
+    if(!f.qty || !Number.isFinite(qtyNum) || qtyNum<=0){ fail('Enter the total quantity for this run'); return; }
+    this.setState({runCreateSubmitting:true, runCreateErr:''});
+    try {
+      const res=await this._api.createProductionRun({ printMethodId:methodId, pressId:f.pressId, scheduledStart:start, scheduledEnd:end, quantity:qtyNum });
+      if(res && (res.error || res.ok===false)) throw new Error(res.error||'create_failed');
+      this.setState({runCreateSubmitting:false, runCreateMethodId:null, runCreateForm:null});
+      this.loadRunsForCard(methodId);
+    } catch(_) {
+      this.setState({runCreateSubmitting:false, runCreateErr:'Could not create run — check press / schedule and try again'});
     }
   }
   // ── Production Error / Reprint modal ──
@@ -946,12 +1186,34 @@ class Component extends DCLogic {
           onActualEndDate:(e)=>this.setRunRowField(r.id,{actualEndDate:e.target.value}), onActualEndTime:(e)=>this.setRunRowField(r.id,{actualEndTime:e.target.value}),
           qty:f.qty, onQty:(e)=>this.setRunRowField(r.id,{qty:e.target.value}),
           onSave:()=>this.saveRunRow(r.id), saving, saveLabel: saving?'Saving…':'Save Changes',
+          onRemove:()=>this.removeRun(r.id, src.id),
           err:(st.runRowErr&&st.runRowErr[r.id])||'', msg:(st.runRowMsg&&st.runRowMsg[r.id])||'',
           hasErr:!!(st.runRowErr&&st.runRowErr[r.id]), hasMsg:!!(st.runRowMsg&&st.runRowMsg[r.id]),
         };
       });
+      // Production Methods section -- every Production_Method__c on this
+      // ORDER (fresh fetch, st.methodsByOrder), not just this card's own
+      // method, so a manager can see/edit/remove sibling methods (and jump to
+      // Pre-Production's Management form to add another) from any card.
+      const methodRecords = st.methodsByOrder[src.orderId] || [];
+      const methodsView = methodRecords.map(r=>this.methodRowView(r, src.orderId));
+      const rc = (st.runCreateMethodId===src.id) ? (st.runCreateForm||{}) : null;
+      const runCreate = rc ? {
+        pressQ:rc.pressQ||'', pressPicked:!!rc.pressId, pressName:rc.pressName||'',
+        onPressSearch:(e)=>this.runCreatePressSearch(e.target.value),
+        pressResultsView:(st.runCreatePressResults||[]).map(p=>({ id:p.Id, name:p.Name, onPick:()=>this.pickRunCreatePress(p.Id,p.Name) })),
+        startDate:rc.startDate||'', startTime:rc.startTime||'', onStartDate:(e)=>this.setRunCreateField({startDate:e.target.value}), onStartTime:(e)=>this.setRunCreateField({startTime:e.target.value}),
+        endDate:rc.endDate||'', endTime:rc.endTime||'', onEndDate:(e)=>this.setRunCreateField({endDate:e.target.value}), onEndTime:(e)=>this.setRunCreateField({endTime:e.target.value}),
+        qty:rc.qty||'', onQty:(e)=>this.setRunCreateField({qty:e.target.value}),
+        hasErr:!!st.runCreateErr, err:st.runCreateErr||'',
+        onCancel:()=>this.closeRunCreate(), onSubmit:()=>this.submitRunCreate(),
+        submitLabel: st.runCreateSubmitting?'Creating…':'Create Run',
+      } : null;
       open=Object.assign({}, d, {
+        methodsView, methodsEmpty:methodsView.length===0, addMethodUrl:'pre-production.html?addMethodForOrder='+encodeURIComponent(src.orderId),
         runsView, runsEmpty:runsView.length===0, runsLoading: st.runsLoadingFor===src.id,
+        runCreateOpen:!!rc, runCreate, onNewRun:()=> st.runCreateMethodId===src.id ? this.closeRunCreate() : this.openRunCreate(src.id),
+        newRunLabel: rc?'Cancel':'New Run', newRunIcon: rc?'ti-x':'ti-plus',
         assignees, timers,
         hasMockup:!!d.mockupUrl, noMockup:!d.mockupUrl, mockupNode: d.mockupUrl?React.createElement('img',{src:d.mockupUrl,alt:'Production mockup',style:{width:96,height:96,flexShrink:0,borderRadius:11,border:'1px solid #232327',objectFit:'cover',background:'#121215'}}):null, onZk:()=>this.openZk(src.orderId,src.num), zkErrMsg:(st.zkErr&&st.zkErr[src.orderId])||'', hasZkErr:!!(st.zkErr&&st.zkErr[src.orderId]),
         specs:d.printSpecs||'', onSpecs:(e)=>this.setSpecs(src.orderId,e.target.value), special:d.specialNotes||'', onSpecial:(e)=>this.setSpecial(src.orderId,e.target.value), orderSheetUrl:'order-sheet.html?orderId='+encodeURIComponent(src.orderId),
