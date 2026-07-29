@@ -116,6 +116,47 @@ const ALLOWED_STATUSES     = new Set([
   "Post-Production", "Completed", "Cancelled", "On Hold",
 ]);
 
+/**
+ * GET /api/production-methods?orderId=<id>
+ *
+ * Lists every Production_Method__c on ONE order, regardless of its Status__c
+ * (so this includes methods still sitting in Pre-Production, unlike the
+ * board queries which only surface methods that have reached the floor).
+ * Powers the "Production Methods" section of a card's drawer on both boards
+ * (index.html / pre-production.html) -- lets a manager see, edit, add, and
+ * remove every method on the order the open card belongs to, not just the
+ * one method that card itself represents.
+ *
+ *   GET /api/production-methods?orderId=801...  ->  { records: [ {...}, ... ] }
+ */
+export async function onRequestGet({ env, request }) {
+  try {
+    const url = new URL(request.url);
+    const orderId = (url.searchParams.get("orderId") || "").trim();
+    if (!orderId) return jsonError("missing_orderId", 400);
+
+    const soql =
+      `SELECT Id, Name, ${PM_TYPE_FIELD}, ${PM_STATUS_FIELD}, ${PM_PLACEMENTS_FIELD}, ` +
+      `${PM_VENDOR_FIELD}, Vendor__r.Name ` +
+      `FROM ${PM_OBJECT} WHERE ${PM_ORDER_FIELD} = '${orderId}' ORDER BY CreatedDate ASC`;
+    const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
+    const resp = await sfFetch(env, path);
+    const data = await resp.json();
+    if (!resp.ok) {
+      console.error("Production method list query failed", resp.status, JSON.stringify(data));
+      return jsonError("query_failed", resp.status);
+    }
+
+    return Response.json(
+      { records: data.records || [] },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (err) {
+    console.error(err);
+    return jsonError("internal_error", 500);
+  }
+}
+
 export async function onRequestPost({ env, request }) {
   let payload;
   try {
