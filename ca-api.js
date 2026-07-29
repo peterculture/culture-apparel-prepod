@@ -12,6 +12,17 @@
  * the throw and flips the badge to "Demo data").
  */
 (function () {
+  /* ── worker roster: single source of truth ──
+     Previously this array was copy-pasted into login.html, index.html,
+     pre-production.html, and station.html separately, so adding/removing a
+     worker meant editing four files and hoping they stayed in sync (this is
+     exactly how "Beau" lingered / "Alex" had to be added by hand everywhere).
+     Every page (including login.html, which now loads ca-api.js purely for
+     this) reads window.CAApi.VALID_NAMES via a one-line local const that
+     just points at this array, instead of keeping its own literal copy.
+     Change the roster ONCE, here, and it takes effect everywhere. */
+  var VALID_NAMES = ['Anthony', 'Asher', 'Alex', 'Parker', 'Titus', 'Gian', 'Isaac', 'Bronson', 'Zach', 'Logan', 'Avery', 'Jeff'];
+
   /* ── identity (shared with the originals via localStorage) ── */
   var ROLE_KEY = 'caShopRole';
   var NAME_KEY = 'caShopWorkerName';
@@ -335,7 +346,7 @@
   ];
 
   window.CAApi = {
-    ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout, isManager: isManager, confirmManager: confirmManager, MANAGER_NAMES: MANAGER_NAMES,
+    VALID_NAMES: VALID_NAMES, ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout, isManager: isManager, confirmManager: confirmManager, MANAGER_NAMES: MANAGER_NAMES,
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf, stageOfMethod: stageOfMethod,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
     PLACEMENTS: PLACEMENTS, methodsList: methodsList, METHOD_META: METHOD_META,
