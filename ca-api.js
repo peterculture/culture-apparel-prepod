@@ -29,15 +29,27 @@
      role. Actions gated behind role therefore re-check the PIN live instead
      of trusting the stored role, so a stale session can't carry manager
      privileges to whoever picks up the tablet next.
+
+     MANAGER_PIN is printed right on login.html's own screen (Worker PIN
+     1234 / Manager PIN 6767), so it was never actually a secret -- anyone
+     could pick "manager" at login and get the role. Manager status is now
+     scoped to a specific named roster (MANAGER_NAMES) instead: only the
+     person currently attributed as Gian, Anthony, or Parker can hold or
+     re-confirm manager, regardless of who typed the PIN. Keep MANAGER_NAMES
+     and MANAGER_PIN in sync with login.html if either changes.
      NOT real security (same caveat as the rest of this file's PIN model --
-     it's a plain string compared in the browser). Cloudflare Access is the
-     actual perimeter; this is just making the existing worker/manager
-     distinction mean something in the UI. Keep MANAGER_PIN in sync with the
-     hardcoded check in login.html if it's ever rotated. */
+     it's a plain string/name compared in the browser). Cloudflare Access is
+     the actual perimeter; this is just making the existing worker/manager
+     distinction mean something in the UI. */
   var MANAGER_PIN = '6767';
-  function isManager(){ return role() === 'manager'; }
+  var MANAGER_NAMES = ['Gian', 'Anthony', 'Parker'];
+  function isManager(){ return role() === 'manager' && MANAGER_NAMES.indexOf(workerName()) !== -1; }
   function confirmManager(actionLabel){
     if (isManager()) return true;
+    if (MANAGER_NAMES.indexOf(workerName()) === -1) {
+      window.alert('Only Gian, Anthony, or Parker can do this. Switch user if one of them is here.');
+      return false;
+    }
     var entered = window.prompt((actionLabel || 'This action') + ' requires the manager PIN:');
     if (entered == null) return false;
     if (entered !== MANAGER_PIN) { window.alert('Incorrect manager PIN.'); return false; }
@@ -323,7 +335,7 @@
   ];
 
   window.CAApi = {
-    ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout, isManager: isManager, confirmManager: confirmManager,
+    ROLE_KEY: ROLE_KEY, NAME_KEY: NAME_KEY, role: role, workerName: workerName, setRole: setRole, setWorkerName: setWorkerName, logout: logout, isManager: isManager, confirmManager: confirmManager, MANAGER_NAMES: MANAGER_NAMES,
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf, stageOfMethod: stageOfMethod,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
     PLACEMENTS: PLACEMENTS, methodsList: methodsList, METHOD_META: METHOD_META,
