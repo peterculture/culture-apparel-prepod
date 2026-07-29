@@ -120,6 +120,23 @@
   // needed: these don't affect Order_Substatus__c, so there's nothing to
   // roll up.
   function patchMethodChecklist(id, fields){ return jsend('/api/production-methods/' + encodeURIComponent(id), 'PATCH', fields); }
+  // Every Production_Method__c on one order, regardless of its own Status__c
+  // (unlike getProductionOrders()/getOrders(), which only surface methods
+  // that have already reached the relevant board) -- powers the "Production
+  // Methods" section of a card's drawer, so a manager can see/edit/remove
+  // every method on the order the open card belongs to, and add a new one,
+  // from any card on either board. See functions/api/production-methods/index.js.
+  function getMethodsForOrder(orderId){ return jget('/api/production-methods?orderId=' + encodeURIComponent(orderId)).then(function (d) { return d.records || []; }); }
+  // Generic per-method write -- same endpoint/shape as patchMethodStatus and
+  // patchMethodChecklist above, just named for its newer use: editing a
+  // method's Type__c/Placements__c/Vendor__c in place from the drawer.
+  function patchMethodFields(id, fields){ return jsend('/api/production-methods/' + encodeURIComponent(id), 'PATCH', fields); }
+  // Removes ONE Production_Method__c. See that endpoint's header comment --
+  // Salesforce (not this client) decides whether the delete is allowed if
+  // Pre_Production_Item__c/Production_Run__c children still look up to it.
+  function deleteMethod(id){ return jdel('/api/production-methods/' + encodeURIComponent(id)); }
+  // Removes ONE Production_Run__c.
+  function deleteProductionRun(id){ return jdel('/api/production-runs/' + encodeURIComponent(id)); }
   function patchOrder(id, fields){
     var body = Object.assign({}, fields);
     var by = workerName(); if (by) body.Last_Updated_By__c = by;
@@ -282,7 +299,7 @@
     SUBSTATUS_VALUE: SUBSTATUS_VALUE, SUBSTATUS_LABEL: SUBSTATUS_LABEL, STAGE_KEY: STAGE_KEY, STAGE_SUBSTATUS: STAGE_SUBSTATUS, stageOf: stageOf, stageOfMethod: stageOfMethod,
     CHECK_FIELD: CHECK_FIELD, RECV_FROM_SF: RECV_FROM_SF, RECV_TO_SF: RECV_TO_SF,
     PLACEMENTS: PLACEMENTS, methodsList: methodsList, METHOD_META: METHOD_META,
-    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, searchPresses: searchPresses, createMethod: createMethod, createProductionRun: createProductionRun, getProductionRuns: getProductionRuns, patchProductionRun: patchProductionRun, patchMethodStatus: patchMethodStatus, patchMethodChecklist: patchMethodChecklist, patchOrder: patchOrder, getOrderSizes: getOrderSizes, createReprintOrder: createReprintOrder,
+    getOrders: getOrders, getProductionOrders: getProductionOrders, getInbox: getInbox, getPreProductionItems: getPreProductionItems, patchItem: patchItem, deleteItem: deleteItem, searchVendors: searchVendors, searchPlans: searchPlans, searchPresses: searchPresses, createMethod: createMethod, createProductionRun: createProductionRun, getProductionRuns: getProductionRuns, patchProductionRun: patchProductionRun, deleteProductionRun: deleteProductionRun, patchMethodStatus: patchMethodStatus, patchMethodChecklist: patchMethodChecklist, getMethodsForOrder: getMethodsForOrder, patchMethodFields: patchMethodFields, deleteMethod: deleteMethod, patchOrder: patchOrder, getOrderSizes: getOrderSizes, createReprintOrder: createReprintOrder,
     getPackaging: getPackaging, postPackaging: postPackaging, deletePackaging: deletePackaging,
     getShipments: getShipments, postShipment: postShipment, getZkWizardUrl: getZkWizardUrl,
     getSfEnv: getSfEnv, setSfEnv: setSfEnv,
