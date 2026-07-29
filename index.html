@@ -820,6 +820,11 @@ class Component extends DCLogic {
     const vendorName=(r.Vendor__r && r.Vendor__r.Name) || '';
     this.setState({
       methodEditId: r.Id,
+      // Captured at open time so saveMethodEdit can ask the server "reject
+      // this write if the method changed since THIS moment" -- see
+      // ifUnmodifiedSince in ca-api.js's patchMethodFields / the PATCH
+      // handler's conflict check. Added 2026-07-29.
+      methodEditLoadedAt: r.LastModifiedDate || null,
       methodEditForm: {
         type: r.Type__c,
         placements: (r.Placements__c||'').split(';').map(s=>s.trim()).filter(Boolean),
@@ -829,7 +834,7 @@ class Component extends DCLogic {
       methodEditVendorResults:[], methodErr:'',
     });
   }
-  closeMethodEdit(){ this.setState({methodEditId:null, methodEditForm:null, methodEditVendorResults:[], methodErr:''}); }
+  closeMethodEdit(){ this.setState({methodEditId:null, methodEditForm:null, methodEditLoadedAt:null, methodEditVendorResults:[], methodErr:''}); }
   setMethodEditField(patch){ this.setState(st=>({methodEditForm:Object.assign({}, st.methodEditForm, patch)})); }
   toggleMethodEditPlacement(x){ this.setState(st=>{ const f=Object.assign({},st.methodEditForm); const cur=f.placements||[]; f.placements = cur.includes(x) ? cur.filter(v=>v!==x) : cur.concat([x]); return {methodEditForm:f}; }); }
   methodEditVendorSearch(q){ this.setMethodEditField({vendorQ:q, vendorId:null, vendorName:''}); if(!this._api) return; clearTimeout(this._mevt); this._mevt=setTimeout(()=>{ this._api.searchVendors(q).then(r=>this.setState({methodEditVendorResults:r})).catch(()=>{}); },250); }
@@ -842,12 +847,21 @@ class Component extends DCLogic {
     const fields={ Type__c:f.type, Placements__c:f.placements, Status__c:f.status };
     if(f.vendorId) fields.Vendor__c=f.vendorId;
     try {
-      await this._api.patchMethodFields(id, fields);
-      this.setState({methodSaving:false, methodEditId:null, methodEditForm:null});
+      await this._api.patchMethodFields(id, fields, this.state.methodEditLoadedAt);
+      this.setState({methodSaving:false, methodEditId:null, methodEditForm:null, methodEditLoadedAt:null});
       this.loadMethodsForOrder(orderId);
       this.load();
-    } catch(_) {
-      this.setState({methodSaving:false, methodErr:'Could not save — try again'});
+    } catch(e) {
+      // 409 == someone else saved this method more recently than we loaded
+      // it (see ifUnmodifiedSince). Don't silently overwrite their change --
+      // drop our edit, pull the fresh record, and tell the user to redo it.
+      if(e && e.status===409){
+        this.setState({methodSaving:false, methodEditId:null, methodEditForm:null, methodEditLoadedAt:null});
+        this.loadMethodsForOrder(orderId);
+        window.alert('Someone else just updated this production method, so your changes were NOT saved. Reloading the latest version — please review it and re-apply your edit.');
+      } else {
+        this.setState({methodSaving:false, methodErr:'Could not save — try again'});
+      }
     }
   }
   removeMethod(r, orderId){
@@ -917,6 +931,9 @@ class Component extends DCLogic {
       startDate:ss.date, startTime:ss.time, endDate:se.date, endTime:se.time,
       actualStartDate:as.date, actualStartTime:as.time, actualEndDate:ae.date, actualEndTime:ae.time,
       qty: r.qty!=null ? String(r.qty) : '',
+      // Carried through from loadRunsForCard's mapped record so saveRunRow can
+      // send it back as ifUnmodifiedSince -- see ca-api.js's patchProductionRun.
+      loadedAt: r.lastModifiedDate || null,
     };
   }
   loadRunsForCard(methodId){
@@ -929,6 +946,7 @@ class Component extends DCLogic {
         scheduledStart:r.Scheduled_Start__c||null, scheduledEnd:r.Scheduled_End__c||null,
         actualStart:r.Actual_Start__c||null, actualEnd:r.Actual_End__c||null,
         qty: r.Quantity_Planned_c__c!=null ? r.Quantity_Planned_c__c : null,
+        lastModifiedDate: r.LastModifiedDate || null,
       }));
       this.setState(st=>{
         const edits=Object.assign({}, st.runEdits);
@@ -951,7 +969,7 @@ class Component extends DCLogic {
     this._rrpt[runId]=setTimeout(()=>{ this._api.searchPresses(q).then(r=>this.setState(st=>({runRowPressResults:Object.assign({}, st.runRowPressResults, {[runId]:r})}))).catch(()=>{}); },250);
   }
   pickRunRowPress(runId,id,name){ this.setRunRowField(runId,{pressId:id, pressName:name, pressQ:name}); this.setState(st=>({runRowPressResults:Object.assign({}, st.runRowPressResults, {[runId]:[]})})); }
-  async saveRunRow(runId){
+  async saveRunRow(runId, methodId){
     const f=this.state.runEdits[runId]; if(!f) return;
     if(this.state.runRowSaving[runId]) return;
     const fail=(msg)=>{ this.setState(st=>({ runRowErr:Object.assign({}, st.runRowErr, {[runId]:msg}), runRowMsg:Object.assign({}, st.runRowMsg, {[runId]:''}) })); };
@@ -970,11 +988,20 @@ class Component extends DCLogic {
     if(f.actualEndDate && f.actualEndTime && !actualEnd){ fail('Actual End date/time is invalid'); return; }
     this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:true}), runRowErr:Object.assign({}, st.runRowErr, {[runId]:''}), runRowMsg:Object.assign({}, st.runRowMsg, {[runId]:''}) }));
     try{
-      const res=await this._api.patchProductionRun(runId, { pressId:f.pressId, scheduledStart:start, scheduledEnd:end, quantity:qtyNum, actualStart:actualStart, actualEnd:actualEnd });
+      const res=await this._api.patchProductionRun(runId, { pressId:f.pressId, scheduledStart:start, scheduledEnd:end, quantity:qtyNum, actualStart:actualStart, actualEnd:actualEnd }, f.loadedAt);
       if(res && (res.error || res.ok===false)) throw new Error(res.error||'update_failed');
       this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowMsg:Object.assign({}, st.runRowMsg, {[runId]:'Saved'}) }));
     }catch(e){
-      this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowErr:Object.assign({}, st.runRowErr, {[runId]:'Save failed — check press / schedule and try again'}) }));
+      // 409 == someone else saved this run more recently than we loaded it
+      // (see ifUnmodifiedSince). Don't silently overwrite -- pull the fresh
+      // record for this method and tell the user to redo their edit.
+      if(e && e.status===409){
+        this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowErr:Object.assign({}, st.runRowErr, {[runId]:''}) }));
+        if(methodId) this.loadRunsForCard(methodId);
+        window.alert('Someone else just updated this production run, so your changes were NOT saved. Reloading the latest version — please review it and re-apply your edit.');
+      } else {
+        this.setState(st=>({ runRowSaving:Object.assign({}, st.runRowSaving, {[runId]:false}), runRowErr:Object.assign({}, st.runRowErr, {[runId]:'Save failed — check press / schedule and try again'}) }));
+      }
     }
   }
   removeRun(runId, methodId){
@@ -1273,7 +1300,7 @@ class Component extends DCLogic {
           actualEndDate:f.actualEndDate, actualEndTime:f.actualEndTime,
           onActualEndDate:(e)=>this.setRunRowField(r.id,{actualEndDate:e.target.value}), onActualEndTime:(e)=>this.setRunRowField(r.id,{actualEndTime:e.target.value}),
           qty:f.qty, onQty:(e)=>this.setRunRowField(r.id,{qty:e.target.value}),
-          onSave:()=>this.saveRunRow(r.id), saving, saveLabel: saving?'Saving…':'Save Changes',
+          onSave:()=>this.saveRunRow(r.id, src.id), saving, saveLabel: saving?'Saving…':'Save Changes',
           onRemove:()=>this.removeRun(r.id, src.id),
           err:(st.runRowErr&&st.runRowErr[r.id])||'', msg:(st.runRowMsg&&st.runRowMsg[r.id])||'',
           hasErr:!!(st.runRowErr&&st.runRowErr[r.id]), hasMsg:!!(st.runRowMsg&&st.runRowMsg[r.id]),
