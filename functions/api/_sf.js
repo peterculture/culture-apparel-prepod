@@ -175,3 +175,51 @@ export async function getZkOrderFieldId(env) {
 export function jsonError(message, status = 502) {
   return Response.json({ error: message }, { status });
 }
+
+/**
+ * Optimistic-concurrency check: re-fetches ONE record's LastModifiedDate and
+ * compares it to the timestamp the caller says it had when it loaded the
+ * record for editing. Used by PATCH handlers for records that get opened
+ * into a form and edited over some real span of time (a production method's
+ * edit panel, a production run's row) -- two people on different tablets
+ * editing the same record used to be pure last-write-wins with zero warning.
+ *
+ * Returns:
+ *   { conflict: false }                                   -- safe to write
+ *   { conflict: true, currentLastModifiedDate }            -- someone else
+ *                                                              saved more
+ *                                                              recently
+ *
+ * `ifUnmodifiedSince` is optional and falsy skips the check entirely (return
+ * { conflict:false }) -- callers that don't pass it get the old, unguarded
+ * behavior, which is deliberate: this is opt-in per PATCH call, not a global
+ * requirement, since not every field on every object needs this (see the
+ * callers in production-methods/[id].js and production-runs/[id].js for
+ * which fields actually opt in).
+ *
+ * A failed re-fetch (network hiccup, record deleted, etc.) does NOT block
+ * the save -- it just means the conflict check is skipped for that attempt,
+ * same as if the caller never asked for one. This is a UI nicety, not a
+ * data-integrity guarantee (Cloudflare Access / Salesforce's own row
+ * security is that); erring toward "let the save through" over "block a
+ * legitimate save because a status check failed" matches that.
+ */
+export async function checkNotModifiedSince(env, sobject, id, ifUnmodifiedSince) {
+  if (!ifUnmodifiedSince) return { conflict: false };
+  try {
+    const path = `/services/data/${apiVersion(env)}/sobjects/${sobject}/${encodeURIComponent(id)}?fields=LastModifiedDate`;
+    const resp = await sfFetch(env, path);
+    if (!resp.ok) return { conflict: false };
+    const data = await resp.json();
+    const current = data && data.LastModifiedDate;
+    if (!current) return { conflict: false };
+    const currentTime = Date.parse(current);
+    const loadedTime = Date.parse(ifUnmodifiedSince);
+    if (!Number.isFinite(currentTime) || !Number.isFinite(loadedTime)) return { conflict: false };
+    if (currentTime > loadedTime) return { conflict: true, currentLastModifiedDate: current };
+    return { conflict: false };
+  } catch (err) {
+    console.error("checkNotModifiedSince failed", sobject, id, err);
+    return { conflict: false };
+  }
+}
