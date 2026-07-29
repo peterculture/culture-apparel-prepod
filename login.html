@@ -103,15 +103,25 @@
 // first-visit name gate) if it ever changes.
 const VALID_NAMES = ['Anthony','Asher','Alex','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
 
+// The Manager PIN is printed right on this screen (see the footer hint
+// below), so it was never actually a secret -- typing 6767 got anyone into
+// "Manager" before. Real manager status is scoped to this named roster
+// instead: the "manager" role only sticks if the name picked afterward is
+// one of these three, regardless of which PIN was entered. Keep in sync
+// with MANAGER_NAMES in ca-api.js if the roster ever changes.
+const MANAGER_NAMES = ['Gian','Anthony','Parker'];
+
 class Component extends DCLogic {
   constructor(props){ super(props); this.state={ screen:'pin', pin:'', role:null, name:'', err:'', nameErr:'', shake:false }; }
-  componentDidMount(){ this._kd=(e)=>this.onKey(e); window.addEventListener('keydown',this._kd); try{ const r=localStorage.getItem('caShopRole'), n=localStorage.getItem('caShopWorkerName'); if(r && n && VALID_NAMES.includes(n)) this.setState({role:r,name:n,screen:'done'}); }catch(_){} }
+  componentDidMount(){ this._kd=(e)=>this.onKey(e); window.addEventListener('keydown',this._kd); try{ const r=localStorage.getItem('caShopRole'), n=localStorage.getItem('caShopWorkerName'); if(r && n && VALID_NAMES.includes(n)){ const role=(r==='manager' && !MANAGER_NAMES.includes(n)) ? 'worker' : r; this.setState({role,name:n,screen:'done'}); } }catch(_){} }
   componentWillUnmount(){ window.removeEventListener('keydown',this._kd); }
   onKey(e){ if(this.state.screen!=='pin') return; if(/^[0-9]$/.test(e.key)) this.press(e.key); else if(e.key==='Backspace') this.backspace(); }
   press(d){ if(this.state.pin.length>=4) return; const pin=this.state.pin+d; this.setState({pin,err:''}); if(pin.length===4) setTimeout(()=>this.submit(pin),140); }
   backspace(){ this.setState(st=>({pin:st.pin.slice(0,-1),err:''})); }
   submit(pin){ let role=null; if(pin==='1234') role='worker'; else if(pin==='6767') role='manager'; if(role){ try{localStorage.setItem('caShopRole',role);}catch(_){} this.setState({role,pin:'',screen:'name'}); } else { this.setState({err:'Incorrect PIN — try again',pin:'',shake:true}); setTimeout(()=>this.setState({shake:false}),500); } }
-  pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({name:nm,nameErr:'',screen:'done'}); }
+  // Manager only actually sticks for Gian/Anthony/Parker -- anyone else who
+  // typed 6767 gets quietly dropped back to worker once their name is known.
+  pickName(nm){ if(!VALID_NAMES.includes(nm)) return; const role=(this.state.role==='manager' && !MANAGER_NAMES.includes(nm)) ? 'worker' : this.state.role; try{localStorage.setItem('caShopWorkerName',nm); localStorage.setItem('caShopRole',role);}catch(_){} this.setState({role,name:nm,nameErr:'',screen:'done'}); }
   logout(){ try{localStorage.removeItem('caShopRole');localStorage.removeItem('caShopWorkerName');}catch(_){} this.setState({screen:'pin',pin:'',role:null,name:'',err:'',nameErr:''}); }
 
   renderVals(){
