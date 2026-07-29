@@ -801,7 +801,11 @@ class Component extends DCLogic {
     if(this._api && this.state.connection==='live') this._api.patchMethodChecklist(cardId,{[field]:nv}).catch(()=>{});
   }
   pickName(nm){ if(!VALID_NAMES.includes(nm)) return; try{localStorage.setItem('caShopWorkerName',nm);}catch(_){} this.setState({nameOk:true}); }
-  switchUser(){ try{localStorage.removeItem('caShopWorkerName');}catch(_){} this.setState({nameOk:false}); }
+  // Also clears the stored role (not just the name) -- otherwise a stale
+  // 'manager' role from a prior login could combine with re-picking
+  // Gian/Anthony/Parker's name here to grant manager rights with no PIN
+  // re-entry at all, defeating confirmManager()'s live re-check.
+  switchUser(){ try{localStorage.removeItem('caShopWorkerName'); localStorage.removeItem('caShopRole');}catch(_){} this.setState({nameOk:false}); }
   // ── Salesforce environment switcher (global -- affects every board/tablet) ──
   loadSfEnv(){
     if(!this._api) return;
