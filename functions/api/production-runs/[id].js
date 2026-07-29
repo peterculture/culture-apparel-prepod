@@ -29,6 +29,12 @@
  * Auto_Scheduling_Status__c = 'Confirmed' whenever the schedule is touched,
  * for the same reason (otherwise the org's auto-scheduler trigger silently
  * overwrites Scheduled_Start__c/Scheduled_End__c right back after this save).
+ *
+ * DELETE /api/production-runs/:id
+ *
+ * Removes ONE Production_Run__c (added 2026-07-29) -- lets a manager delete
+ * a run created by mistake, or one that's no longer needed, straight from
+ * the card drawer's Production Runs section.
  */
 import { sfFetch, apiVersion, jsonError } from "../_sf.js";
 
@@ -141,6 +147,27 @@ export async function onRequestPatch({ params, request, env }) {
       { ok: true, id, updated: Object.keys(payload) },
       { headers: { "Cache-Control": "no-store" } },
     );
+  } catch (err) {
+    console.error(err);
+    return jsonError("internal_error", 500);
+  }
+}
+
+export async function onRequestDelete({ params, env }) {
+  try {
+    const id = params && params.id;
+    if (!SF_ID.test(id)) return jsonError("invalid_id", 400);
+
+    const path = `/services/data/${apiVersion(env)}/sobjects/${PR_OBJECT}/${id}`;
+    const resp = await sfFetch(env, path, { method: "DELETE" });
+
+    if (resp.status !== 204) {
+      const detail = await resp.text().catch(() => "");
+      console.error("Production run delete failed", resp.status, detail);
+      return jsonError("delete_failed", resp.status);
+    }
+
+    return Response.json({ ok: true, id }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error(err);
     return jsonError("internal_error", 500);
