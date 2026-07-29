@@ -154,7 +154,16 @@
   // Updates one Production_Run__c. fields: any subset of { pressId, scheduledStart,
   // scheduledEnd, quantity, actualStart, actualEnd } -- actualStart/actualEnd accept
   // '' to clear that field. See functions/api/production-runs/[id].js.
-  function patchProductionRun(id, fields){ return jsend('/api/production-runs/' + encodeURIComponent(id), 'PATCH', fields); }
+  // ifUnmodifiedSince (optional): the run's LastModifiedDate at the moment the
+  // drawer loaded it for editing. When passed, the server rejects the write
+  // with a 409 (err.status===409 on the thrown Error, err.data.error==='conflict')
+  // if someone else saved this run more recently, instead of silently
+  // overwriting their change -- added 2026-07-29 for concurrent-edit safety.
+  function patchProductionRun(id, fields, ifUnmodifiedSince){
+    var body = Object.assign({}, fields);
+    if (ifUnmodifiedSince) body.ifUnmodifiedSince = ifUnmodifiedSince;
+    return jsend('/api/production-runs/' + encodeURIComponent(id), 'PATCH', body);
+  }
   // Updates ONE Production_Method__c's own Status__c (independent of its
   // order's other methods). orderId is optional but should be passed
   // whenever known -- the server uses it to roll the parent Order's
@@ -181,7 +190,21 @@
   // Generic per-method write -- same endpoint/shape as patchMethodStatus and
   // patchMethodChecklist above, just named for its newer use: editing a
   // method's Type__c/Placements__c/Vendor__c in place from the drawer.
-  function patchMethodFields(id, fields){ return jsend('/api/production-methods/' + encodeURIComponent(id), 'PATCH', fields); }
+  // ifUnmodifiedSince (optional): the method's LastModifiedDate at the moment
+  // the drawer loaded it into the edit form. When passed, the server rejects
+  // the write with a 409 (err.status===409, err.data.error==='conflict') if
+  // someone else saved this method more recently, instead of silently
+  // overwriting their change -- added 2026-07-29 for concurrent-edit safety.
+  // Only used by the edit-form save path (saveMethodEdit); the older
+  // one-off status/checklist toggles (patchMethodStatus/patchMethodChecklist
+  // above) deliberately keep their old unguarded fire-and-forget behavior --
+  // a momentary boolean/status flip isn't really at risk the way a form left
+  // open for a while is.
+  function patchMethodFields(id, fields, ifUnmodifiedSince){
+    var body = Object.assign({}, fields);
+    if (ifUnmodifiedSince) body.ifUnmodifiedSince = ifUnmodifiedSince;
+    return jsend('/api/production-methods/' + encodeURIComponent(id), 'PATCH', body);
+  }
   // Removes ONE Production_Method__c. See that endpoint's header comment --
   // Salesforce (not this client) decides whether the delete is allowed if
   // Pre_Production_Item__c/Production_Run__c children still look up to it.
