@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
+<script src="./ca-api.js"></script>
 </head>
 <body>
 <x-dc>
@@ -101,15 +102,18 @@
 // The only names the app will accept for shift attribution. Keep this list in
 // sync with the copies in index.html / pre-production.html (each page's own
 // first-visit name gate) if it ever changes.
-const VALID_NAMES = ['Anthony','Asher','Alex','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
+// Single source of truth for both arrays is ca-api.js (window.CAApi), now
+// loaded on this page too just for these two lists -- login.html makes no
+// API calls otherwise. Literal fallbacks below only matter if ca-api.js
+// somehow fails to load.
+const VALID_NAMES = (window.CAApi && window.CAApi.VALID_NAMES) || ['Anthony','Asher','Alex','Parker','Titus','Gian','Isaac','Bronson','Zach','Logan','Avery','Jeff'];
 
 // The Manager PIN is printed right on this screen (see the footer hint
 // below), so it was never actually a secret -- typing 6767 got anyone into
 // "Manager" before. Real manager status is scoped to this named roster
 // instead: the "manager" role only sticks if the name picked afterward is
-// one of these three, regardless of which PIN was entered. Keep in sync
-// with MANAGER_NAMES in ca-api.js if the roster ever changes.
-const MANAGER_NAMES = ['Gian','Anthony','Parker'];
+// one of these three, regardless of which PIN was entered.
+const MANAGER_NAMES = (window.CAApi && window.CAApi.MANAGER_NAMES) || ['Gian','Anthony','Parker'];
 
 class Component extends DCLogic {
   constructor(props){ super(props); this.state={ screen:'pin', pin:'', role:null, name:'', err:'', nameErr:'', shake:false }; }
