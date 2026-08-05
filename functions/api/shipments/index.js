@@ -20,7 +20,7 @@
  *   weight was given) a linked zkmulti__MCPackage__c row underneath it.
  *   Body: { orderId, Carrier, ServiceType, TrackingNumber, Weight }
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { sfFetch, apiVersion, jsonError, runQuery } from "../_sf.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
@@ -42,27 +42,25 @@ export async function onRequestGet({ env, request }) {
     const soql =
       `SELECT ${SHIPMENT_FIELDS.join(", ")} FROM zkmulti__MCShipment__c ` +
       `WHERE Order__c = '${orderId}' ORDER BY CreatedDate DESC`;
-    const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
 
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Shipment query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // Naturally small (one order's own shipments), but runQuery is used
+    // everywhere a query runs now for consistency -- see _sf.js.
+    const shipResult = await runQuery(env, soql);
+    if (!shipResult.ok) {
+      console.error("Shipment query failed", shipResult.status);
+      return jsonError("query_failed", shipResult.status);
     }
 
-    const shipments = data.records || [];
+    const shipments = shipResult.records;
     if (shipments.length) {
       const ids = shipments.map((s) => `'${s.Id}'`).join(",");
       const pkgSoql =
         `SELECT zkmulti__Shipment__c, zkmulti__Weight__c, zkmulti__Weight_Units__c ` +
         `FROM zkmulti__MCPackage__c WHERE zkmulti__Shipment__c IN (${ids})`;
-      const pkgPath = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(pkgSoql)}`;
-      const pkgResp = await sfFetch(env, pkgPath);
-      const pkgData = await pkgResp.json();
-      if (pkgResp.ok) {
+      const pkgResult = await runQuery(env, pkgSoql);
+      if (pkgResult.ok) {
         const byShipment = new Map();
-        (pkgData.records || []).forEach((p) => {
+        pkgResult.records.forEach((p) => {
           if (!byShipment.has(p.zkmulti__Shipment__c)) byShipment.set(p.zkmulti__Shipment__c, p);
         });
         shipments.forEach((s) => {
@@ -73,7 +71,10 @@ export async function onRequestGet({ env, request }) {
       }
     }
 
-    return Response.json(data, { headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { totalSize: shipments.length, done: true, records: shipments },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     console.error(err);
     return jsonError("internal_error", 500);
