@@ -46,7 +46,7 @@
  * can only ever create these objects with these fields, and picklist values are
  * checked against allow-lists below.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { sfFetch, apiVersion, jsonError, runQuery } from "../_sf.js";
 
 // ---------------------------------------------------------------------------
 // ORG-SPECIFIC API NAMES  (confirmed against the sandbox 2026-07-02)
@@ -143,16 +143,16 @@ export async function onRequestGet({ env, request }) {
       `SELECT Id, Name, ${PM_TYPE_FIELD}, ${PM_STATUS_FIELD}, ${PM_PLACEMENTS_FIELD}, ` +
       `${PM_VENDOR_FIELD}, Vendor__r.Name, LastModifiedDate ` +
       `FROM ${PM_OBJECT} WHERE ${PM_ORDER_FIELD} = '${orderId}' ORDER BY CreatedDate ASC`;
-    const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Production method list query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // Naturally small (scoped to one order's own methods), but runQuery is
+    // used everywhere a query runs now for consistency -- see _sf.js.
+    const { ok, status, records } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("Production method list query failed", status);
+      return jsonError("query_failed", status);
     }
 
     return Response.json(
-      { records: data.records || [] },
+      { records },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (err) {
