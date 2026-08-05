@@ -12,7 +12,7 @@
  * With no q (or q shorter than 2 chars) it returns the 20 most recently used
  * Accounts, so the dropdown isn't empty on first open.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { runQuery, jsonError } from "../_sf.js";
 
 // SOQL string-literal escape: backslash and single-quote only.
 function soqlEscape(s) {
@@ -37,15 +37,16 @@ export async function onRequestGet({ env, request }) {
         `ORDER BY LastModifiedDate DESC LIMIT 20`;
     }
 
-    const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Vendor search failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // LIMIT 20 above already caps this well under one query batch, but
+    // runQuery is used everywhere a query runs now for consistency -- see
+    // _sf.js.
+    const { ok, status, records: raw } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("Vendor search failed", status);
+      return jsonError("query_failed", status);
     }
     // Trim to just what the picker needs.
-    const records = (data.records || []).map((r) => ({ Id: r.Id, Name: r.Name }));
+    const records = raw.map((r) => ({ Id: r.Id, Name: r.Name }));
     return Response.json({ records }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error(err);
