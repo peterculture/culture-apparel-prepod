@@ -15,7 +15,7 @@
  * Best-effort by design: callers should await this but not fail their own
  * write if it throws or returns null.
  */
-import { sfFetch, apiVersion } from "./_sf.js";
+import { runQuery, sfFetch, apiVersion } from "./_sf.js";
 
 const PM_OBJECT = "Production_Method__c";
 
@@ -53,12 +53,11 @@ export async function rollupOrderSubstatus(env, orderId) {
   const soql =
     `SELECT Status__c FROM ${PM_OBJECT} ` +
     `WHERE Order__c = '${orderId}' AND Status__c != 'Cancelled'`;
-  const path = `/services/data/${v}/query/?q=${encodeURIComponent(soql)}`;
 
-  const resp = await sfFetch(env, path);
-  if (!resp.ok) return null;
-  const data = await resp.json();
-  const records = Array.isArray(data.records) ? data.records : [];
+  // Always tiny (one order's own sibling methods), but runQuery is used
+  // everywhere a query runs now for consistency -- see _sf.js.
+  const { ok, records } = await runQuery(env, soql);
+  if (!ok) return null;
   if (!records.length) return null;
 
   let minRank = null;
@@ -135,21 +134,20 @@ export async function rollupChecklistToOrder(env, methodId) {
   if (!methodId) return null;
   const v = apiVersion(env);
   try {
-    // 1. Resolve the parent Order from this one method.
+    // 1. Resolve the parent Order from this one method. (A query by Id
+    // always matches at most one record, so pagination never applies here --
+    // runQuery is used anyway purely for a consistent call shape.)
     const q1 = `SELECT Order__c FROM ${PM_OBJECT} WHERE Id = '${methodId}'`;
-    const r1 = await sfFetch(env, `/services/data/${v}/query/?q=${encodeURIComponent(q1)}`);
-    const d1 = await r1.json();
-    const orderId = d1 && d1.records && d1.records[0] && d1.records[0].Order__c;
+    const { records: r1records } = await runQuery(env, q1);
+    const orderId = r1records[0] && r1records[0].Order__c;
     if (!orderId) return null;
 
     // 2. Pull every non-cancelled sibling's checklist fields + type in one go.
     const soql =
       `SELECT Type__c, ${CHECKLIST_FIELDS.join(", ")} FROM ${PM_OBJECT} ` +
       `WHERE Order__c = '${orderId}' AND Status__c != 'Cancelled'`;
-    const r2 = await sfFetch(env, `/services/data/${v}/query/?q=${encodeURIComponent(soql)}`);
-    const d2 = await r2.json();
-    const methods = Array.isArray(d2.records) ? d2.records : [];
-    if (!methods.length) return null;
+    const { ok: r2ok, records: methods } = await runQuery(env, soql);
+    if (!r2ok || !methods.length) return null;
 
     // 3. AND each field across just its matching-type siblings.
     const payload = {};
