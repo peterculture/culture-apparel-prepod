@@ -17,7 +17,7 @@
  * treated as a non-garment line on the front end (kept out of the grid), so
  * the raw rows are returned intact.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { runQuery, jsonError } from "../_sf.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
@@ -43,18 +43,19 @@ export async function onRequestGet({ env, request }) {
     const soql =
       `SELECT ${FIELDS.join(", ")} FROM OrderItem ` +
       `WHERE OrderId = '${orderId}'`;
-    const path =
-      `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
 
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-
-    if (!resp.ok) {
-      console.error("OrderItem query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // Naturally small (one order's own line items), but runQuery is used
+    // everywhere a query runs now for consistency -- see _sf.js.
+    const { ok, status, records } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("OrderItem query failed", status);
+      return jsonError("query_failed", status);
     }
 
-    return Response.json(data, { headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { totalSize: records.length, done: true, records },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     console.error(err);
     return jsonError("internal_error", 500);
