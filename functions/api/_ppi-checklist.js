@@ -40,7 +40,7 @@
  * have no dedicated sub-status field on Pre_Production_Item__c, only the
  * generic Status__c, so their "ready" test is just Status__c === 'Ready'.
  */
-import { sfFetch, apiVersion } from "./_sf.js";
+import { runQuery, sfFetch, apiVersion } from "./_sf.js";
 import { STATION_CONFIG } from "./_station.js";
 import { rollupChecklistToOrder } from "./_pm-rollup.js";
 
@@ -93,9 +93,7 @@ export async function cascadeChecklistToItems(env, methodId, checkedFields) {
       const soql =
         `SELECT Id FROM Pre_Production_Item__c ` +
         `WHERE Type__c = '${rule.type}' AND Production_Method__c = '${methodId}'`;
-      const r = await sfFetch(env, `/services/data/${v}/query/?q=${encodeURIComponent(soql)}`);
-      const d = await r.json();
-      const items = (d && d.records) || [];
+      const { records: items } = await runQuery(env, soql);
       if (!items.length) continue;
 
       const payload = {};
@@ -128,12 +126,10 @@ export async function cascadeChecklistToItems(env, methodId, checkedFields) {
  * not tracked, etc).
  */
 export async function rollupItemToMethod(env, itemId) {
-  const v = apiVersion(env);
   try {
     const q1 = `SELECT Type__c, Production_Method__c FROM Pre_Production_Item__c WHERE Id = '${itemId}'`;
-    const r1 = await sfFetch(env, `/services/data/${v}/query/?q=${encodeURIComponent(q1)}`);
-    const d1 = await r1.json();
-    const rec1 = d1 && d1.records && d1.records[0];
+    const { records: q1records } = await runQuery(env, q1);
+    const rec1 = q1records[0];
     const type = rec1 && rec1.Type__c;
     const methodId = rec1 && rec1.Production_Method__c;
     if (!type || !methodId) return null;
@@ -148,9 +144,7 @@ export async function rollupItemToMethod(env, itemId) {
       const q2 =
         `SELECT ${cfg.subStatusField} FROM Pre_Production_Item__c ` +
         `WHERE Type__c = '${type}' AND Production_Method__c = '${methodId}'`;
-      const r2 = await sfFetch(env, `/services/data/${v}/query/?q=${encodeURIComponent(q2)}`);
-      const d2 = await r2.json();
-      const items = (d2 && d2.records) || [];
+      const { records: items } = await runQuery(env, q2);
       if (!items.length) return null;
 
       const methodPayload = {};
@@ -167,9 +161,7 @@ export async function rollupItemToMethod(env, itemId) {
       const q2 =
         `SELECT Status__c FROM Pre_Production_Item__c ` +
         `WHERE Type__c = '${type}' AND Production_Method__c = '${methodId}'`;
-      const r2 = await sfFetch(env, `/services/data/${v}/query/?q=${encodeURIComponent(q2)}`);
-      const d2 = await r2.json();
-      const items = (d2 && d2.records) || [];
+      const { records: items } = await runQuery(env, q2);
       if (!items.length) return null;
 
       const allReady = items.every((it) => it.Status__c === "Ready");
