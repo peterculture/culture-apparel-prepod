@@ -31,7 +31,7 @@
  * Fixed-shape query, no client SOQL: the browser supplies only an orderId,
  * which is validated as an SF Id and dropped into a bind.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { sfFetch, apiVersion, jsonError, runQuery } from "../_sf.js";
 
 // Keep in sync with the same-named consts in production-methods/index.js --
 // this is the same restricted set of item types/picklists, just for adding
@@ -100,15 +100,18 @@ export async function onRequestGet({ env, request }) {
       `SELECT ${ITEM_FIELDS.join(", ")} FROM Pre_Production_Item__c ` +
       `WHERE Production_Method__r.Order__c = '${orderId}' ` +
       `ORDER BY Production_Method__c, Type__c, Name`;
-    const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
 
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Item query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // Naturally small (scoped to one order's own items), but runQuery is
+    // used everywhere a query runs now for consistency -- see _sf.js.
+    const { ok, status, records } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("Item query failed", status);
+      return jsonError("query_failed", status);
     }
-    return Response.json(data, { headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { totalSize: records.length, done: true, records },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     console.error(err);
     return jsonError("internal_error", 500);
