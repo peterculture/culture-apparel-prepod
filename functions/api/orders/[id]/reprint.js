@@ -20,9 +20,15 @@
  *      manager entered a misprint and/or damaged quantity), cloned from the
  *      matching original OrderItem but reassigned to the new Order and with
  *      Quantity = misprintQty + damagedQty.
- *   3. Patch the ORIGINAL Order's Misprint_Details__c / TotalQtyMisprints__c
- *      -- both already writable via orders/[id].js's ALLOWED_FIELDS, just
- *      nothing in this app set them before now.
+ *   3. Patch the ORIGINAL Order's Misprint_Details__c (free text, this run's
+ *      reason) and, once the composite call above succeeds, recompute its
+ *      TotalQtyMisprints__c from scratch via rollupMisprintsToOrder (see
+ *      ../../_pm-rollup.js) -- the true sum of OrderItem.Quantity across
+ *      EVERY reprint child-order this original order has ever had, rather
+ *      than adding this run's count to whatever the field already held.
+ *      (2026-08-05: switched away from an additive PATCH, which double-
+ *      counted misprints that were flagged first via the order drawer's
+ *      manual stepper and then formalized into a reprint for the same units.)
  *
  * NOT ported (deliberate v1 scope cut, see PRODUCTION-ERROR-REPRINT-ANALYSIS.md):
  *   - Re-linking ContentDocumentLink (mockup files) onto the new order.
@@ -50,6 +56,7 @@
  * ignored server-side even if included.
  */
 import { sfFetch, apiVersion, jsonError, runQuery } from "../../_sf.js";
+import { rollupMisprintsToOrder } from "../../_pm-rollup.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
@@ -73,11 +80,8 @@ const ORIGINAL_ORDER_FIELDS = [
   "Special_Notes__c",
   "Specifications_for_Printing__c",
   "Type", // "Order Type", standard field
-  "TotalQtyMisprints__c", // read so the patch below can add to it, not overwrite it
 ];
-const COPIED_ORDER_FIELDS = ORIGINAL_ORDER_FIELDS.filter(
-  (f) => f !== "Id" && f !== "TotalQtyMisprints__c",
-);
+const COPIED_ORDER_FIELDS = ORIGINAL_ORDER_FIELDS.filter((f) => f !== "Id");
 
 // OrderItem fields cloned onto each new reprint line. The Flow's "Get Order
 // Products" step pulled full OrderItem records (whatever a native "New
@@ -210,16 +214,17 @@ export async function onRequestPost({ params, request, env }) {
       });
     });
 
-    // Running total: ADD this run's misprint+damaged count to whatever the
-    // order already carries, rather than overwriting it outright the way
-    // the Flow's single-run accumulator did -- so a second reprint against
-    // the same order doesn't erase the first one's count. Documented
-    // deviation from the source Flow; see PRODUCTION-ERROR-REPRINT-ANALYSIS.md.
-    const runTotal = lines.reduce((sum, l) => sum + l.qty, 0);
-    const priorTotal = Number(originalOrder.TotalQtyMisprints__c) || 0;
+    // TotalQtyMisprints__c itself is NOT patched here anymore -- it used to be
+    // set to priorTotal + thisRun'sQty (an "add to whatever's already there"
+    // accumulator), but that field is also directly settable from the order
+    // drawer's misprint stepper (setMis() in index.html), so flagging misprints
+    // there first and then formalizing those SAME units into a reprint double-
+    // counted them. Once this composite call succeeds below, rollupMisprintsToOrder
+    // recomputes TotalQtyMisprints__c from scratch as the true sum of every
+    // reprint child-order's line items, which is immune to that double-count
+    // regardless of what the field said going in. See ../../_pm-rollup.js.
     const originalPatchBody = {
       Misprint_Details__c: misprintDetails || null,
-      TotalQtyMisprints__c: priorTotal + runTotal,
     };
     if (by) originalPatchBody.Last_Updated_By__c = by;
 
@@ -261,12 +266,23 @@ export async function onRequestPost({ params, request, env }) {
       );
     }
 
+    // Best-effort: now that the new reprint child-order + its lines exist,
+    // recompute the ORIGINAL order's TotalQtyMisprints__c from scratch as the
+    // true sum across every reprint child-order's line items. See the comment
+    // above originalPatchBody and ../../_pm-rollup.js for why this replaced
+    // the old additive PATCH.
+    const rolledUpMisprints = await rollupMisprintsToOrder(env, orderId).catch((e) => {
+      console.error("misprint order rollup failed", e);
+      return null;
+    });
+
     const byRef = (ref) => subResults.find((r) => r.referenceId === ref)?.body?.id ?? null;
     return Response.json(
       {
         ok: true,
         childOrderId: byRef("childOrder"),
         orderItemIds: lines.map((_, i) => byRef(`item${i}`)).filter(Boolean),
+        rolledUpMisprints,
       },
       { headers: { "Cache-Control": "no-store" } },
     );
