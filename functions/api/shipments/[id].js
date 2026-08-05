@@ -6,7 +6,7 @@
  * row(s) first (own query, since we don't know if that lookup is set up
  * to cascade-delete in this org) then the shipment itself.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { sfFetch, apiVersion, jsonError, runQuery } from "../_sf.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
@@ -16,11 +16,9 @@ export async function onRequestDelete({ env, params }) {
     if (!SF_ID.test(id)) return jsonError("invalid_id", 400);
 
     const pkgSoql = `SELECT Id FROM zkmulti__MCPackage__c WHERE zkmulti__Shipment__c = '${id}'`;
-    const pkgQueryPath = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(pkgSoql)}`;
-    const pkgQueryResp = await sfFetch(env, pkgQueryPath);
-    if (pkgQueryResp.ok) {
-      const pkgData = await pkgQueryResp.json();
-      for (const pkg of pkgData.records || []) {
+    const pkgResult = await runQuery(env, pkgSoql);
+    if (pkgResult.ok) {
+      for (const pkg of pkgResult.records) {
         const delPath = `/services/data/${apiVersion(env)}/sobjects/zkmulti__MCPackage__c/${pkg.Id}`;
         await sfFetch(env, delPath, { method: "DELETE" });
       }
