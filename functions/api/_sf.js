@@ -165,6 +165,65 @@ export function apiVersion(env) {
   return env.SF_API_VERSION || "v60.0";
 }
 
+/**
+ * Runs one SOQL query and follows Salesforce's pagination (done/
+ * nextRecordsUrl) until the whole result set has been fetched, returning
+ * every matching record in one array -- never just the first page.
+ *
+ * Salesforce's /query endpoint only returns up to one "batch" per call (2000
+ * records by default, sometimes fewer depending on org settings). A larger
+ * result comes back with `done: false` and a `nextRecordsUrl` you're
+ * expected to re-fetch, repeatedly, until `done: true`. Every endpoint in
+ * this app used to read `data.records` straight off the FIRST response only
+ * -- fine while result sets stayed under the batch size, but a silent,
+ * no-error truncation waiting to happen the moment one didn't (see
+ * production-orders/index.js's Order__r.Status = 'Complete' clause, which
+ * has no date bound and only grows over the life of the shop). Added
+ * 2026-07-29 so every list endpoint gets this for free instead of each
+ * needing its own copy of the follow-the-link loop.
+ *
+ * `nextRecordsUrl` comes back from Salesforce already in the
+ * "/services/data/vNN.0/query/<locator>" shape sfFetch expects, so it's
+ * passed straight through as the next call's `path`.
+ *
+ * Returns { ok, status, records, data } where `data` is the LAST response
+ * received (matching what a raw sfFetch+resp.json() caller used to get, so
+ * error logging/shape stays the same) and `records` is the full
+ * concatenated array. If any page after the first fails, stops there and
+ * returns what was already collected rather than losing it -- callers that
+ * care can inspect `ok`/`status` from that failed page.
+ */
+export async function runQuery(env, soql) {
+  const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
+  let resp = await sfFetch(env, path);
+  let data = await resp.json().catch(() => null);
+  if (!resp.ok) {
+    return { ok: false, status: resp.status, records: [], data };
+  }
+
+  let records = (data && data.records) || [];
+  let nextUrl = data && data.nextRecordsUrl;
+  let done = !data || data.done !== false;
+
+  while (!done && nextUrl) {
+    resp = await sfFetch(env, nextUrl);
+    const pageData = await resp.json().catch(() => null);
+    if (!resp.ok) {
+      // Keep whatever was already collected; report the failure via
+      // ok/status so callers can still decide to serve the partial list
+      // (better than losing page 1 just because page 2 hiccuped) or fail
+      // loudly, as they prefer.
+      return { ok: false, status: resp.status, records, data: pageData };
+    }
+    records = records.concat((pageData && pageData.records) || []);
+    nextUrl = pageData && pageData.nextRecordsUrl;
+    done = !pageData || pageData.done !== false;
+    data = pageData;
+  }
+
+  return { ok: true, status: resp.status, records, data };
+}
+
 /** Org-specific Zenkraft field Id for the currently active environment. */
 export async function getZkOrderFieldId(env) {
   const envKey = await getActiveSfEnv(env);
