@@ -36,8 +36,10 @@
  *     "Transfers_Received__c": false,
  *     "Transfers_Ready__c": false,
  *     "Print_Setup_Timer__c": 1320,        // elapsed seconds, this method's own
- *     "Production_Timer__c": 2460,         // clock -- see ../_ppi-checklist.js note
- *                                           // in index.html for the order-total sum
+ *     "Production_Timer__c": 2460,         // clock -- also rolled up (summed
+ *                                           // across non-cancelled siblings) onto
+ *                                           // the parent Order's fields of the
+ *                                           // same name, see ../_pm-rollup.js
  *     "ifUnmodifiedSince": "2026-07-29T18:04:11.000Z"  // OPTIONAL -- the
  *                                           // Production_Method__c.LastModifiedDate
  *                                           // the client had when it opened this
@@ -74,7 +76,7 @@
  * happens.
  */
 import { sfFetch, apiVersion, jsonError, checkNotModifiedSince } from "../_sf.js";
-import { rollupOrderSubstatus, rollupChecklistToOrder } from "../_pm-rollup.js";
+import { rollupOrderSubstatus, rollupChecklistToOrder, rollupTimerToOrder } from "../_pm-rollup.js";
 import { cascadeChecklistToItems } from "../_ppi-checklist.js";
 
 const PM_OBJECT = "Production_Method__c";
@@ -232,6 +234,17 @@ export async function onRequestPatch({ params, request, env }) {
     if (checklistTouched) {
       await rollupChecklistToOrder(env, id).catch((e) =>
         console.error("checklist order rollup failed", e),
+      );
+    }
+
+    // Best-effort: keep the Order's own Print_Setup_Timer__c/Production_Timer__c
+    // an honest SUM of its (non-cancelled) sibling methods' timers -- not just
+    // this app's in-memory "combined total" readout in the drawer. See
+    // ../_pm-rollup.js for why this exists.
+    const timerTouched = Array.from(TIMER_FIELDS).some((f) => f in payload);
+    if (timerTouched) {
+      await rollupTimerToOrder(env, id).catch((e) =>
+        console.error("timer order rollup failed", e),
       );
     }
 
