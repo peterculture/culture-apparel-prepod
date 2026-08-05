@@ -28,7 +28,7 @@
  * filters on Status__c = 'Pre-Production' for the Pre-Production
  * Dashboard/Garment station. They're deliberately non-overlapping.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { runQuery, jsonError } from "../_sf.js";
 import { fetchMockupsByOpportunity } from "../_mockup.js";
 
 // Production_Method__c fields every card needs -- same set the old
@@ -86,17 +86,17 @@ const ORDER_FIELDS = [
 
 export async function onRequestGet({ env }) {
   try {
-    const v = apiVersion(env);
     const soql =
       `SELECT ${PM_FIELDS.join(", ")}, ${ORDER_FIELDS.join(", ")} ` +
       `FROM Production_Method__c ` +
       `WHERE Status__c = 'Pre-Production' AND Order__c != null`;
-    const path = `/services/data/${v}/query/?q=${encodeURIComponent(soql)}`;
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Salesforce query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // runQuery follows Salesforce's nextRecordsUrl pagination so a result
+    // bigger than one batch (2000 records, org-dependent) doesn't silently
+    // get truncated to just the first page -- see _sf.js.
+    const { ok, status, records } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("Salesforce query failed", status);
+      return jsonError("query_failed", status);
     }
 
     // Group method rows into one object per Order__c. Order-level fields
@@ -106,7 +106,7 @@ export async function onRequestGet({ env }) {
     // true here by construction (every row IS a method), kept only for
     // shape parity with any older client code still reading it.
     const byOrder = new Map();
-    (data.records || []).forEach((pm) => {
+    records.forEach((pm) => {
       const o = pm.Order__r || {};
       let order = byOrder.get(pm.Order__c);
       if (!order) {
@@ -189,12 +189,10 @@ export async function onRequestGet({ env }) {
         const soqlItems =
           `SELECT OrderId, Product2.Name, Color__c, Size__c, Quantity ` +
           `FROM OrderItem WHERE OrderId IN (${quoted})`;
-        const pathItems = `/services/data/${v}/query/?q=${encodeURIComponent(soqlItems)}`;
-        const respItems = await sfFetch(env, pathItems);
-        const dataItems = await respItems.json();
-        if (respItems.ok) {
+        const itemsResult = await runQuery(env, soqlItems);
+        if (itemsResult.ok) {
           const itemsByOrder = new Map();
-          (dataItems.records || []).forEach((it) => {
+          itemsResult.records.forEach((it) => {
             const arr = itemsByOrder.get(it.OrderId) || [];
             arr.push(it);
             itemsByOrder.set(it.OrderId, arr);
@@ -204,7 +202,7 @@ export async function onRequestGet({ env }) {
             o.OrderItems = { totalSize: recs.length, done: true, records: recs };
           });
         } else {
-          console.error("Order item fetch failed", respItems.status, JSON.stringify(dataItems));
+          console.error("Order item fetch failed", itemsResult.status);
         }
       } catch (e) {
         console.error("Order item fetch error", e);
