@@ -177,3 +177,72 @@ export async function rollupChecklistToOrder(env, methodId) {
     return null;
   }
 }
+
+/**
+ * Shared helper: mirror the SUM of each Production_Method__c's own timer
+ * fields (Print_Setup_Timer__c, Production_Timer__c) back onto the
+ * legacy Order-level fields of the same name.
+ *
+ * WHY THIS EXISTS (2026-08-05): the per-method timer migration gave every
+ * Production_Method__c its own Print_Setup_Timer__c/Production_Timer__c so
+ * sibling methods on one order (e.g. a screen print method + a heat press
+ * method) time independently. index.html's drawer already shows a correct
+ * "combined order total" for these -- but that total is computed IN MEMORY,
+ * on every GET, by orders/index.js and production-orders/index.js purely for
+ * display. Nothing ever wrote that sum back to the Order record itself, so
+ * anyone checking Order.Print_Setup_Timer__c/Production_Timer__c directly in
+ * Salesforce (a report, a standard page layout, a flow) saw a stale or
+ * zeroed value even though the app's own UI looked correct. This closes that
+ * gap the same way rollupChecklistToOrder above keeps the Order's checklist
+ * copies honest: recompute from the (non-cancelled) sibling methods, write
+ * to Order, best-effort.
+ *
+ * @param {string} methodId - Id of the Production_Method__c whose own timer
+ *   field(s) were just written.
+ * @returns {Promise<Object|null>} the Order fields that were written, or null.
+ */
+const TIMER_FIELDS = ["Print_Setup_Timer__c", "Production_Timer__c"];
+
+export async function rollupTimerToOrder(env, methodId) {
+  if (!methodId) return null;
+  const v = apiVersion(env);
+  try {
+    // 1. Resolve the parent Order from this one method.
+    const q1 = `SELECT Order__c FROM ${PM_OBJECT} WHERE Id = '${methodId}'`;
+    const { records: r1records } = await runQuery(env, q1);
+    const orderId = r1records[0] && r1records[0].Order__c;
+    if (!orderId) return null;
+
+    // 2. Pull every non-cancelled sibling's own timer fields.
+    const soql =
+      `SELECT ${TIMER_FIELDS.join(", ")} FROM ${PM_OBJECT} ` +
+      `WHERE Order__c = '${orderId}' AND Status__c != 'Cancelled'`;
+    const { ok, records: methods } = await runQuery(env, soql);
+    if (!ok) return null;
+
+    // 3. SUM each field across every sibling (methods with no time logged
+    // yet just contribute 0 -- same shape as the client-side sum in
+    // orders/index.js / production-orders/index.js).
+    const payload = {};
+    for (const field of TIMER_FIELDS) {
+      payload[field] = methods.reduce((sum, m) => sum + (Number(m[field]) || 0), 0);
+    }
+
+    const orderPath = `/services/data/${v}/sobjects/Order/${orderId}`;
+    const orderResp = await sfFetch(env, orderPath, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (orderResp.status !== 204) {
+      let t = "";
+      try { t = JSON.stringify(await orderResp.json()); } catch { /* empty */ }
+      console.error("rollupTimerToOrder: order PATCH failed", orderResp.status, t);
+      return null;
+    }
+    return payload;
+  } catch (e) {
+    console.error("rollupTimerToOrder failed", methodId, e);
+    return null;
+  }
+}
