@@ -11,7 +11,7 @@
  * needs no child-relationship name. Same fixed-query, no-client-SOQL shape as
  * /api/orders — the browser can't run arbitrary queries.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { runQuery, jsonError } from "../_sf.js";
 import { fetchMockupsByOpportunity } from "../_mockup.js";
 const FIELDS = [
   "Id",
@@ -39,24 +39,27 @@ export async function onRequestGet({ env }) {
       `WHERE Status = 'Pre-Production' ` +
       `AND Id NOT IN (SELECT Order__c FROM Production_Method__c) ` +
       `ORDER BY Print_Date__c ASC`;
-    const path =
-      `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Inbox query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // runQuery follows Salesforce's nextRecordsUrl pagination so the inbox
+    // doesn't silently truncate if it ever grows past one query batch. See
+    // _sf.js.
+    const { ok, status, records } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("Inbox query failed", status);
+      return jsonError("query_failed", status);
     }
 
     const mockups = await fetchMockupsByOpportunity(
       env,
-      (data.records || []).map((r) => r.OpportunityId),
+      records.map((r) => r.OpportunityId),
     );
-    (data.records || []).forEach((r) => {
+    records.forEach((r) => {
       r.DesignMockupUrl = mockups.get(r.OpportunityId) || null;
     });
 
-    return Response.json(data, { headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { totalSize: records.length, done: true, records },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     console.error(err);
     return jsonError("internal_error", 500);
