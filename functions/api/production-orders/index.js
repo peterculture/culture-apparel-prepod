@@ -33,7 +33,7 @@
  * entered, well before production work is actually done. Confirmed on
  * Order 00013456, 2026-07-14.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { runQuery, jsonError } from "../_sf.js";
 import { fetchMockupsByOpportunity } from "../_mockup.js";
 
 // Production_Method__c.Status__c values shown on this board -- kept in
@@ -104,7 +104,6 @@ const ORDER_FIELDS = [
 
 export async function onRequestGet({ env }) {
   try {
-    const v = apiVersion(env);
     const statusList = BOARD_STATUSES.map((s) => `'${s}'`).join(",");
     // Order__r.Status = 'Complete' (the standard field, set directly in
     // Salesforce -- NOT the same string as Production_Method__c.Status__c's
@@ -118,12 +117,15 @@ export async function onRequestGet({ env }) {
       `SELECT ${PM_FIELDS.join(", ")}, ${ORDER_FIELDS.join(", ")} ` +
       `FROM Production_Method__c ` +
       `WHERE (Status__c IN (${statusList}) OR Order__r.Status = 'Complete') AND Order__c != null`;
-    const path = `/services/data/${v}/query/?q=${encodeURIComponent(soql)}`;
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Salesforce query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // runQuery follows Salesforce's nextRecordsUrl pagination -- this is the
+    // one query in the whole app with no date bound (it deliberately pulls
+    // in every Completed order ever, see the comment above), so it's the
+    // most likely of the bunch to eventually exceed one query batch as
+    // history accumulates. See _sf.js.
+    const { ok, status, records } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("Salesforce query failed", status);
+      return jsonError("query_failed", status);
     }
 
     // Group method rows into one object per Order__c. Order-level fields
@@ -131,7 +133,7 @@ export async function onRequestGet({ env }) {
     // taken from the first row seen for that order; every row still adds
     // its own entry to ProductionMethods.
     const byOrder = new Map();
-    (data.records || []).forEach((pm) => {
+    records.forEach((pm) => {
       const o = pm.Order__r || {};
       let order = byOrder.get(pm.Order__c);
       if (!order) {
@@ -210,12 +212,10 @@ export async function onRequestGet({ env }) {
         const soqlItems =
           `SELECT OrderId, Product2.Name, Color__c, Size__c, Quantity ` +
           `FROM OrderItem WHERE OrderId IN (${quoted})`;
-        const pathItems = `/services/data/${v}/query/?q=${encodeURIComponent(soqlItems)}`;
-        const respItems = await sfFetch(env, pathItems);
-        const dataItems = await respItems.json();
-        if (respItems.ok) {
+        const itemsResult = await runQuery(env, soqlItems);
+        if (itemsResult.ok) {
           const itemsByOrder = new Map();
-          (dataItems.records || []).forEach((it) => {
+          itemsResult.records.forEach((it) => {
             const arr = itemsByOrder.get(it.OrderId) || [];
             arr.push(it);
             itemsByOrder.set(it.OrderId, arr);
@@ -225,7 +225,7 @@ export async function onRequestGet({ env }) {
             o.OrderItems = { totalSize: recs.length, done: true, records: recs };
           });
         } else {
-          console.error("Order item fetch failed", respItems.status, JSON.stringify(dataItems));
+          console.error("Order item fetch failed", itemsResult.status);
         }
       } catch (e) {
         console.error("Order item fetch error", e);
