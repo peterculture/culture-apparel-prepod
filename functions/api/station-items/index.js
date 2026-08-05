@@ -9,7 +9,7 @@
  * browser can't inject SOQL. Access is open (no login) — the real perimeter is
  * Cloudflare Access in front of /api/*.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { runQuery, jsonError } from "../_sf.js";
 import { STATION_CONFIG } from "../_station.js";
 import { fetchMockupsByOpportunity } from "../_mockup.js";
 
@@ -26,28 +26,31 @@ export async function onRequestGet({ env, request }) {
       `WHERE Type__c = '${cfg.type}' AND Status__c != '${cfg.doneStatus}' ` +
       `ORDER BY ${cfg.orderBy}`;
 
-    const path =
-      `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-
-    if (!resp.ok) {
-      console.error("station-items query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // Not scoped to one order/method -- this is every not-done item of one
+    // type across the whole shop, so of everything in this app it's one of
+    // the more realistic candidates to eventually grow past one query batch.
+    // runQuery follows Salesforce's nextRecordsUrl pagination -- see _sf.js.
+    const { ok, status, records } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("station-items query failed", status);
+      return jsonError("query_failed", status);
     }
 
-    const oppIds = (data.records || [])
+    const oppIds = records
       .map((r) => r.Production_Method__r && r.Production_Method__r.Order__r && r.Production_Method__r.Order__r.OpportunityId)
       .filter(Boolean);
     if (oppIds.length) {
       const mockups = await fetchMockupsByOpportunity(env, oppIds);
-      (data.records || []).forEach((r) => {
+      records.forEach((r) => {
         const order = r.Production_Method__r && r.Production_Method__r.Order__r;
         if (order) order.DesignMockupUrl = mockups.get(order.OpportunityId) || null;
       });
     }
 
-    return Response.json(data, { headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { totalSize: records.length, done: true, records },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     console.error(err);
     return jsonError("internal_error", 500);
