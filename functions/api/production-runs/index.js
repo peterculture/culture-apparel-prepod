@@ -60,7 +60,7 @@
  * the manager's manually-typed Scheduled Start/End get silently replaced
  * moments after creation.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { sfFetch, apiVersion, jsonError, runQuery } from "../_sf.js";
 
 const PR_OBJECT = "Production_Run__c";
 const PR_PRINTMETHOD_FIELD = "PrintMethod__c";
@@ -92,16 +92,16 @@ export async function onRequestGet({ env, request }) {
       `Actual_Start__c, Actual_End__c, ${PR_QTY_FIELD}, LastModifiedDate ` +
       `FROM ${PR_OBJECT} WHERE ${PR_PRINTMETHOD_FIELD} = '${methodId}' ` +
       `ORDER BY ${PR_SCHED_START_FIELD} ASC NULLS LAST`;
-    const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Production run list query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // Naturally small (scoped to one method's own runs), but runQuery is
+    // used everywhere a query runs now for consistency -- see _sf.js.
+    const { ok, status, records } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("Production run list query failed", status);
+      return jsonError("query_failed", status);
     }
 
     return Response.json(
-      { records: data.records || [] },
+      { records },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (err) {
