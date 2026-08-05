@@ -49,7 +49,7 @@
  * Only items where misprintQty + damagedQty > 0 are actioned; the rest are
  * ignored server-side even if included.
  */
-import { sfFetch, apiVersion, jsonError } from "../../_sf.js";
+import { sfFetch, apiVersion, jsonError, runQuery } from "../../_sf.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
@@ -130,18 +130,16 @@ export async function onRequestPost({ params, request, env }) {
 
     const v = apiVersion(env);
 
-    // 1. Fetch the original Order's fields to copy.
+    // 1. Fetch the original Order's fields to copy. (A query by Id always
+    // matches at most one record -- pagination never applies here, runQuery
+    // is used anyway purely for a consistent call shape across the app.)
     const orderSoql = `SELECT ${ORIGINAL_ORDER_FIELDS.join(", ")} FROM Order WHERE Id = '${orderId}'`;
-    const orderResp = await sfFetch(
-      env,
-      `/services/data/${v}/query/?q=${encodeURIComponent(orderSoql)}`,
-    );
-    const orderData = await orderResp.json();
-    if (!orderResp.ok) {
-      console.error("reprint: original order fetch failed", orderResp.status, JSON.stringify(orderData));
-      return jsonError("order_fetch_failed", orderResp.status);
+    const orderResult = await runQuery(env, orderSoql);
+    if (!orderResult.ok) {
+      console.error("reprint: original order fetch failed", orderResult.status);
+      return jsonError("order_fetch_failed", orderResult.status);
     }
-    const originalOrder = orderData.records && orderData.records[0];
+    const originalOrder = orderResult.records[0];
     if (!originalOrder) return jsonError("order_not_found", 404);
 
     // 2. Fetch the submitted OrderItem rows, scoped to this Order so a
@@ -151,16 +149,12 @@ export async function onRequestPost({ params, request, env }) {
     const itemSoql =
       `SELECT ${ORIGINAL_ITEM_FIELDS.join(", ")} FROM OrderItem ` +
       `WHERE Id IN (${quotedIds}) AND OrderId = '${orderId}'`;
-    const itemResp = await sfFetch(
-      env,
-      `/services/data/${v}/query/?q=${encodeURIComponent(itemSoql)}`,
-    );
-    const itemData = await itemResp.json();
-    if (!itemResp.ok) {
-      console.error("reprint: order item fetch failed", itemResp.status, JSON.stringify(itemData));
-      return jsonError("items_fetch_failed", itemResp.status);
+    const itemResult = await runQuery(env, itemSoql);
+    if (!itemResult.ok) {
+      console.error("reprint: order item fetch failed", itemResult.status);
+      return jsonError("items_fetch_failed", itemResult.status);
     }
-    const foundItems = itemData.records || [];
+    const foundItems = itemResult.records;
     if (foundItems.length !== lines.length) {
       // One or more submitted orderItemIds didn't resolve to a real line on
       // this order -- reject rather than silently create a partial set.
