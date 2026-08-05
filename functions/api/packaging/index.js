@@ -22,7 +22,7 @@
  *   optional text field here (NOT an auto-number like on Packaging__c),
  *   so we fill it with the packaging type for a readable related-list row.
  */
-import { sfFetch, apiVersion, jsonError } from "../_sf.js";
+import { sfFetch, apiVersion, jsonError, runQuery } from "../_sf.js";
 
 const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
@@ -51,15 +51,18 @@ export async function onRequestGet({ env, request }) {
     const soql =
       `SELECT ${FIELDS.join(", ")} FROM ${PACKAGING_OBJECT} ` +
       `WHERE Order__c = '${orderId}' ORDER BY CreatedDate DESC`;
-    const path = `/services/data/${apiVersion(env)}/query/?q=${encodeURIComponent(soql)}`;
 
-    const resp = await sfFetch(env, path);
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Packaging query failed", resp.status, JSON.stringify(data));
-      return jsonError("query_failed", resp.status);
+    // Naturally small (one order's own packages), but runQuery is used
+    // everywhere a query runs now for consistency -- see _sf.js.
+    const { ok, status, records } = await runQuery(env, soql);
+    if (!ok) {
+      console.error("Packaging query failed", status);
+      return jsonError("query_failed", status);
     }
-    return Response.json(data, { headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { totalSize: records.length, done: true, records },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     console.error(err);
     return jsonError("internal_error", 500);
