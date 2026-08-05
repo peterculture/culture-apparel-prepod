@@ -246,3 +246,62 @@ export async function rollupTimerToOrder(env, methodId) {
     return null;
   }
 }
+
+/**
+ * Shared helper: recompute an Order's TotalQtyMisprints__c as the true SUM
+ * of OrderItem.Quantity across every reprint child-order linked back to it
+ * (Order.Original_Production_Order__c = this order), instead of trusting
+ * whatever value the field currently holds.
+ *
+ * WHY THIS EXISTS (2026-08-05): orders/[id]/reprint.js used to PATCH this
+ * field additively (priorTotal + thisRun'sQty) so that a second, later
+ * reprint against the same order wouldn't erase an earlier one's count. But
+ * TotalQtyMisprints__c is ALSO directly writable from the order drawer's
+ * misprint stepper (setMis() in index.html), which does a plain overwrite --
+ * so flagging misprints there first and then formalizing those SAME units
+ * into a reprint double-counted them (stepper's 2 + reprint's 2 = 4 instead
+ * of 2). Recomputing from the actual reprint child-orders' line items sidesteps
+ * that entirely: it no longer matters what the field said before or how it
+ * got there, and each genuine reprint still contributes exactly once no
+ * matter how many separate reprints an order has had over time.
+ *
+ * @param {string} orderId - the ORIGINAL Order (not a reprint child order).
+ * @returns {Promise<number|null>} the TotalQtyMisprints__c value that was written, or null.
+ */
+export async function rollupMisprintsToOrder(env, orderId) {
+  if (!orderId) return null;
+  const v = apiVersion(env);
+  try {
+    // 1. Find every reprint child-order ever created off this one.
+    const childSoql = `SELECT Id FROM Order WHERE Original_Production_Order__c = '${orderId}'`;
+    const { ok: childOk, records: children } = await runQuery(env, childSoql);
+    if (!childOk) return null;
+
+    let total = 0;
+    if (children.length) {
+      // 2. Sum every reprint line's Quantity across all of them in one query.
+      const quotedIds = children.map((c) => `'${c.Id}'`).join(",");
+      const itemSoql = `SELECT Quantity FROM OrderItem WHERE OrderId IN (${quotedIds})`;
+      const { ok: itemOk, records: items } = await runQuery(env, itemSoql);
+      if (!itemOk) return null;
+      total = items.reduce((sum, i) => sum + (Number(i.Quantity) || 0), 0);
+    }
+
+    const orderPath = `/services/data/${v}/sobjects/Order/${orderId}`;
+    const orderResp = await sfFetch(env, orderPath, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ TotalQtyMisprints__c: total }),
+    });
+    if (orderResp.status !== 204) {
+      let t = "";
+      try { t = JSON.stringify(await orderResp.json()); } catch { /* empty */ }
+      console.error("rollupMisprintsToOrder: order PATCH failed", orderResp.status, t);
+      return null;
+    }
+    return total;
+  } catch (e) {
+    console.error("rollupMisprintsToOrder failed", orderId, e);
+    return null;
+  }
+}
